@@ -106,7 +106,7 @@ function showCircle(){
 	var colors = 255/players;
 	var i;
 	for (i = 0; i < players; i++) {
-	  players_circle.innerHTML += '<div class="circles" onClick="definePlayer(this.id)" id="player'+i+'" style="transform: rotate('+degrees*i+'deg) translateX('+players_circle.offsetWidth/2+'px); background-color: rgb('+(200+55*(colors*i)/255)+','+(200+55*(colors*i)/255)+','+(200+55*(colors*i)/255)+')"><div class="playertext" id="playertext'+i+'" style="transform: translateY('+20+'px) rotate('+(-degrees*i)+'deg)">Jugador</div><div class="rolltext" style="transform: translateY('+10+'px) translateX(-40px) rotate('+(-degrees*i)+'deg)"></div></div>';
+	  players_circle.innerHTML += '<div class="circles" onClick="definePlayer(this.id)" id="player'+i+'" style="transform: rotate('+degrees*i+'deg) translateX('+(players_circle.offsetWidth/2)*0.8+'px); background-color: rgb('+(200+55*(colors*i)/255)+','+(200+55*(colors*i)/255)+','+(200+55*(colors*i)/255)+')"><div class="playertext" id="playertext'+i+'" style="transform: translateY('+50+'px) rotate('+(-degrees*i)+'deg)">Jugador</div><div class="rolltext" style="transform: translateY('+80+'px) translateX(-80px) rotate('+(-degrees*i)+'deg)"></div></div>';
 	}
 }
 
@@ -154,7 +154,15 @@ function startGame(){
 	//console.log(playerRolls);
 	boton_continuar.style.display = "none";
 	infocard.style.display = "block";
+	disableEditing();
 	calculateFirstNight();
+}
+
+function disableEditing(){
+	var i;
+	for(i=0; i<circles.length; i++){
+		circles[i].setAttribute( "onClick", "" );
+	}
 }
 
 function calculateFirstNight(){

@@ -67,12 +67,13 @@
 	<div id="formulario">
 		<form>
 		  <div class="mb-3">
-			<label for="inputName" class="form-label">Nombre</label>
-			<input type="text" class="form-control" id="inputName" aria-describedby="nombreHelp">
-			<div id="nombreHelp" class="form-text">Nombre del jugador.</div>
+			<label for="inputName" class="form-label" style="font-weight: 600;">Nombre:</label>
+			<input type="text" class="form-control input-lg" style="font-size: 5vw;" id="inputName" placeholder="Nombre del jugador" aria-describedby="nombreHelp">
+			<div id="nombreHelp" class="form-text" style="display: none">Nombre del jugador.</div>
 		  </div>
 		  <div class="mb-3">
-			<select class="form-select" aria-label="Select Roll" id="inputRoll">
+			<label for="inputRoll" class="form-label" style="font-weight: 600;">Papel del jugador:</label>
+			<select class="form-select input-lg" style="font-size: 5vw;" aria-label="Select Roll" id="inputRoll">
 			  	<option selected value="ALD">Aldeano</option>
 			  	<option value="VID">Vidente</option>
 			  	<option value="ANC">Anciano</option>
@@ -93,7 +94,9 @@
 				<option value="ALB">Hombre Lobo Albino</option>
 			</select>
 		  </div>
-		  <div class="btn btn-primary" onClick="endDefinePlayer()">Submit</div>
+		  <div style="display: inline-flex; text-align: center; width: 100%;">
+			  <div class="btn btn-primary" style="font-size: 7vw; border-radius: 15px; width: 50%; margin: 15px 25%;" onClick="endDefinePlayer()">Aceptar</div>
+		  </div>
 		</form>
 	</div>
 	<div id="continuar_btn" class="btn" onClick="startGame()">Continuar</div>

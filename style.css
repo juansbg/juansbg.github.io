@@ -23,19 +23,21 @@ h3{
 #titulo{
 	font-weight: 800;
 	margin-top: 20px;
+	font-size: 9vw;
 }
 #subtitle{
 	color: darkgray;
 	opacity: 1;
   	transition: opacity 0.5s;
+	font-size: 7vw;
 }
 #select_container{
 	width: 80%;
     margin: 0 10%;
 }
 #players_container{
-	width: 80%;
-    margin: 0 12%;
+	width: 90%;
+    margin: -60px 1% 0;
 	display: none;
 	justify-content: center;
 	align-items: center;
@@ -45,7 +47,7 @@ h3{
 	border-style: dotted;
 	border-width: 10px;
 	border-radius: 50%;
-	width: 90%;
+	width: 100%;
 	padding-top: 100%;
 	position: relative;
 	border-color: white;
@@ -53,7 +55,7 @@ h3{
 #continuar_btn{
 	display: none;
 	width: 70%;
-	height: 35px;
+	height: 120px;
 	margin: 30px 15%;
 	padding-top: 10px;
 	padding-bottom: 40px;
@@ -70,6 +72,8 @@ h3{
 	display: none;
 	width: 100%;
 	justify-content: center;
+	margin-top: 80px;
+	font-size: 7vw !important;
 }
 #infoCard{
 	width: 90%;
@@ -111,9 +115,9 @@ h3{
 	margin: 10px 0;
 }
 .circles{
-	width: 70px;
-	height: 70px;
-	border-width: 5px;
+	width: 170px;
+	height: 170px;
+	border-width: 10px;
 	background-color: aliceblue;
 	border-radius: 50%;
 	border-style: solid;
@@ -132,13 +136,13 @@ h3{
 	justify-content: center;
 }
 .selector{
-	width: 120px;
-	height: 100px;
-	
+	width: 240px;
+	height: 200px;
+	font-size: 7vw;
 	background-color: gainsboro;
-	border-radius: 20%;
+	border-radius: 50px;
 	text-align: center;
-	margin: 4px;
+	margin: 15px;
 	display: flex;
 	justify-content: center;
 	align-items: center;
@@ -167,13 +171,14 @@ h3{
 	position: absolute;
 	color: darkgray;
 	font-weight: 700;
+	font-size: 4vw;
 }
 .inputNightClass{
 	opacity: 0.6;
 	width: auto;
 	border-radius: 6px;
 	margin: 5px 0;
-	font-size: 5vw;
+	font-size: 5vw !important;
 	font-weight: 700;
 }
 #inputNight{
