@@ -1,0 +1,200 @@
+@charset "utf-8";
+/* CSS Document */
+body{
+	font-family: Segoe, "Segoe UI", "DejaVu Sans", "Trebuchet MS", Verdana, "sans-serif";
+}
+h1{
+	font-size: 9vw;
+}
+h2{
+	font-size: 7vw;
+}
+h3{
+	font-size: 5vw;
+}
+.content{
+	width: 100%;
+}
+.center{
+	width: 100%;
+	text-align: center;
+	color: black;
+}
+#titulo{
+	font-weight: 800;
+	margin-top: 20px;
+}
+#subtitle{
+	color: darkgray;
+	opacity: 1;
+  	transition: opacity 0.5s;
+}
+#select_container{
+	width: 80%;
+    margin: 0 10%;
+}
+#players_container{
+	width: 80%;
+    margin: 0 12%;
+	display: none;
+	justify-content: center;
+	align-items: center;
+}
+#players_circle{
+	margin-top: 50px;
+	border-style: dotted;
+	border-width: 10px;
+	border-radius: 50%;
+	width: 90%;
+	padding-top: 100%;
+	position: relative;
+	border-color: white;
+}
+#continuar_btn{
+	display: none;
+	width: 70%;
+	height: 35px;
+	margin: 30px 15%;
+	padding-top: 10px;
+	padding-bottom: 40px;
+	background-color: gainsboro;
+	text-align: center;
+	font-size: 6vw;
+	font-weight: 800;
+	border-radius: 20px;
+}
+#continuar_btn:active{
+	background-color: grey;
+}
+#formulario{
+	display: none;
+	width: 100%;
+	justify-content: center;
+}
+#infoCard{
+	width: 90%;
+	margin: 30px 5%;
+	padding: 10px 5%;
+	background-color: darkblue;
+	color: lightgoldenrodyellow;
+	border-radius: 20px;
+	display: none;
+}
+.infoTitle{
+	font-size: 7vw;
+	font-weight: 800;
+}
+.infoText{
+	font-size: 5vw;
+	font-weight: 600;
+}
+#info_btn_prev{
+	font-size: 9vw !important;
+	font-weight: 600 !important;
+	color: black !important;
+	background-color: white;
+	width: 40%;
+	margin-right: 10%;
+	opacity: 0.6;
+}
+#info_btn_next{
+	font-size: 9vw !important;
+	font-weight: 600 !important;
+	color: black !important;
+	background-color: white;
+	width: 40%;
+	opacity: 0.6;
+}
+#btnRows{
+	display: inline-flex;
+	width: 110%;
+	margin: 10px 0;
+}
+.circles{
+	width: 70px;
+	height: 70px;
+	border-width: 5px;
+	background-color: aliceblue;
+	border-radius: 50%;
+	border-style: solid;
+	display: block;
+	justify-content: center;
+	align-items: center;
+	position: absolute;
+	left: calc(50% - 45px);
+    top: calc(50% - 45px);
+}
+.selector_row{
+	width: 100%;
+	margin: auto;
+	text-align: center;
+	display: inline-flex;
+	justify-content: center;
+}
+.selector{
+	width: 120px;
+	height: 100px;
+	
+	background-color: gainsboro;
+	border-radius: 20%;
+	text-align: center;
+	margin: 4px;
+	display: flex;
+	justify-content: center;
+	align-items: center;
+	-webkit-touch-callout: none; /* iOS Safari */
+    -webkit-user-select:   none; /* Safari */
+     -khtml-user-select:   none; /* Konqueror HTML */
+       -moz-user-select:   none; /* Old versions of Firefox */
+        -ms-user-select:   none; /* Internet Explorer/Edge */
+            user-select:   none; /* Non-prefixed version, currently
+                                  supported by Chrome, Edge, Opera and Firefox */
+	opacity: 1;
+  	transition: opacity 0.5s;
+}
+.hidden{
+	opacity: 0;
+}
+.selector:active{
+	background-color: grey;
+}
+.playertext{
+	text-align: center;
+	font-size: 3.5vw;
+	font-weight: 800;
+}
+.rolltext{
+	position: absolute;
+	color: darkgray;
+	font-weight: 700;
+}
+.inputNightClass{
+	opacity: 0.6;
+	width: auto;
+	border-radius: 6px;
+	margin: 5px 0;
+	font-size: 5vw;
+	font-weight: 700;
+}
+#inputNight{
+	display: none;
+}
+#inputNightTwo{
+	display: none;
+}
+#eventRow{
+	width: 100%;
+	display: none;
+}
+.displayCards{
+	width: 100%;
+	margin: 10px 0;
+	border-radius: 10px;
+	padding: 5px 10px 10px;
+	font-size: 5vw !important;
+	font-weight: 700 !important;
+}
+.infobadge{
+	opacity: 0.8;
+	border-radius: 8px !important;
+}
