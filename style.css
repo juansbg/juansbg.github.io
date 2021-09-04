@@ -77,7 +77,7 @@ h3{
 }
 #infoCard{
 	width: 90%;
-	margin: 30px 5%;
+	margin: 70px 5%;
 	padding: 10px 5%;
 	background-color: darkblue;
 	color: lightgoldenrodyellow;
@@ -91,6 +91,28 @@ h3{
 .infoText{
 	font-size: 5vw;
 	font-weight: 600;
+}
+#gameBtnRow{
+	float: left;
+	width: 52%;
+	margin: 0 24%;
+	text-align: center;
+	position: fixed;
+	bottom: 80px;
+}
+.innerBtns{
+	float: left;
+	width: 32%;
+	height: 160px;
+	background-color: #d8d8d8;
+	border-radius: 50%;
+	margin: 9%;
+	text-align: center;
+}
+.svgBtn{
+	width:  60%;
+	height: 60%;
+	margin: 20%;
 }
 #info_btn_prev{
 	font-size: 9vw !important;

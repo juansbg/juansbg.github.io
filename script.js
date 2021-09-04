@@ -148,7 +148,7 @@ function startGame(){
 		if(player.roll == "ANC"){
 			player.prot_wolf = 1;
 		}
-		playerRolls.push(player)
+		playerRolls.push(player);
 		rollsUsed.push(circles[i].getElementsByClassName("rolltext")[0].innerText);
 	}
 	//console.log(playerRolls);
@@ -162,6 +162,33 @@ function disableEditing(){
 	var i;
 	for(i=0; i<circles.length; i++){
 		circles[i].setAttribute( "onClick", "" );
+	}
+}
+
+function enableTogglePlayer(){
+	var i;
+	for(i=0; i<circles.length; i++){
+		circles[i].setAttribute( "onClick", "togglePlayer(this.id)" );
+	}
+}
+
+function togglePlayer(e){
+	console.log("Player toggled.");
+	var i;
+	var playerToggled;
+	selectedPlayerID = e;
+	selectedPlayerCircle = document.getElementById(selectedPlayerID);
+	selectedPlayer = selectedPlayerCircle.getElementsByClassName("playertext")[0].innerText;
+	console.log(selectedPlayer);
+	for(i=0; i<playerRolls.length;i++){
+		if(playerRolls[i].name == selectedPlayer){
+			console.log("The player is "+playerRolls[i].alive);
+			if(playerRolls[i].alive){
+				killPlayer(playerRolls[i]);
+			} else {
+				revivePlayer(playerRolls[i]);
+			}
+		}
 	}
 }
 
@@ -240,33 +267,40 @@ function startDay(){
 	eventRow.style.display = "none";
 	boton_continuar.style.display = "block";
 	boton_continuar.setAttribute( "onClick", "startNight()" );
+	enableTogglePlayer();
 }
 
 function calculateStartDay(){
 	console.log(rollsUsed);
-	var i;
 	var playerSelected;
-	var deadPlayers = [];
-	var playerName;
+	
 	for(i=0; i<playerRolls.length; i++){
 		playerSelected = playerRolls[i];
-		// AQUI AQUI AQUI 
-		console.log(playerSelected.alive);
 		
 		if(!playerSelected.alive){
-			deadPlayers.push(playerSelected.name);
-			console.log("Estoy aqui: "+playerSelected.roll);
-			if(rollsUsed.includes(playerSelected.roll) && (playerSelected.roll != "LOB")){
-				rollsUsed.splice(rollsUsed.indexOf(playerSelected.roll),1);
-			}
-			console.log(rollsUsed);
+			console.log("El jugador "+playerSelected.name+" tiene tag 'not alive'.");
+			killPlayer(playerSelected);
 		}
 	}
 
+	
+}
+
+function killPlayer(player){
+	var i;
+	var playerName;
+	
+	console.log("Killing player: " + player.name);
+	player.alive = false;
+	// Update rolls:
+	if(rollsUsed.includes(player.roll) && (player.roll != "LOB")){
+				rollsUsed.splice(rollsUsed.indexOf(player.roll),1);
+			}
+	
 	for(i=0; i<circles.length; i++){
 		playerName = circles[i].getElementsByClassName("playertext")[0].innerText;
 		
-		if(deadPlayers.includes(playerName)){
+		if(playerName == player.name){
 			circles[i].style.backgroundColor = "#d8d8d8";
 			circles[i].style.color = "#a3a3a3";
 			circles[i].style.borderColor = "#a3a3a3";
@@ -274,7 +308,28 @@ function calculateStartDay(){
 	}
 }
 
+function revivePlayer(player){
+	var i;
+	var playerName;
+	
+	console.log("Reviving player: " + player.name);
+	player.alive = true;
+	// RESTORE ROLL
+	rollsUsed.push(player.roll);
+	// RESTORE COLOR
+	for(i=0; i<circles.length; i++){
+		playerName = circles[i].getElementsByClassName("playertext")[0].innerText;
+		
+		if(playerName == player.name){
+			circles[i].style.backgroundColor = "#"+(playerColors[player.roll]).toString();
+			circles[i].style.color = "black";
+			circles[i].style.borderColor = "#"+(LightenDarkenColor(playerColors[player.roll],-40)).toString();
+		}
+	}
+}
+
 function startNight(){
+	disableEditing();
 	currentNight += 1;
 	calculateNight();
 	boton_continuar.style.display = "none";
@@ -477,34 +532,35 @@ function prepararInforme(){
 	var findID = "";
 	for(i=0;i<events.length;i++){
 		eventoAct = events[i];
-		switch(eventoAct.roll){
-			case "PRO":
-				findID = eventoAct.playerID;
-				var protectedPlayer = findPlayer(findID);
-				protectedPlayer.protection = 1;
-				updatePlayer(protectedPlayer);
-				console.log("Han protegido a " + protectedPlayer.name);
-				break;
-			case "ALB":
-			case "LOB":
-				findID = eventoAct.playerID;
-				var victimPlayer = findPlayer(findID);
-				if(victimPlayer.prot_wolf != 0){
-					victimPlayer.prot_wolf = 0;
-					eventoAct.description = "Han intentado matar a ";
-					eventoAct.show = false;
-				} else if(victimPlayer.protection != 0){
-					victimPlayer.protection = 0;
-					eventoAct.description = "Han intentado matar a ";
-					eventoAct.show = false;
-				} else {
-					victimPlayer.alive = false;
-				}
-				updatePlayer(victimPlayer);
-				events[i] = eventoAct;
-				break;
+		if(eventoAct.night == currentNight){
+			switch(eventoAct.roll){
+				case "PRO":
+					findID = eventoAct.playerID;
+					var protectedPlayer = findPlayer(findID);
+					protectedPlayer.protection = 1;
+					updatePlayer(protectedPlayer);
+					console.log("Han protegido a " + protectedPlayer.name);
+					break;
+				case "ALB":
+				case "LOB":
+					findID = eventoAct.playerID;
+					var victimPlayer = findPlayer(findID);
+					if(victimPlayer.prot_wolf != 0){
+						victimPlayer.prot_wolf = 0;
+						eventoAct.description = "Han intentado matar a ";
+						eventoAct.show = false;
+					} else if(victimPlayer.protection != 0){
+						victimPlayer.protection = 0;
+						eventoAct.description = "Han intentado matar a ";
+						eventoAct.show = false;
+					} else {
+						victimPlayer.alive = false;
+					}
+					updatePlayer(victimPlayer);
+					events[i] = eventoAct;
+					break;
+			}
 		}
-		
 		if(eventoAct.show && (eventoAct.night == currentNight)){
 			eventRow.innerHTML += "<div class='displayCards' style='background-color: #"+playerColors[eventoAct.roll]+"; color: #"+LightenDarkenColor(playerColors[eventoAct.roll],-60)+"'>"+eventoAct.description+" <span class='infobadge badge bg-light text-dark'>"+eventoAct.playerName+"</span></div>";
 		}
