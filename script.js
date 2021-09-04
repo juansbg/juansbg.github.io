@@ -172,6 +172,13 @@ function enableTogglePlayer(){
 	}
 }
 
+function enableDefinePlayer(){
+	var i;
+	for(i=0; i<circles.length; i++){
+		circles[i].setAttribute( "onClick", "definePlayer(this.id)" );
+	}
+}
+
 function togglePlayer(e){
 	console.log("Player toggled.");
 	var i;
@@ -278,7 +285,6 @@ function calculateStartDay(){
 		playerSelected = playerRolls[i];
 		
 		if(!playerSelected.alive){
-			console.log("El jugador "+playerSelected.name+" tiene tag 'not alive'.");
 			killPlayer(playerSelected);
 		}
 	}
@@ -515,11 +521,12 @@ function checkFilled(){
 	var i;
 	var allFilled = true;
 	for(i=0; i<circles.length; i++){
-		if(circles[i].getElementsByClassName("playertext")[0].innerText == "Jugador"){
+		if(circles[i].getElementsByClassName("rolltext")[0].innerText == ""){
 		   allFilled = false;
 		}
 	}
 	if(allFilled){
+		boton_continuar.setAttribute( "onClick", "startGame()" );
 		boton_continuar.style.display = "block";
 	}
 }
@@ -593,12 +600,56 @@ function updatePlayer(playerUp){
 	return;
 }
 
+function resetGame(){
+	rollsUsed   = [];
+	playerRolls = [];
+	currentStepName = "";
+	currentStep = 0;
+	totalSteps  = 0;
+	steps = {};
+	events = [];
+	currentNight = 0;
+	resetCircles();
+	enableDefinePlayer();
+}
 
+function resetCircles(){
+	var i;
+	var colors = 255/players;
+	//try{
+	for(i=0; i<circles.length; i++){
+		circles[i].style.color 			 = "black";
+		circles[i].style.borderColor 	 = "black";
+		circles[i].style.backgroundColor = 'rgb('+(200+55*(colors*i)/255)+','+(200+55*(colors*i)/255)+','+(200+55*(colors*i)/255)+')';
+		circles[i].getElementsByClassName("rolltext")[0].innerText = "";
+	}
+	//} catch(e) {}
+	
+	eventRow.style.display 		  = "none";
+	boton_continuar.style.display = "none";
+	infocard.style.display 		  = "none";
+}
 
-
-
-
-
+function finishGame(){
+	boton_continuar.style.display = "none";
+	infocard.style.display 		  = "block";
+	
+	infocard.getElementsByClassName("infoTitle")[0].innerText = "";
+	infocard.getElementsByClassName("infoText")[0].innerText  = "";
+	
+	infocard.style.backgroundColor = "white";
+	
+	eventRow.style.display = "block";
+	eventRow.innerHTML = "";
+	
+	for(i=0;i<events.length;i++){
+		var eventoAct;
+		eventoAct = events[i];
+		
+		eventRow.innerHTML += "<div class='displayCards' style='background-color: #"+playerColors[eventoAct.roll]+"; color: #"+LightenDarkenColor(playerColors[eventoAct.roll],-60)+"'>"+eventoAct.description+" <span class='infobadge badge bg-light text-dark'>"+eventoAct.playerName+"</span></div>";
+		
+	}
+}
 
 
 
