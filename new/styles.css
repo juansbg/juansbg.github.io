@@ -1,0 +1,111 @@
+html, body {
+    height: 100%;
+    background-color: #1c2833;
+}
+
+#maintitle {
+    font-size: 11vw;
+}
+
+#mainpage {
+    text-align: center;
+    padding: 7vw;
+    background-color:  #1c2833 !important;
+    color:  #f1c40f !important;
+    font-weight: bold !important;
+    height: 100%;
+}
+
+.btn {
+    font-size: 5vw !important;
+    margin: 2vw !important;
+    width: 35vw !important;
+    height: 12vw !important;
+    color:  #f1c40f !important;
+    background-color:  #273746 !important;
+    font-weight: bold !important;
+}
+
+#player_container {
+    /*--d: 6.5em;  image size */
+    /*--rel: 1; how much extra space we want between images, 1 = one image size */
+    --r: calc(.4*(1 + var(--rel))*var(--d)/var(--tan)); /* circle radius */
+    --s: calc(2*var(--r) + var(--d)); /* container size */
+    position: relative;
+    width: var(--s); 
+    height: var(--s);
+    /*background: silver;*/
+    margin: auto;
+    margin-top: 100px;
+    margin-bottom: 100px;
+  }
+  
+#player_container .player_bubble {
+    position: absolute;
+    top: 50%; left: 50%;
+    margin: calc(-.5*var(--d));
+    width: var(--d); height: var(--d);
+    --az: calc(var(--i)*1turn/var(--m));
+    border-radius: 100%;
+    border-width: 8px;
+    border-style: solid;
+    transform: 
+      rotate(var(--az)) 
+      translate(var(--r))
+      rotate(calc(-1*var(--az)))
+}
+
+.player_name {
+    text-align: center;
+    position: relative;
+    top: 50%;
+    -ms-transform: translateY(-50%);
+    -webkit-transform: translateY(-50%);
+    transform: translateY(-50%);
+}
+
+.player_form_style {
+    font-size: 5vw !important;
+    /*font-weight: bold !important;*/
+    width: 50%;
+    margin: auto;
+    background-color: #1c2833;
+    color: #f1c40f !important;
+    border-radius: 20px !important;
+    border-style: solid !important;
+    border-color: #f1c40f !important;
+    border-width: 8px;
+    height: 80px;
+    margin: 20px auto;
+}
+
+.player_button_style {
+    font-size: 5vw !important;
+    font-weight: bold !important;
+    width: 50%;
+    background-color: #273746;
+    color: #f1c40f !important;
+    border-radius: 20px !important;
+    /*border-style: solid !important;*/
+    /*border-color: #f1c40f !important;*/
+    border-width: 0px;
+    height: 80px;
+    margin: 20px auto;
+}
+
+.test {
+    color: #f1c40f;
+    color: #c39bd3;
+    color: #2ecc71;
+    color: #a3e4d7;
+    color: #c8a3ff;
+    color: #f8c471;
+    color: #f39c12;
+    color: #ffcaf5;
+    color: #85c1e9;
+    color: #FA8072;
+    color: #82e0aa;
+    color: #cb4335;
+    color: #f1948a;
+    color: #45b39d;
+}
