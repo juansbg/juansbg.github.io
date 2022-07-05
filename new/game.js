@@ -25,6 +25,9 @@ const PLAYER_STATES = {
     ALB: {color:"#f1948a", is_lobo:true , full_name:"Lobo Albino"         , acr_name:"ALB"},
 }
 
+const MIN_PLAYERS =  4;
+const MAX_PLAYERS = 15;
+
 function Game() {
     this.days = 0;
     this.time = GAME_STATE.PRE;
@@ -58,6 +61,12 @@ function Player(player_index) {
 //Start game
 var game = new Game();
 var player_edit_index = -1;
+
+// On start
+for (let count = MIN_PLAYERS; count <= MAX_PLAYERS; count++) {
+    let button_div = `<button type="button" class="btn btn-dark" onclick="start_setup(${count})">${count} Jugadores</button>`;
+    $("#player_selector").append(button_div);
+}
 
 //Static functions
 function start_setup(player_count) {
