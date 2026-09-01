@@ -20,8 +20,9 @@ import { detectLocale, renderWinner, strings } from '../i18n'
 import { buzz, esc, on, swap } from './dom'
 import { clear, load, save, type AppState } from './store'
 import { countPickerMarkup, editorMarkup, MIN_PLAYERS, rosterMarkup } from './screens/setup'
+import { dealRoles, systemRandom, type Complexity } from '../engine/deal'
 import { dayMarkup, nightMarkup } from './screens/night'
-import { bindHold, bindRelease, revealMarkup, type RevealPhase } from './screens/reveal'
+import { bindHold, revealMarkup, roleCardMarkup, type RevealPhase } from './screens/reveal'
 
 const appRoot = document.querySelector<HTMLDivElement>('#app')
 if (!appRoot) throw new Error('#app not found')
@@ -34,6 +35,9 @@ let editing: PlayerId | null = null
 let picking = false
 /** Players chosen at the current night step, before the action is recorded. */
 let picked: PlayerId[] = []
+/** Chosen difficulty for auto-dealing, and whether roles have been dealt. */
+let complexity: Complexity = 'standard'
+let dealt = false
 let releaseHandler: (() => void) | null = null
 
 function boot(): AppState {
@@ -90,7 +94,7 @@ function render(): void {
   if (state.screen === 'setup') {
     body = game.players.length === 0
       ? countPickerMarkup(state.locale)
-      : rosterMarkup(game.players, state.locale)
+      : rosterMarkup(game.players, state.locale, complexity, dealt)
     if (editing !== null) {
       const player = game.players.find((p) => p.id === editing)
       if (player) body += editorMarkup(player, state.locale)
@@ -106,6 +110,7 @@ function render(): void {
           phase: revealPhase,
           locale: state.locale,
           mode: state.revealMode,
+          canGoBack: state.revealMode === 'onboarding' && state.revealIndex > 0,
         })
       : revealDoneMarkup()
   } else if (state.screen === 'night') {
@@ -189,7 +194,7 @@ function render(): void {
 
   function chromeMarkup(): string {
     // Hidden during a reveal: nothing may sit beside a held role.
-    if (state.screen === 'reveal' && revealPhase === 'revealed') return ''
+    if (document.body.classList.contains('is-revealing')) return ''
     const other = state.locale === 'es' ? 'en' : 'es'
     return `
       <nav class="chrome">
@@ -236,6 +241,25 @@ function bind(): void {
     }))
     buzz()
     setState({ session: newSession(createGame(setups)) })
+  })
+
+  on(root, '[data-complexity]', 'click', (_e, el) => {
+    complexity = (el.dataset.complexity ?? 'standard') as Complexity
+    setState({}, false)
+  })
+
+  // Names are all the narrator normally types; the app deals the rest.
+  on(root, '[data-deal-random]', 'click', () => {
+    const roles = dealRoles(game.players.length, complexity, systemRandom)
+    dealt = true
+    buzz()
+    mutate((s) => ({
+      ...s,
+      players: s.players.map((p, i) => {
+        const roleId = roles[i] ?? 'PLAIN'
+        return { ...p, roleId, wolfAttacksSurvivable: roleId === 'SURVIVE' ? 1 : 0 }
+      }),
+    }))
   })
 
   on(root, '[data-seat]', 'click', (_e, el) => {
@@ -289,17 +313,22 @@ function bind(): void {
     setState({}, false)
   })
 
+  on(root, '[data-reveal-back]', 'click', () => {
+    if (state.revealIndex === 0) return
+    revealPhase = 'handoff'
+    setState({ revealIndex: state.revealIndex - 1 })
+  })
+
   if (state.screen === 'reveal') {
-    bindHold(
-      root,
-      () => {
-        revealPhase = 'revealed'
-        render()
-        releaseHandler = bindRelease(hideRole)
-      },
-      hideRole,
-    )
+    // No re-render inside the gesture: unmounting the held button would fire
+    // pointercancel on touch and read as an instant release. The card is
+    // written into a slot beside the live button instead.
+    releaseHandler = bindHold(root, { onReveal: showRole, onHide: hideRole })
   }
+
+  // Advancing is deliberate and separate from the gesture, so a fumbled press
+  // can never skip someone.
+  on(root, '[data-reveal-next]', 'click', advanceReveal)
 
   on(root, '[data-begin]', 'click', () => {
     setState({ session: advance(state.session, startNight), screen: 'night' })
@@ -416,14 +445,36 @@ function bind(): void {
   })
 }
 
+/** Writes the role card in beside the live button — no re-render. */
+function showRole(): void {
+  const player = revealOrder()[state.revealIndex]
+  const slot = root.querySelector<HTMLElement>('[data-card]')
+  if (!player || !slot) return
+
+  slot.innerHTML = roleCardMarkup(player, state.locale)
+  root.querySelector<HTMLElement>('[data-reveal-root]')?.setAttribute('data-showing', '')
+  // Nothing may sit beside a visible role.
+  document.body.classList.add('is-revealing')
+}
+
+/**
+ * Hides the role on release but stays on this player.
+ *
+ * Releasing used to advance, so a fumbled press skipped someone with no way
+ * back. Advancing is now [data-reveal-next] only.
+ */
 function hideRole(): void {
-  if (state.screen !== 'reveal' || revealPhase !== 'revealed') return
+  const slot = root.querySelector<HTMLElement>('[data-card]')
+  if (slot) slot.innerHTML = ''
+  root.querySelector<HTMLElement>('[data-reveal-root]')?.removeAttribute('data-showing')
+  document.body.classList.remove('is-revealing')
+}
+
+/** Moves the pass-around on to the next player, or back to the game. */
+function advanceReveal(): void {
+  hideRole()
   releaseHandler?.()
   releaseHandler = null
-
-  const order = revealOrder()
-  const last = state.revealIndex >= order.length - 1
-
   revealPhase = 'handoff'
 
   if (state.revealMode === 'single') {
@@ -432,6 +483,8 @@ function hideRole(): void {
     return
   }
 
+  const order = revealOrder()
+  const last = state.revealIndex >= order.length - 1
   setState({ revealIndex: last ? order.length : state.revealIndex + 1 })
 }
 

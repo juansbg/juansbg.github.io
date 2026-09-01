@@ -1,4 +1,5 @@
 import { ROLE_IDS, ROLES } from '../../engine/roles'
+import { COMPLEXITIES, type Complexity } from '../../engine/deal'
 import type { RoleId } from '../../engine/roles'
 import type { Player } from '../../engine/types'
 import { strings, type Locale } from '../../i18n'
@@ -24,9 +25,23 @@ export const countPickerMarkup = (locale: Locale): string => {
 }
 
 /** Players sit in a circle; ids are seating positions, which the growl uses. */
-export const rosterMarkup = (players: readonly Player[], locale: Locale): string => {
+export const rosterMarkup = (
+  players: readonly Player[],
+  locale: Locale,
+  complexity: Complexity = 'standard',
+  dealt = false,
+): string => {
   const t = strings(locale)
   const ready = players.every((p) => p.name.trim() !== '')
+
+  const levels = (COMPLEXITIES as readonly Complexity[])
+    .map(
+      (c) =>
+        `<button class="chip" type="button" data-complexity="${c}"${
+          c === complexity ? ' data-on' : ''
+        }>${esc(t.ui.setup[c])}</button>`,
+    )
+    .join('')
 
   const seats = players
     .map((p) => {
@@ -36,7 +51,7 @@ export const rosterMarkup = (players: readonly Player[], locale: Locale): string
                 style="--role: var(--role-${p.roleId})"
                 data-named="${named}">
           <span class="seat__name">${named ? esc(p.name) : '—'}</span>
-          <span class="seat__role">${esc(t.roles[p.roleId].name)}</span>
+          ${dealt ? `<span class="seat__role">${esc(t.roles[p.roleId].name)}</span>` : ''}
         </button>
       `
     })
@@ -47,8 +62,16 @@ export const rosterMarkup = (players: readonly Player[], locale: Locale): string
       <h1 class="title title--sm">${esc(t.ui.setup.players)}</h1>
       <p class="subtitle subtitle--sm">${esc(t.ui.setup.tapToEdit)}</p>
       <div class="circle" style="--seats: ${players.length}">${seats}</div>
+
+      <p class="field__label">${esc(t.ui.setup.complexity)}</p>
+      <div class="chips">${levels}</div>
+
       <div class="actions">
-        <button class="btn btn--primary" type="button" data-deal ${ready ? '' : 'disabled'}>
+        <button class="btn ${dealt ? 'btn--ghost' : 'btn--primary'}" type="button"
+                data-deal-random ${ready ? '' : 'disabled'}>
+          ${esc(t.ui.setup.dealRandom)}
+        </button>
+        <button class="btn btn--primary" type="button" data-deal ${ready && dealt ? '' : 'disabled'}>
           ${esc(ready ? t.ui.setup.start : t.ui.setup.incomplete)}
         </button>
       </div>

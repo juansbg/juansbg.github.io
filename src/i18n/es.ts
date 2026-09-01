@@ -96,6 +96,12 @@ export const es: Strings = {
       start: 'Repartir papeles',
       incomplete: 'Faltan jugadores por definir',
       duplicateRoleHint: 'Puedes repetir papeles y nombres sin problema',
+      dealRandom: 'Repartir al azar',
+      complexity: 'Dificultad',
+      simple: 'Sencilla',
+      standard: 'Normal',
+      complex: 'Avanzada',
+      editRoles: 'Ver y ajustar papeles',
     },
     reveal: {
       passTo: (name) => `Pásale el móvil a ${name}`,
@@ -110,6 +116,7 @@ export const es: Strings = {
       allSeen: 'Todos han visto su papel',
       beginFirstNight: 'Empezar la primera noche',
       showAgain: 'Volver a ver un papel',
+      doneViewing: 'Listo, pasar el móvil',
       pickPlayer: '¿Quién quiere verlo?',
     },
     night: {

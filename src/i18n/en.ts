@@ -96,6 +96,12 @@ export const en: Strings = {
       start: 'Deal the roles',
       incomplete: 'Some players still need a role',
       duplicateRoleHint: 'Repeating roles and names is fine',
+      dealRandom: 'Deal at random',
+      complexity: 'Complexity',
+      simple: 'Simple',
+      standard: 'Standard',
+      complex: 'Advanced',
+      editRoles: 'View and adjust roles',
     },
     reveal: {
       passTo: (name) => `Pass the phone to ${name}`,
@@ -110,6 +116,7 @@ export const en: Strings = {
       allSeen: 'Everyone has seen their role',
       beginFirstNight: 'Begin the first night',
       showAgain: 'Show a role again',
+      doneViewing: 'Done — pass the phone',
       pickPlayer: 'Who needs to see it?',
     },
     night: {

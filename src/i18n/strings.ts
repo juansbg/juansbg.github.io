@@ -70,6 +70,12 @@ export interface Strings {
       start: string
       incomplete: string
       duplicateRoleHint: string
+      dealRandom: string
+      complexity: string
+      simple: string
+      standard: string
+      complex: string
+      editRoles: string
     }
     reveal: {
       /** Shown while the phone is being handed over — no role information. */
@@ -86,6 +92,7 @@ export interface Strings {
       allSeen: string
       beginFirstNight: string
       showAgain: string
+      doneViewing: string
       pickPlayer: string
     }
     night: {
