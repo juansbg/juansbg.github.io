@@ -12,9 +12,9 @@ Deployed as a GitHub Pages site (`juansbg.github.io`).
 
 ## Current state: a v3 rewrite is underway
 
-The project is being rebuilt. The roadmap is six sprints; **Sprints 0 (scaffolding), 1 (engine) and 2 (i18n) are done.**
+The project is being rebuilt. The roadmap is six sprints; **Sprints 0-3 are done.**
 
-`src/engine/` is complete and at full narrator-script parity. `src/i18n/` holds the Spanish and English string tables and the outcome renderer. 73 tests, no DOM, no strings in the engine. **Sprint 3 (the UI) is next** — the first sprint that touches the screen, and the point at which design tokens and autosave land.
+`src/engine/` is complete and at full narrator-script parity. `src/i18n/` holds the Spanish and English string tables and the outcome renderer. 73 tests, no DOM, no strings in the engine. **Sprint 4 (motion polish) and 5 (PWA) remain.** The UI lives in `src/ui/`: one token set in `tokens.css`, screens in `src/ui/screens/`, autosave in `store.ts`.
 
 | | Path | Status |
 |---|---|---|
@@ -33,16 +33,25 @@ npm run test     # vitest — the engine suite is the safety net
 npm run build    # typecheck + production build
 ```
 
-Node is **not currently installed on the dev machine** (`brew install node`). Everything is authored but unverified until it is.
+Local Node is 26; CI runs 24. Vite 8, TypeScript 7, Vitest 4.
 
 ## v3 architecture
 
 ```
 src/
   engine/   pure TS — no DOM, no strings, fully unit-testable
-  i18n/     es/en string tables and role name packs (Sprint 2)
+  i18n/     es/en string tables and the outcome renderer
   ui/       renders from engine state; owns all strings and animation
+    tokens.css     the ONE palette — never invent a colour outside it
+    store.ts       autosave to localStorage
+    screens/       setup, reveal, night, day
 ```
+
+### The role reveal
+
+`src/ui/screens/reveal.ts` is a pass-the-phone onboarding flow: handoff → confirm identity → **press-and-hold** to see the role. The hold is the security model, not decoration. A tap-to-reveal screen can be left face-up, handed over still showing, or screenshotted; a held reveal cannot outlive the hand holding it. `pointercancel`, `pointerleave` and `visibilitychange` all hide it, and the language/reset chrome is removed while a role is on screen. `reveal.test.ts` asserts no role name or team appears in the handoff or confirm markup, in either language — **do not weaken those tests.**
+
+The same screen serves the mid-game "show a role again" flow in `single` mode, selected by player id from a picker.
 
 Two rules the whole design rests on:
 
