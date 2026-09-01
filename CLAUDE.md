@@ -10,7 +10,9 @@ Deployed as a GitHub Pages site (`juansbg.github.io`).
 
 ## Current state: a v3 rewrite is underway
 
-The project is being rebuilt. The roadmap is six sprints; **Sprint 0 (scaffolding) is done.**
+The project is being rebuilt. The roadmap is six sprints; **Sprints 0 (scaffolding) and 1 (engine) are done.**
+
+The engine in `src/engine/` is complete and at full narrator-script parity — 54 tests, no DOM, no strings. Sprint 2 (i18n) is next, and needs the role-name set signed off before strings are written.
 
 | | Path | Status |
 |---|---|---|
