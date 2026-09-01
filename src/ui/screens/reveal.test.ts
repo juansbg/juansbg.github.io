@@ -76,7 +76,7 @@ describe('the revealed card', () => {
   it('shows role, team and what it does', () => {
     const html = roleCardMarkup(player('MEDIC'), 'en')
     expect(html).toContain(strings('en').roles.MEDIC.name)
-    expect(html).toContain(strings('en').roles.MEDIC.prompt)
+    expect(html).toContain(strings('en').roles.MEDIC.brief)
     expect(html).toContain(strings('en').ui.reveal.teamTown)
   })
 

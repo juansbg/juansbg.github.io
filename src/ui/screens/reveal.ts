@@ -108,7 +108,7 @@ export const roleCardMarkup = (player: Player, locale: Locale): string => {
       <p class="reveal__label">${esc(t.ui.reveal.yourRole)}</p>
       <h2 class="reveal__role">${esc(roleStrings.name)}</h2>
       <p class="reveal__team" data-team="${role.team}">${esc(team)}</p>
-      <p class="reveal__prompt">${esc(roleStrings.prompt)}</p>
+      <p class="reveal__prompt">${esc(roleStrings.brief)}</p>
     </div>
   `
 }

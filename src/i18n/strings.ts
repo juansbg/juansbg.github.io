@@ -7,8 +7,10 @@ export type Locale = (typeof LOCALES)[number]
 export interface RoleStrings {
   /** Display name, e.g. "El Padrino". */
   name: string
-  /** What the narrator does at this role's step. */
+  /** What the narrator does at this role's step. Third person, to the narrator. */
   prompt: string
+  /** What the player reads on their own reveal card. Second person, to them. */
+  brief: string
 }
 
 /**
@@ -47,6 +49,7 @@ export interface Strings {
     town: string
     crew: string
     lovers: string
+    martyr: string
   }
 
   ui: {

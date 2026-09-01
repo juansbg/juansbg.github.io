@@ -218,3 +218,77 @@ describe('a full multi-night game', () => {
     expect(state.log.length).toBeGreaterThan(0)
   })
 })
+
+describe('the Orphan', () => {
+  it('joins the crew when his mentor is killed', () => {
+    let state = startNight(createGame(cast(['PROTEGE', 'KILLER', 'PLAIN', 'INSPECT', 'GUARD'])))
+    state = recordAction(state, { kind: 'target', roleId: 'PROTEGE', actor: 0, target: 2 })
+    state = recordAction(state, { kind: 'skip', roleId: 'GUARD' })
+    state = recordAction(state, { kind: 'skip', roleId: 'INSPECT' })
+    state = recordAction(state, { kind: 'target', roleId: 'KILLER', actor: 1, target: 2 })
+    state = endNight(state)
+
+    expect(state.players[2]!.alive).toBe(false)
+    expect(state.players[0]!.roleId).toBe('KILLER')
+  })
+
+  it('stays with the town while his mentor lives', () => {
+    let state = startNight(createGame(cast(['PROTEGE', 'KILLER', 'PLAIN', 'INSPECT'])))
+    state = recordAction(state, { kind: 'target', roleId: 'PROTEGE', actor: 0, target: 2 })
+    state = recordAction(state, { kind: 'skip', roleId: 'INSPECT' })
+    state = recordAction(state, { kind: 'target', roleId: 'KILLER', actor: 1, target: 3 })
+    state = endNight(state)
+
+    expect(state.players[0]!.roleId).toBe('PROTEGE')
+  })
+
+  it('turns when his mentor is executed by the town', () => {
+    let state = startNight(createGame(cast(['PROTEGE', 'KILLER', 'PLAIN', 'INSPECT'])))
+    state = recordAction(state, { kind: 'target', roleId: 'PROTEGE', actor: 0, target: 2 })
+    state = recordAction(state, { kind: 'skip', roleId: 'INSPECT' })
+    state = recordAction(state, { kind: 'skip', roleId: 'KILLER' })
+    state = endNight(state)
+    state = lynch(state, 2)
+
+    expect(state.players[0]!.roleId).toBe('KILLER')
+  })
+})
+
+describe('the Martyr', () => {
+  it('wins the moment the town executes him', () => {
+    let state = createGame(cast(['MARTYR', 'KILLER', 'PLAIN', 'INSPECT', 'GUARD']))
+    expect(winner(state)).toBeNull()
+
+    state = lynch(state, 0)
+    expect(winner(state)).toBe('martyr')
+  })
+
+  it('does not win if the crew kills him instead', () => {
+    let state = startNight(createGame(cast(['MARTYR', 'KILLER', 'PLAIN', 'INSPECT', 'GUARD'])))
+    state = recordAction(state, { kind: 'skip', roleId: 'GUARD' })
+    state = recordAction(state, { kind: 'skip', roleId: 'INSPECT' })
+    state = recordAction(state, { kind: 'target', roleId: 'KILLER', actor: 1, target: 0 })
+    state = endNight(state)
+
+    expect(state.players[0]!.alive).toBe(false)
+    expect(winner(state)).not.toBe('martyr')
+  })
+})
+
+describe('the Godfather', () => {
+  it('converts on a confirm, which the night Confirm button records', () => {
+    // That button used to share a selector with the reveal screen's "Are you
+    // Ana?", whose handler ignores the night screen — so it did nothing and
+    // the Godfather could never convert.
+    let state = startNight(createGame(cast(['CONVERT', 'PLAIN', 'INSPECT', 'GUARD'])))
+    state = recordAction(state, { kind: 'skip', roleId: 'GUARD' })
+    state = recordAction(state, { kind: 'skip', roleId: 'INSPECT' })
+    state = recordAction(state, { kind: 'target', roleId: 'KILLER', actor: 0, target: 1 })
+    state = recordAction(state, { kind: 'confirm', roleId: 'CONVERT' })
+    state = endNight(state)
+
+    expect(state.players[1]!.alive).toBe(true)
+    expect(state.players[1]!.roleId).toBe('KILLER')
+    expect(state.infectionUsed).toBe(true)
+  })
+})

@@ -85,7 +85,7 @@ export const nightMarkup = (
 
   const targetList =
     spec.kind === 'none'
-      ? `<button class="btn btn--primary" type="button" data-confirm>${esc(t.ui.common.confirm)}</button>`
+      ? `<button class="btn btn--primary" type="button" data-night-confirm>${esc(t.ui.common.confirm)}</button>`
       : `<div class="targets">${options}</div>`
 
   return `

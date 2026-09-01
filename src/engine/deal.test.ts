@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { COMPLEXITIES, crewSize, dealRoles, shuffle, type Complexity } from './deal'
+import { COMPLEXITIES, NOT_AUTO_DEALT, crewSize, dealRoles, shuffle, type Complexity } from './deal'
 import { ROLES, isCrewRole, type RoleId } from './roles'
 
 /** A small deterministic generator, so a failure is always reproducible. */
@@ -150,5 +150,57 @@ describe('complexity levels', () => {
     )
     expect(counts[0]!).toBeLessThanOrEqual(counts[1]!)
     expect(counts[1]!).toBeLessThanOrEqual(counts[2]!)
+  })
+})
+
+describe('the dealer never hands out a role that does nothing', () => {
+  // The real balance risk is not the crew ratio — it is dealing a role whose
+  // mechanic the engine does not implement, which quietly costs that side a
+  // player. Every role below is one the engine actually resolves.
+  const WORKING: readonly RoleId[] = [
+    'PLAIN',      // no ability by design
+    'INSPECT',    // logged, secret
+    'GUARD',      // blocks attacks
+    'MEDIC',      // heal cancels a death, poison adds one
+    'SURVIVE',    // survives the first attempt
+    'SILENCE',    // silences for a day
+    'EXTRA_VOTE', // adds a vote for a day
+    'PAIR',       // lovers, with heartbreak
+    'PROTEGE',    // joins the crew when the mentor dies
+    'SENSE',      // growl, by seating adjacency
+    'AVENGE',     // revenge shot on death
+    'PEEK',       // narrator-facing only; needs no bookkeeping
+    'MARTYR',     // wins if executed
+    'KILLER',     // the nightly kill
+    'CONVERT',    // converts instead of killing, once
+    'ROGUE',      // kills anyone, own side included
+  ]
+
+  it('only deals roles the engine resolves', () => {
+    for (const complexity of COMPLEXITIES) {
+      for (let n = 4; n <= 20; n++) {
+        for (let seed = 1; seed <= 25; seed++) {
+          for (const role of dealRoles(n, complexity, seeded(seed * 13 + n))) {
+            expect(WORKING, `${complexity}/${n}/${role}`).toContain(role)
+          }
+        }
+      }
+    }
+  })
+
+  it('excludes the unimplemented roles explicitly', () => {
+    for (const complexity of COMPLEXITIES) {
+      for (let n = 4; n <= 20; n++) {
+        const roles = dealRoles(n, complexity, seeded(n * 3))
+        for (const excluded of NOT_AUTO_DEALT) {
+          expect(roles, `${complexity}/${n}`).not.toContain(excluded)
+        }
+      }
+    }
+  })
+
+  it('keeps the excluded roles manually assignable', () => {
+    // They are still real roles; the narrator can adjudicate them by hand.
+    for (const id of NOT_AUTO_DEALT) expect(ROLES[id]).toBeDefined()
   })
 })

@@ -35,9 +35,8 @@ let editing: PlayerId | null = null
 let picking = false
 /** Players chosen at the current night step, before the action is recorded. */
 let picked: PlayerId[] = []
-/** Chosen difficulty for auto-dealing, and whether roles have been dealt. */
+/** Chosen difficulty for auto-dealing. */
 let complexity: Complexity = 'standard'
-let dealt = false
 let releaseHandler: (() => void) | null = null
 
 function boot(): AppState {
@@ -94,7 +93,7 @@ function render(): void {
   if (state.screen === 'setup') {
     body = game.players.length === 0
       ? countPickerMarkup(state.locale)
-      : rosterMarkup(game.players, state.locale, complexity, dealt)
+      : rosterMarkup(game.players, state.locale, complexity)
     if (editing !== null) {
       const player = game.players.find((p) => p.id === editing)
       if (player) body += editorMarkup(player, state.locale)
@@ -251,7 +250,6 @@ function bind(): void {
   // Names are all the narrator normally types; the app deals the rest.
   on(root, '[data-deal-random]', 'click', () => {
     const roles = dealRoles(game.players.length, complexity, systemRandom)
-    dealt = true
     buzz()
     mutate((s) => ({
       ...s,
@@ -377,6 +375,19 @@ function bind(): void {
     picked = []
     buzz()
     mutate((s) => recordAction(s, { kind: 'potion', roleId: 'MEDIC', target, potion }))
+  })
+
+  // Roles that act without picking a target (the Godfather converting, the
+  // Associate choosing a side). This button used to share [data-confirm] with
+  // the reveal screen's "Are you Ana?", whose handler is guarded by
+  // screen === 'reveal' — so on the night screen it silently did nothing and
+  // the Godfather could never convert.
+  on(root, '[data-night-confirm]', 'click', () => {
+    const roleId = currentStep(game)
+    if (roleId === null) return
+    picked = []
+    buzz()
+    mutate((s) => recordAction(s, { kind: 'confirm', roleId }))
   })
 
   on(root, '[data-skip]', 'click', () => {

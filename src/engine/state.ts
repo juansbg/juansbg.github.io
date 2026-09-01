@@ -135,14 +135,25 @@ const killDuringDay = (
   }
 }
 
-export type Winner = 'town' | 'crew' | 'lovers' | null
+export type Winner = 'town' | 'crew' | 'lovers' | 'martyr' | null
 
 /**
- * Lovers on opposite teams win together if they are the last two alive, which
- * is why this is checked before the team counts.
+ * Independent win conditions are checked before the team counts, because both
+ * can be true at once and the individual one takes precedence.
  */
 export const winner = (state: GameState): Winner => {
   const living = state.players.filter((p) => p.alive)
+
+  // The martyr wins the moment the town executes him — including when that
+  // execution also ends the game for everyone else.
+  const martyrExecuted = state.log.some(
+    (o) =>
+      o.type === 'death' &&
+      o.cause === 'lynch' &&
+      state.players.find((p) => p.id === o.target)?.roleId === 'MARTYR',
+  )
+  if (martyrExecuted) return 'martyr'
+
   if (living.length === 0) return null
 
   if (living.length === 2) {

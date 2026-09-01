@@ -29,10 +29,17 @@ export const rosterMarkup = (
   players: readonly Player[],
   locale: Locale,
   complexity: Complexity = 'standard',
-  dealt = false,
 ): string => {
   const t = strings(locale)
-  const ready = players.every((p) => p.name.trim() !== '')
+  const named = players.every((p) => p.name.trim() !== '')
+  // Roles are shown once any have been assigned, whether by the dealer or by
+  // hand. Everyone starts as a Citizen, so an all-Citizen table means nothing
+  // has been assigned yet.
+  const assigned = players.some((p) => p.roleId !== 'PLAIN')
+  // A table with no crew can never end, so it is not a startable game. This
+  // also fixes Start staying disabled forever when roles were set by hand.
+  const hasCrew = players.some((p) => ROLES[p.roleId].team === 'crew')
+  const ready = named && hasCrew
 
   const levels = (COMPLEXITIES as readonly Complexity[])
     .map(
@@ -51,7 +58,7 @@ export const rosterMarkup = (
                 style="--role: var(--role-${p.roleId})"
                 data-named="${named}">
           <span class="seat__name">${named ? esc(p.name) : '—'}</span>
-          ${dealt ? `<span class="seat__role">${esc(t.roles[p.roleId].name)}</span>` : ''}
+          ${assigned ? `<span class="seat__role">${esc(t.roles[p.roleId].name)}</span>` : ''}
         </button>
       `
     })
@@ -67,11 +74,11 @@ export const rosterMarkup = (
       <div class="chips">${levels}</div>
 
       <div class="actions">
-        <button class="btn ${dealt ? 'btn--ghost' : 'btn--primary'}" type="button"
-                data-deal-random ${ready ? '' : 'disabled'}>
+        <button class="btn ${assigned ? 'btn--ghost' : 'btn--primary'}" type="button"
+                data-deal-random ${named ? '' : 'disabled'}>
           ${esc(t.ui.setup.dealRandom)}
         </button>
-        <button class="btn btn--primary" type="button" data-deal ${ready && dealt ? '' : 'disabled'}>
+        <button class="btn btn--primary" type="button" data-deal ${ready ? '' : 'disabled'}>
           ${esc(ready ? t.ui.setup.start : t.ui.setup.incomplete)}
         </button>
       </div>

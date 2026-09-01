@@ -131,3 +131,38 @@ describe('rendering the morning report', () => {
     expect(morningReport(state, 1, 'en')).toEqual(['Beto was found dead this morning.'])
   })
 })
+
+describe('role briefs', () => {
+  it('exist for every role in every language', () => {
+    for (const locale of LOCALES) {
+      for (const id of ROLE_IDS) {
+        expect(strings(locale).roles[id].brief.length, `${locale}/${id}`).toBeGreaterThan(20)
+      }
+    }
+  })
+
+  it('address the player directly, not the narrator', () => {
+    // The prompt is written to the narrator ("They choose their victim"); the
+    // brief is what the player reads on their own card and must speak to them.
+    // Spanish carries person in the verb ending and drops the pronoun, so
+    // this enumerates the second-person forms the briefs actually use. A new
+    // brief with a new verb will fail here — add the form, or reword.
+    const second = {
+      es: /\bt[úu]\b|\bte\b|\btus?\b|\b(?:eliges|ganas|puedes|tienes|sobrevives|atas|divides|decides|mueras|proteges|prendes)\b/i,
+      en: /\byou\b|\byour\b/i,
+    }
+    for (const locale of LOCALES) {
+      for (const id of ROLE_IDS) {
+        expect(strings(locale).roles[id].brief, `${locale}/${id}`).toMatch(second[locale])
+      }
+    }
+  })
+
+  it('are distinct from the narrator prompts', () => {
+    for (const locale of LOCALES) {
+      for (const id of ROLE_IDS) {
+        expect(strings(locale).roles[id].brief).not.toBe(strings(locale).roles[id].prompt)
+      }
+    }
+  })
+})

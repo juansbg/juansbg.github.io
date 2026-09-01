@@ -262,6 +262,22 @@ export const applyDeaths = (
         awaitingHunterShot = player.id
       }
 
+      // A protégé whose mentor is killed goes over to the crew. The mentor
+      // choice was being recorded and then never acted on, so this role was
+      // inert and the crew stayed a member short of what the deal intended.
+      for (const other of players) {
+        if (other.alive && other.roleId === 'PROTEGE' && other.fatherOf === id) {
+          other.roleId = 'KILLER'
+          outcomes.push({
+            type: 'roleChanged',
+            night,
+            target: other.id,
+            to: 'KILLER',
+            public: false,
+          })
+        }
+      }
+
       if (player.loverOf !== null) {
         const lover = find(players, player.loverOf)
         if (lover?.alive && !settled.has(lover.id)) {

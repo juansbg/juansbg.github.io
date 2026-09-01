@@ -80,5 +80,6 @@ export const renderWinner = (winner: Winner, locale: Locale): string | null => {
   const t = strings(locale)
   return winner === 'town' ? t.winner.town
     : winner === 'crew' ? t.winner.crew
+    : winner === 'martyr' ? t.winner.martyr
     : t.winner.lovers
 }
