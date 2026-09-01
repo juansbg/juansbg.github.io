@@ -115,6 +115,10 @@ export const es: Strings = {
     night: {
       stepCounter: (current, total) => `${current} de ${total}`,
       noOne: 'Nadie',
+      heal: 'Curar',
+      poison: 'Envenenar',
+      pickOne: 'Elige a quién',
+      pickTwo: 'Elige a dos',
       endNight: 'Terminar la noche',
       wakeGroup: 'Que despierten juntos.',
     },

@@ -1,6 +1,6 @@
 import { ROLES, type RoleId } from '../../engine/roles'
 import { currentStep } from '../../engine/state'
-import type { GameState, Player } from '../../engine/types'
+import type { GameState, Player, PlayerId } from '../../engine/types'
 import { morningReport, strings, type Locale } from '../../i18n'
 import { esc } from '../dom'
 
@@ -20,7 +20,29 @@ export const legalTargets = (state: GameState, roleId: RoleId): Player[] => {
   })
 }
 
-export const nightMarkup = (state: GameState, locale: Locale): string => {
+/**
+ * How many players this role must pick before its action can be recorded.
+ *
+ * The Binding needs two, the potion needs one *before* the narrator chooses
+ * which vial. Roles with no target need none.
+ */
+export const picksNeeded = (roleId: RoleId): number => {
+  switch (ROLES[roleId].target.kind) {
+    case 'twoPlayers':
+      return 2
+    case 'player':
+    case 'potion':
+      return 1
+    default:
+      return 0
+  }
+}
+
+export const nightMarkup = (
+  state: GameState,
+  locale: Locale,
+  picked: readonly PlayerId[] = [],
+): string => {
   const t = strings(locale)
   const roleId = currentStep(state)
   if (roleId === null) return ''
@@ -31,15 +53,34 @@ export const nightMarkup = (state: GameState, locale: Locale): string => {
   const spec = role.target
 
   const options = targets
-    .map((p) => `<button class="target" type="button" data-target="${p.id}">${esc(p.name)}</button>`)
+    .map(
+      (p) =>
+        `<button class="target" type="button" data-target="${p.id}"${
+          picked.includes(p.id) ? ' data-picked' : ''
+        }>${esc(p.name)}</button>`,
+    )
     .join('')
 
+  // The potion is spent on a specific player, so the vial buttons stay locked
+  // until one is chosen. Previously they fired against whoever happened to be
+  // first in the list, which silently healed or poisoned the wrong person.
+  const armed = picked.length === 1
   const potion =
     spec.kind === 'potion'
       ? `<div class="potion">
-           <button class="btn btn--ok" type="button" data-potion="heal">${esc(t.roles.MEDIC.name)} · ✚</button>
-           <button class="btn btn--danger" type="button" data-potion="kill">${esc(t.roles.MEDIC.name)} · ☠</button>
+           <button class="btn btn--ok" type="button" data-potion="heal" ${armed ? '' : 'disabled'}>
+             ${esc(t.ui.night.heal)}
+           </button>
+           <button class="btn btn--danger" type="button" data-potion="kill" ${armed ? '' : 'disabled'}>
+             ${esc(t.ui.night.poison)}
+           </button>
          </div>`
+      : ''
+
+  const needed = picksNeeded(roleId)
+  const hint =
+    needed > 0 && picked.length < needed
+      ? `<p class="night__hint">${esc(needed === 2 ? t.ui.night.pickTwo : t.ui.night.pickOne)}</p>`
       : ''
 
   const targetList =
@@ -60,8 +101,9 @@ export const nightMarkup = (state: GameState, locale: Locale): string => {
         ${role.wakesAsGroup ? `<p class="card__aside">${esc(t.ui.night.wakeGroup)}</p>` : ''}
       </div>
 
-      ${potion}
+      ${hint}
       ${targetList}
+      ${potion}
 
       <button class="btn btn--ghost" type="button" data-skip>${esc(t.ui.night.noOne)}</button>
     </section>

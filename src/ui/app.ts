@@ -15,7 +15,7 @@ import {
   winner,
   type PlayerSetup,
 } from '../engine/state'
-import type { NightAction, PlayerId } from '../engine/types'
+import type { PlayerId } from '../engine/types'
 import { detectLocale, renderWinner, strings } from '../i18n'
 import { buzz, esc, on, swap } from './dom'
 import { clear, load, save, type AppState } from './store'
@@ -32,6 +32,8 @@ let state: AppState = boot()
 let revealPhase: RevealPhase = 'handoff'
 let editing: PlayerId | null = null
 let picking = false
+/** Players chosen at the current night step, before the action is recorded. */
+let picked: PlayerId[] = []
 let releaseHandler: (() => void) | null = null
 
 function boot(): AppState {
@@ -107,7 +109,7 @@ function render(): void {
         })
       : revealDoneMarkup()
   } else if (state.screen === 'night') {
-    body = isNightComplete(game) ? nightDoneMarkup() : nightMarkup(game, state.locale)
+    body = isNightComplete(game) ? nightDoneMarkup() : nightMarkup(game, state.locale, picked)
   } else if (state.screen === 'day') {
     body = game.awaitingHunterShot !== null ? hunterMarkup() : dayMarkup(game, state.locale)
     if (picking) body += pickerMarkup()
@@ -307,15 +309,43 @@ function bind(): void {
   on(root, '[data-target]', 'click', (_e, el) => {
     const roleId = currentStep(game)
     if (roleId === null) return
-    const target = Number(el.dataset.target)
+    const id = Number(el.dataset.target)
+    const kind = ROLES[roleId].target.kind
     buzz()
-    mutate((s) => recordAction(s, targetAction(roleId, target)))
+
+    if (kind === 'player') {
+      picked = []
+      mutate((s) => recordAction(s, { kind: 'target', roleId, actor: null, target: id }))
+      return
+    }
+
+    if (kind === 'twoPlayers') {
+      // Tapping a chosen player unpicks them, so a misfire is recoverable
+      // without undoing the whole step.
+      picked = picked.includes(id) ? picked.filter((p) => p !== id) : [...picked, id]
+      if (picked.length === 2) {
+        const [first, second] = picked as [PlayerId, PlayerId]
+        picked = []
+        mutate((s) => recordAction(s, { kind: 'pair', roleId, first, second }))
+      } else {
+        setState({}, false)
+      }
+      return
+    }
+
+    if (kind === 'potion') {
+      // Choose the target first; the vial buttons unlock once one is set.
+      picked = picked.includes(id) ? [] : [id]
+      setState({}, false)
+    }
   })
 
   on(root, '[data-potion]', 'click', (_e, el) => {
+    const target = picked[0]
+    // Guarded as well as disabled: never spend a potion on a guessed target.
+    if (target === undefined) return
     const potion = el.dataset.potion === 'heal' ? 'heal' : 'kill'
-    const chosen = root.querySelector<HTMLElement>('[data-target][data-chosen]')
-    const target = chosen ? Number(chosen.dataset.target) : game.players.find((p) => p.alive)?.id ?? 0
+    picked = []
     buzz()
     mutate((s) => recordAction(s, { kind: 'potion', roleId: 'MEDIC', target, potion }))
   })
@@ -323,11 +353,13 @@ function bind(): void {
   on(root, '[data-skip]', 'click', () => {
     const roleId = currentStep(game)
     if (roleId === null) return
+    picked = []
     mutate((s) => recordAction(s, { kind: 'skip', roleId }))
   })
 
   on(root, '[data-undo]', 'click', () => {
     if (!canUndo(state.session)) return
+    picked = []
     buzz()
     setState({ session: undo(state.session) })
   })
@@ -401,14 +433,6 @@ function hideRole(): void {
   }
 
   setState({ revealIndex: last ? order.length : state.revealIndex + 1 })
-}
-
-const targetAction = (roleId: RoleId, target: PlayerId): NightAction => {
-  const spec = ROLES[roleId].target
-  if (spec.kind === 'twoPlayers') {
-    return { kind: 'pair', roleId, first: target, second: target }
-  }
-  return { kind: 'target', roleId, actor: null, target }
 }
 
 render()

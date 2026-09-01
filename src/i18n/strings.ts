@@ -91,6 +91,10 @@ export interface Strings {
     night: {
       stepCounter: (current: number, total: number) => string
       noOne: string
+      heal: string
+      poison: string
+      pickOne: string
+      pickTwo: string
       endNight: string
       wakeGroup: string
     }
