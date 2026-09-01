@@ -1,0 +1,8 @@
+node_modules/
+dist/
+*.local
+
+# The narrator script PDF is kept local, not published.
+Pueblo_duerme_Guion_DOS.pdf
+
+.DS_Store

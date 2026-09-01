@@ -1,0 +1,24 @@
+{
+  "name": "pueblo-duerme",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "description": "Narrator assistant for the Pueblo Duerme party game",
+  "license": "MIT",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc --noEmit && vite build",
+    "preview": "vite preview",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "typescript": "^7.0.2",
+    "vite": "^8.2.2",
+    "vitest": "^4.1.11"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}
