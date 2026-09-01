@@ -773,3 +773,204 @@ body.is-revealing .chrome {
   background: color-mix(in oklab, var(--accent) 16%, var(--surface));
   color: var(--accent);
 }
+
+/* ---------- Circle: in-game states ---------- */
+
+/* A compact circle rides along with the night and day screens, so the narrator
+   can always see the table and who has already gone. */
+.circle--compact {
+  --radius: min(calc(38vw - 2.4rem), 6.5rem);
+  margin: var(--space-2) auto;
+}
+
+.circle--compact .seat {
+  width: 3.6rem;
+  height: 3.6rem;
+  margin: -1.8rem;
+  border-width: 2px;
+}
+
+.circle--compact .seat__name {
+  font-size: 0.625rem;
+  max-width: 3.1rem;
+}
+
+.circle--compact .seat__role {
+  font-size: 0.5rem;
+  max-width: 3.1rem;
+}
+
+.seat[disabled] {
+  cursor: default;
+}
+
+/* The dead stay in their seat — the table layout is the point. */
+.seat[data-dead] {
+  border-color: var(--dead) !important;
+  background: var(--surface-sunken);
+  opacity: 0.55;
+}
+
+.seat[data-dead] .seat__name {
+  color: var(--fg-faint);
+  text-decoration: line-through;
+}
+
+.seat[data-selected] {
+  background: color-mix(in oklab, var(--role, var(--accent)) 26%, var(--surface));
+  scale: 1.06;
+}
+
+.seat__flag {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  display: grid;
+  place-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 50%;
+  background: var(--accent);
+  color: var(--on-accent);
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+/* ---------- Night: who holds the role ---------- */
+
+.card__who {
+  margin: 0 0 var(--space-2);
+  color: var(--fg);
+  font-size: var(--text-md);
+  font-weight: 700;
+}
+
+.card__aside--flag {
+  color: var(--accent);
+}
+
+.night__hint {
+  margin: 0;
+  color: var(--fg-muted);
+  font-size: var(--text-sm);
+}
+
+/* ---------- The across-the-room card ---------- */
+
+/* Read from a metre away by one person, in the dark. Everything else on the
+   screen gets out of its way. */
+.screen--inspect {
+  place-content: center;
+  justify-items: center;
+  text-align: center;
+  min-height: 84dvh;
+  gap: var(--space-5);
+}
+
+.inspect__who {
+  margin: 0;
+  color: var(--fg-muted);
+  font-size: var(--text-md);
+}
+
+.inspect__role {
+  margin: 0;
+  font-size: clamp(2.5rem, 15vw, 6rem);
+  font-weight: 900;
+  line-height: 0.95;
+  letter-spacing: -0.03em;
+  color: var(--role, var(--accent));
+  animation: reveal-in var(--dur-base) var(--ease-spring) both;
+}
+
+.inspect__team {
+  margin: 0;
+  padding: var(--space-2) var(--space-5);
+  border-radius: var(--radius-pill);
+  font-size: var(--text-md);
+  font-weight: 700;
+}
+
+.inspect__team[data-team='town'] {
+  background: color-mix(in oklab, var(--town) 22%, transparent);
+  color: var(--town);
+}
+
+.inspect__team[data-team='crew'] {
+  background: color-mix(in oklab, var(--crew) 22%, transparent);
+  color: var(--crew);
+}
+
+.screen--inspect .actions {
+  width: min(100%, 22rem);
+}
+
+/* ---------- Reveal: question flag ---------- */
+
+.reveal__question {
+  min-height: var(--touch);
+  padding: var(--space-2) var(--space-4);
+  border: 1px dashed var(--fg-faint);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--fg-muted);
+  font: inherit;
+  font-size: var(--text-sm);
+  cursor: pointer;
+}
+
+.reveal__question[data-on] {
+  border-style: solid;
+  border-color: var(--accent);
+  background: color-mix(in oklab, var(--accent) 16%, transparent);
+  color: var(--accent);
+}
+
+/* ---------- Timeline ---------- */
+
+.sheet__panel--tall {
+  max-height: 82dvh;
+}
+
+.log {
+  display: grid;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  overflow-y: auto;
+  max-height: 60dvh;
+}
+
+.log__row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  justify-content: space-between;
+  padding: var(--space-3);
+  border-radius: var(--radius-md);
+  background: var(--surface-raised);
+  font-size: var(--text-sm);
+}
+
+.log__text {
+  flex: 1;
+}
+
+.log__revert {
+  flex: none;
+  min-height: 2.25rem;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--fg-faint);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--fg-muted);
+  font: inherit;
+  font-size: var(--text-xs);
+  cursor: pointer;
+}
+
+.log__revert:active {
+  border-color: var(--accent);
+  color: var(--accent);
+}

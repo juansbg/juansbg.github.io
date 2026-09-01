@@ -166,3 +166,28 @@ describe('role briefs', () => {
     }
   })
 })
+
+describe('briefs are of similar length', () => {
+  // A Citizen who finishes reading in two seconds while the Godfather is still
+  // scrolling is a tell in itself. Everyone should look equally busy.
+  it('gives no role a conspicuously short card', () => {
+    for (const locale of LOCALES) {
+      for (const id of ROLE_IDS) {
+        expect(strings(locale).roles[id].brief.length, `${locale}/${id}`).toBeGreaterThanOrEqual(75)
+      }
+    }
+  })
+
+  it('keeps the longest within twice the shortest', () => {
+    for (const locale of LOCALES) {
+      const lengths = ROLE_IDS.map((id) => strings(locale).roles[id].brief.length)
+      expect(Math.max(...lengths) / Math.min(...lengths), locale).toBeLessThanOrEqual(2)
+    }
+  })
+
+  it('gives the plain Citizen a real card to read', () => {
+    for (const locale of LOCALES) {
+      expect(strings(locale).roles.PLAIN.brief.length, locale).toBeGreaterThanOrEqual(90)
+    }
+  })
+})

@@ -16,6 +16,7 @@ const seat = (id: number, roleId: RoleId, alive = true): Player => ({
   extraVotesOnDay: null,
   sect: null,
   fatherOf: null,
+  hasQuestion: false,
 })
 
 const circle = (roles: RoleId[], dead: number[] = []): Player[] =>

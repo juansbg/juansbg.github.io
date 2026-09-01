@@ -91,12 +91,18 @@ export interface Strings {
       yourRole: string
       teamTown: string
       teamCrew: string
+      /** Third person, for a card the narrator holds up about someone else. */
+      sideTown: string
+      sideCrew: string
       released: string
       allSeen: string
       beginFirstNight: string
       showAgain: string
       doneViewing: string
       pickPlayer: string
+      hasQuestion: string
+      hasQuestions: string
+      questionMarked: string
     }
     night: {
       stepCounter: (current: number, total: number) => string
@@ -118,6 +124,20 @@ export interface Strings {
     over: {
       title: string
       playAgain: string
+    }
+    timeline: {
+      title: string
+      open: string
+      revertHere: string
+      nightStart: (n: number) => string
+      nightEnd: (n: number) => string
+      lynch: (name: string) => string
+      hunterShot: (name: string) => string
+      skipped: (role: string) => string
+      chose: (role: string, name: string) => string
+      pairedUp: (role: string, a: string, b: string) => string
+      potion: (role: string, name: string, kind: string) => string
+      acted: (role: string) => string
     }
   }
 }

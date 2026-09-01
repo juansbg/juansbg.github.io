@@ -18,6 +18,7 @@ const player = (roleId: RoleId, name = 'Ana'): Player => ({
   extraVotesOnDay: null,
   sect: null,
   fatherOf: null,
+  hasQuestion: false,
 })
 
 const markup = (phase: RevealPhase, roleId: RoleId = 'KILLER') =>

@@ -30,6 +30,7 @@ const newPlayer = (id: PlayerId, setup: PlayerSetup): Player => ({
   extraVotesOnDay: null,
   sect: null,
   fatherOf: null,
+  hasQuestion: false,
 })
 
 export const createGame = (setups: readonly PlayerSetup[]): GameState => ({
@@ -182,16 +183,55 @@ export const winner = (state: GameState): Winner => {
 export interface Session {
   readonly current: GameState
   readonly past: readonly GameState[]
+  /**
+   * What each snapshot in `past` led to. Same length as `past`, so entry i
+   * describes the move made *from* `past[i]`.
+   *
+   * Structured, not prose — the timeline is rendered per language like
+   * everything else.
+   */
+  readonly timeline: readonly TimelineEntry[]
 }
 
-export const newSession = (state: GameState): Session => ({ current: state, past: [] })
+/**
+ * One recorded move.
+ *
+ * Every step is kept, including those that announced nothing: a night where
+ * the detective looked at someone and nothing happened is exactly the kind of
+ * thing a narrator needs to check back on.
+ */
+export interface TimelineEntry {
+  readonly night: number
+  readonly kind:
+    /** Pre-game bookkeeping — kept for rewinding, hidden from the log. */
+    | 'setup'
+    | 'nightStart'
+    | 'action'
+    | 'nightEnd'
+    | 'lynch'
+    | 'hunterShot'
+  readonly roleId?: RoleId
+  readonly action?: NightAction
+  readonly target?: PlayerId
+}
+
+export const newSession = (state: GameState): Session => ({
+  current: state,
+  past: [],
+  timeline: [],
+})
 
 export const advance = (
   session: Session,
   change: (state: GameState) => GameState,
+  entry?: TimelineEntry,
 ): Session => ({
   current: change(session.current),
   past: [...session.past, session.current],
+  timeline: [
+    ...session.timeline,
+    entry ?? { night: session.current.night, kind: 'setup' },
+  ],
 })
 
 export const canUndo = (session: Session): boolean => session.past.length > 0
@@ -199,5 +239,25 @@ export const canUndo = (session: Session): boolean => session.past.length > 0
 export const undo = (session: Session): Session => {
   const previous = session.past[session.past.length - 1]
   if (previous === undefined) return session
-  return { current: previous, past: session.past.slice(0, -1) }
+  return {
+    current: previous,
+    past: session.past.slice(0, -1),
+    timeline: session.timeline.slice(0, -1),
+  }
+}
+
+/**
+ * Rewinds to the state just before timeline entry `index`.
+ *
+ * Restoring a whole snapshot means a revert cannot leave the game
+ * half-rolled-back, which is exactly the failure v1's event-popping had.
+ */
+export const revertTo = (session: Session, index: number): Session => {
+  const target = session.past[index]
+  if (target === undefined) return session
+  return {
+    current: target,
+    past: session.past.slice(0, index),
+    timeline: session.timeline.slice(0, index),
+  }
 }

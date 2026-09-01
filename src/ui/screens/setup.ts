@@ -4,6 +4,7 @@ import type { RoleId } from '../../engine/roles'
 import type { Player } from '../../engine/types'
 import { strings, type Locale } from '../../i18n'
 import { esc } from '../dom'
+import { circleMarkup } from './circle'
 
 export const MIN_PLAYERS = 4
 export const MAX_PLAYERS = 20
@@ -50,25 +51,11 @@ export const rosterMarkup = (
     )
     .join('')
 
-  const seats = players
-    .map((p) => {
-      const named = p.name.trim() !== ''
-      return `
-        <button class="seat" type="button" data-seat="${p.id}"
-                style="--role: var(--role-${p.roleId})"
-                data-named="${named}">
-          <span class="seat__name">${named ? esc(p.name) : '—'}</span>
-          ${assigned ? `<span class="seat__role">${esc(t.roles[p.roleId].name)}</span>` : ''}
-        </button>
-      `
-    })
-    .join('')
-
   return `
     <section class="screen screen--roster">
       <h1 class="title title--sm">${esc(t.ui.setup.players)}</h1>
       <p class="subtitle subtitle--sm">${esc(t.ui.setup.tapToEdit)}</p>
-      <div class="circle" style="--seats: ${players.length}">${seats}</div>
+      ${circleMarkup(players, locale, { interactive: true, showRoles: assigned })}
 
       <p class="field__label">${esc(t.ui.setup.complexity)}</p>
       <div class="chips">${levels}</div>

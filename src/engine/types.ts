@@ -30,8 +30,15 @@ export interface Player {
   extraVotesOnDay: number | null
   /** Which half of the village the Abominable Sectario placed them in. */
   sect: 0 | 1 | null
-  /** The Niño Salvaje's chosen father; if he dies, the child joins the wolves. */
+  /** The protégé's chosen mentor; if the mentor dies, they join the crew. */
   fatherOf: PlayerId | null
+  /**
+   * The player raised a question about their role during the reveal.
+   *
+   * Nobody can ask out loud without giving something away, so they flag it
+   * privately and the narrator checks on them before the first night.
+   */
+  hasQuestion: boolean
 }
 
 export type Phase = 'setup' | 'night' | 'day' | 'over'

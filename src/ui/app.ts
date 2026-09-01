@@ -12,16 +12,19 @@ import {
   recordAction,
   startNight,
   undo,
+  revertTo,
   winner,
   type PlayerSetup,
+  type TimelineEntry,
 } from '../engine/state'
-import type { PlayerId } from '../engine/types'
+import type { NightAction, PlayerId } from '../engine/types'
 import { detectLocale, renderWinner, strings } from '../i18n'
 import { buzz, esc, on, swap } from './dom'
 import { clear, load, save, type AppState } from './store'
 import { countPickerMarkup, editorMarkup, MIN_PLAYERS, rosterMarkup } from './screens/setup'
 import { dealRoles, systemRandom, type Complexity } from '../engine/deal'
-import { dayMarkup, nightMarkup } from './screens/night'
+import { dayMarkup, inspectionMarkup, nightMarkup } from './screens/night'
+import { timelineMarkup } from './screens/timeline'
 import { bindHold, revealMarkup, roleCardMarkup, type RevealPhase } from './screens/reveal'
 
 const appRoot = document.querySelector<HTMLDivElement>('#app')
@@ -37,6 +40,9 @@ let picking = false
 let picked: PlayerId[] = []
 /** Chosen difficulty for auto-dealing. */
 let complexity: Complexity = 'standard'
+/** The player whose card is being held up for the detective to read. */
+let inspecting: PlayerId | null = null
+let showingLog = false
 let releaseHandler: (() => void) | null = null
 
 function boot(): AppState {
@@ -72,8 +78,11 @@ const setState = (patch: Partial<AppState>, animate = true): void => {
   else render()
 }
 
-const mutate = (change: Parameters<typeof advance>[1]): void => {
-  setState({ session: advance(state.session, change) })
+const mutate = (
+  change: Parameters<typeof advance>[1],
+  entry?: TimelineEntry,
+): void => {
+  setState({ session: advance(state.session, change, entry) })
 }
 
 // ---------------------------------------------------------------------------
@@ -113,13 +122,20 @@ function render(): void {
         })
       : revealDoneMarkup()
   } else if (state.screen === 'night') {
-    body = isNightComplete(game) ? nightDoneMarkup() : nightMarkup(game, state.locale, picked)
+    const subject = game.players.find((p) => p.id === inspecting)
+    body = subject
+      ? inspectionMarkup(subject, state.locale)
+      : isNightComplete(game)
+        ? nightDoneMarkup()
+        : nightMarkup(game, state.locale, picked)
   } else if (state.screen === 'day') {
     body = game.awaitingHunterShot !== null ? hunterMarkup() : dayMarkup(game, state.locale)
     if (picking) body += pickerMarkup()
   } else {
     body = overMarkup()
   }
+
+  if (showingLog) body += timelineMarkup(state.session, state.locale)
 
   root.innerHTML = `${body}${chromeMarkup()}`
   bind()
@@ -198,6 +214,7 @@ function render(): void {
     return `
       <nav class="chrome">
         <button class="icon-btn" type="button" data-lang>${esc(strings(other).languageName)}</button>
+        ${state.screen !== 'setup' ? `<button class="icon-btn" type="button" data-log>${esc(t.ui.timeline.open)}</button>` : ''}
         ${state.screen !== 'setup' ? `<button class="icon-btn" type="button" data-reset aria-label="${esc(t.ui.common.restart)}">⟲</button>` : ''}
       </nav>
     `
@@ -311,6 +328,8 @@ function bind(): void {
     setState({}, false)
   })
 
+  // Nobody can ask about their role out loud without giving something away,
+  // so they flag it here and the narrator checks privately before night one.
   on(root, '[data-reveal-back]', 'click', () => {
     if (state.revealIndex === 0) return
     revealPhase = 'handoff'
@@ -329,7 +348,10 @@ function bind(): void {
   on(root, '[data-reveal-next]', 'click', advanceReveal)
 
   on(root, '[data-begin]', 'click', () => {
-    setState({ session: advance(state.session, startNight), screen: 'night' })
+    setState({
+      session: advance(state.session, startNight, { night: 1, kind: 'nightStart' }),
+      screen: 'night',
+    })
   })
 
   // ---- Night ----
@@ -342,7 +364,11 @@ function bind(): void {
 
     if (kind === 'player') {
       picked = []
-      mutate((s) => recordAction(s, { kind: 'target', roleId, actor: null, target: id }))
+      const action: NightAction = { kind: 'target', roleId, actor: null, target: id }
+      mutate((s) => recordAction(s, action), { night: game.night, kind: 'action', roleId, action })
+      // The detective is shown a card, so hold it up before moving on.
+      if (roleId === 'INSPECT') inspecting = id
+      setState({}, false)
       return
     }
 
@@ -353,7 +379,8 @@ function bind(): void {
       if (picked.length === 2) {
         const [first, second] = picked as [PlayerId, PlayerId]
         picked = []
-        mutate((s) => recordAction(s, { kind: 'pair', roleId, first, second }))
+        const action: NightAction = { kind: 'pair', roleId, first, second }
+        mutate((s) => recordAction(s, action), { night: game.night, kind: 'action', roleId, action })
       } else {
         setState({}, false)
       }
@@ -374,7 +401,8 @@ function bind(): void {
     const potion = el.dataset.potion === 'heal' ? 'heal' : 'kill'
     picked = []
     buzz()
-    mutate((s) => recordAction(s, { kind: 'potion', roleId: 'MEDIC', target, potion }))
+    const action: NightAction = { kind: 'potion', roleId: 'MEDIC', target, potion }
+    mutate((s) => recordAction(s, action), { night: game.night, kind: 'action', roleId: 'MEDIC', action })
   })
 
   // Roles that act without picking a target (the Godfather converting, the
@@ -387,14 +415,48 @@ function bind(): void {
     if (roleId === null) return
     picked = []
     buzz()
-    mutate((s) => recordAction(s, { kind: 'confirm', roleId }))
+    const action: NightAction = { kind: 'confirm', roleId }
+    mutate((s) => recordAction(s, action), { night: game.night, kind: 'action', roleId, action })
+  })
+
+  on(root, '[data-inspect-done]', 'click', () => {
+    inspecting = null
+    setState({})
+  })
+
+  on(root, '[data-inspect-back]', 'click', () => {
+    // Undo the detective's pick as well as closing the card.
+    inspecting = null
+    if (canUndo(state.session)) setState({ session: undo(state.session) })
+    else setState({}, false)
+  })
+
+  on(root, '[data-log]', 'click', () => {
+    showingLog = true
+    setState({}, false)
+  })
+
+  on(root, '[data-log-close]', 'click', () => {
+    showingLog = false
+    setState({}, false)
+  })
+
+  on(root, '[data-revert]', 'click', (_e, el) => {
+    const index = Number(el.dataset.revert)
+    showingLog = false
+    inspecting = null
+    picked = []
+    const session = revertTo(state.session, index)
+    buzz()
+    setState({ session, screen: session.current.phase === 'day' ? 'day' : 'night' })
   })
 
   on(root, '[data-skip]', 'click', () => {
     const roleId = currentStep(game)
     if (roleId === null) return
     picked = []
-    mutate((s) => recordAction(s, { kind: 'skip', roleId }))
+    const action: NightAction = { kind: 'skip', roleId }
+    mutate((s) => recordAction(s, action), { night: game.night, kind: 'action', roleId, action })
   })
 
   on(root, '[data-undo]', 'click', () => {
@@ -405,7 +467,7 @@ function bind(): void {
   })
 
   on(root, '[data-resolve]', 'click', () => {
-    mutate(endNight)
+    mutate(endNight, { night: game.night, kind: 'nightEnd' })
     if (winner(state.session.current) !== null) setState({ screen: 'over' })
     else setState({ screen: 'day' })
   })
@@ -413,19 +475,23 @@ function bind(): void {
   // ---- Day ----
   on(root, '[data-lynch]', 'click', (_e, el) => {
     buzz()
-    mutate((s) => lynch(s, Number(el.dataset.lynch)))
+    mutate((s) => lynch(s, Number(el.dataset.lynch)), {
+      night: game.night, kind: 'lynch', target: Number(el.dataset.lynch),
+    })
     if (winner(state.session.current) !== null) setState({ screen: 'over' })
     else setState({})
   })
 
   on(root, '[data-shoot]', 'click', (_e, el) => {
-    mutate((s) => hunterShot(s, Number(el.dataset.shoot)))
+    mutate((s) => hunterShot(s, Number(el.dataset.shoot)), {
+      night: game.night, kind: 'hunterShot', target: Number(el.dataset.shoot),
+    })
     if (winner(state.session.current) !== null) setState({ screen: 'over' })
     else setState({})
   })
 
   on(root, '[data-next-night]', 'click', () => {
-    mutate(startNight)
+    mutate(startNight, { night: game.night + 1, kind: 'nightStart' })
     setState({ screen: 'night' })
   })
 
@@ -456,6 +522,43 @@ function bind(): void {
   })
 }
 
+/**
+ * Lets a player privately flag that they did not understand their role.
+ *
+ * Nobody can ask out loud without giving something away, so the narrator gets
+ * a list to check quietly before the first night.
+ *
+ * Deliberately does NOT re-render: this button sits on the card that is only
+ * on screen while a finger is down, and repainting would unmount the held
+ * button and end the gesture — the same trap the reveal itself hit.
+ */
+function bindQuestion(id: PlayerId): void {
+  const button = root.querySelector<HTMLElement>('[data-question]')
+  if (!button) return
+
+  button.addEventListener('click', (event) => {
+    event.stopPropagation()
+    buzz()
+
+    state = {
+      ...state,
+      session: advance(state.session, (s) => ({
+        ...s,
+        players: s.players.map((p) =>
+          p.id === id ? { ...p, hasQuestion: !p.hasQuestion } : p,
+        ),
+      })),
+    }
+    save(state)
+
+    const now = state.session.current.players.find((p) => p.id === id)?.hasQuestion ?? false
+    button.toggleAttribute('data-on', now)
+    button.textContent = now
+      ? strings(state.locale).ui.reveal.questionMarked
+      : strings(state.locale).ui.reveal.hasQuestion
+  })
+}
+
 /** Writes the role card in beside the live button — no re-render. */
 function showRole(): void {
   const player = revealOrder()[state.revealIndex]
@@ -463,6 +566,9 @@ function showRole(): void {
   if (!player || !slot) return
 
   slot.innerHTML = roleCardMarkup(player, state.locale)
+  // The card is injected after bind() has already run, so its own controls
+  // are wired here rather than there.
+  bindQuestion(player.id)
   root.querySelector<HTMLElement>('[data-reveal-root]')?.setAttribute('data-showing', '')
   // Nothing may sit beside a visible role.
   document.body.classList.add('is-revealing')

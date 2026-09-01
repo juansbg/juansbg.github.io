@@ -3,6 +3,7 @@ import { currentStep } from '../../engine/state'
 import type { GameState, Player, PlayerId } from '../../engine/types'
 import { morningReport, strings, type Locale } from '../../i18n'
 import { esc } from '../dom'
+import { circleMarkup, holdersOf } from './circle'
 
 /** Who this role may target tonight, after its own constraints. */
 export const legalTargets = (state: GameState, roleId: RoleId): Player[] => {
@@ -77,6 +78,13 @@ export const nightMarkup = (
          </div>`
       : ''
 
+  // The narrator has to know who to wake, not just which role. v1 never said.
+  const holders = holdersOf(state.players, roleId)
+  const who =
+    holders.length > 0
+      ? `<p class="card__who">${holders.map((p) => esc(p.name)).join(' · ')}</p>`
+      : ''
+
   const needed = picksNeeded(roleId)
   const hint =
     needed > 0 && picked.length < needed
@@ -97,9 +105,12 @@ export const nightMarkup = (
 
       <div class="card" data-role-card>
         <h2 class="card__title">${esc(roleStrings.name)}</h2>
+        ${who}
         <p class="card__body">${esc(roleStrings.prompt)}</p>
         ${role.wakesAsGroup ? `<p class="card__aside">${esc(t.ui.night.wakeGroup)}</p>` : ''}
       </div>
+
+      ${circleMarkup(state.players, locale, { selected: picked, compact: true })}
 
       ${hint}
       ${targetList}
@@ -130,9 +141,19 @@ export const dayMarkup = (state: GameState, locale: Locale): string => {
     })
     .join('')
 
+  const flagged = state.players.filter((p) => p.alive && p.hasQuestion)
+  const questions =
+    flagged.length > 0
+      ? `<p class="card__aside card__aside--flag">${esc(t.ui.reveal.hasQuestions)}: ${flagged
+          .map((p) => esc(p.name))
+          .join(' · ')}</p>`
+      : ''
+
   return `
     <section class="screen screen--day">
       <h1 class="title title--sm">${esc(t.phase.townWakes)}</h1>
+      ${circleMarkup(state.players, locale, { compact: true, showRoles: true })}
+      ${questions}
       <h2 class="subtitle subtitle--sm">${esc(t.ui.day.report)}</h2>
       <ul class="report">${report}</ul>
 
@@ -142,6 +163,35 @@ export const dayMarkup = (state: GameState, locale: Locale): string => {
       <div class="actions actions--row">
         <button class="btn btn--ghost" type="button" data-show-role>${esc(t.ui.reveal.showAgain)}</button>
         <button class="btn btn--primary" type="button" data-next-night>${esc(t.ui.day.nextNight)}</button>
+      </div>
+    </section>
+  `
+}
+
+/**
+ * The card the narrator holds up for the detective to read across the room.
+ *
+ * Deliberately enormous and colour-coded: it is read from a metre away, in a
+ * dark room, by one person who must not have to lean in.
+ */
+export const inspectionMarkup = (
+  subject: Player,
+  locale: Locale,
+): string => {
+  const t = strings(locale)
+  const role = ROLES[subject.roleId]
+
+  return `
+    <section class="screen screen--inspect" data-inspect
+             style="--role: var(--role-${subject.roleId})">
+      <p class="inspect__who">${esc(subject.name)}</p>
+      <h1 class="inspect__role">${esc(t.roles[subject.roleId].name)}</h1>
+      <p class="inspect__team" data-team="${role.team}">
+        ${esc(role.team === 'crew' ? t.ui.reveal.sideCrew : t.ui.reveal.sideTown)}
+      </p>
+      <div class="actions actions--row">
+        <button class="btn btn--ghost" type="button" data-inspect-back>${esc(t.ui.common.back)}</button>
+        <button class="btn btn--primary" type="button" data-inspect-done>${esc(t.ui.common.done)}</button>
       </div>
     </section>
   `

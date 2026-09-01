@@ -17,6 +17,7 @@ const makePlayer = (id: number, roleId: RoleId, name = `P${id}`): Player => ({
   extraVotesOnDay: null,
   sect: null,
   fatherOf: null,
+  hasQuestion: false,
 })
 
 const stateWith = (

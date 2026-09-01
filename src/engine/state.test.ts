@@ -12,10 +12,11 @@ import {
   recordAction,
   startNight,
   undo,
+  revertTo,
   winner,
   type PlayerSetup,
 } from './state'
-import { STATE_VERSION } from './types'
+import { STATE_VERSION, type NightAction } from './types'
 import type { RoleId } from './roles'
 
 const cast = (roles: RoleId[], names?: string[]): PlayerSetup[] =>
@@ -290,5 +291,67 @@ describe('the Godfather', () => {
     expect(state.players[1]!.alive).toBe(true)
     expect(state.players[1]!.roleId).toBe('KILLER')
     expect(state.infectionUsed).toBe(true)
+  })
+})
+
+describe('the timeline', () => {
+  const played = () => {
+    let session = newSession(createGame(cast(['KILLER', 'INSPECT', 'GUARD', 'PLAIN'])))
+    session = advance(session, startNight, { night: 1, kind: 'nightStart' })
+    const guard: NightAction = { kind: 'target', roleId: 'GUARD', actor: 2, target: 3 }
+    session = advance(session, (s) => recordAction(s, guard), {
+      night: 1, kind: 'action', roleId: 'GUARD', action: guard,
+    })
+    const look: NightAction = { kind: 'skip', roleId: 'INSPECT' }
+    session = advance(session, (s) => recordAction(s, look), {
+      night: 1, kind: 'action', roleId: 'INSPECT', action: look,
+    })
+    const kill: NightAction = { kind: 'target', roleId: 'KILLER', actor: 0, target: 1 }
+    session = advance(session, (s) => recordAction(s, kill), {
+      night: 1, kind: 'action', roleId: 'KILLER', action: kill,
+    })
+    return advance(session, endNight, { night: 1, kind: 'nightEnd' })
+  }
+
+  it('records every step, including ones that announced nothing', () => {
+    const session = played()
+    // The skipped detective is in the timeline even though the town never
+    // heard about it — that is exactly what a narrator checks back on.
+    expect(session.timeline.map((e) => e.kind)).toEqual([
+      'nightStart', 'action', 'action', 'action', 'nightEnd',
+    ])
+    expect(session.timeline.filter((e) => e.action?.kind === 'skip')).toHaveLength(1)
+  })
+
+  it('stays the same length as the snapshot history', () => {
+    const session = played()
+    expect(session.timeline.length).toBe(session.past.length)
+  })
+
+  it('rewinds the game to the chosen point', () => {
+    const session = played()
+    expect(session.current.players[1]!.alive).toBe(false)
+
+    // Index 3 is the killers' choice; rewinding to it undoes the death.
+    const rewound = revertTo(session, 3)
+    expect(rewound.current.players[1]!.alive).toBe(true)
+    expect(rewound.timeline).toHaveLength(3)
+    expect(rewound.past).toHaveLength(3)
+  })
+
+  it('leaves the session alone for an index it does not have', () => {
+    const session = played()
+    expect(revertTo(session, 99)).toEqual(session)
+  })
+
+  it('undo and revert agree on the last step', () => {
+    const session = played()
+    expect(revertTo(session, session.past.length - 1)).toEqual(undo(session))
+  })
+
+  it('marks unlabelled changes as setup, so they stay out of the log', () => {
+    let session = newSession(createGame(cast(['KILLER', 'PLAIN'])))
+    session = advance(session, (s) => ({ ...s }))
+    expect(session.timeline[0]!.kind).toBe('setup')
   })
 })
