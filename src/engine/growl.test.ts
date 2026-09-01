@@ -23,33 +23,33 @@ const circle = (roles: RoleId[], dead: number[] = []): Player[] =>
 
 describe("the Domador's growl", () => {
   it('growls when a wolf sits on his left', () => {
-    expect(growls(circle(['LOB', 'DOM', 'ALD', 'VID']))).toBe(true)
+    expect(growls(circle(['KILLER', 'SENSE', 'PLAIN', 'INSPECT']))).toBe(true)
   })
 
   it('growls when a wolf sits on his right', () => {
-    expect(growls(circle(['DOM', 'LOB', 'ALD', 'VID']))).toBe(true)
+    expect(growls(circle(['SENSE', 'KILLER', 'PLAIN', 'INSPECT']))).toBe(true)
   })
 
   it('growls across the wrap-around of the circle', () => {
     // The tamer is last in seating order, the wolf first — still neighbours.
-    expect(growls(circle(['LOB', 'ALD', 'VID', 'DOM']))).toBe(true)
+    expect(growls(circle(['KILLER', 'PLAIN', 'INSPECT', 'SENSE']))).toBe(true)
   })
 
   it('stays quiet when neither neighbour is a wolf', () => {
-    expect(growls(circle(['ALD', 'DOM', 'VID', 'LOB']))).toBe(false)
+    expect(growls(circle(['PLAIN', 'SENSE', 'INSPECT', 'KILLER']))).toBe(false)
   })
 
   it('closes the circle over the dead', () => {
     // The wolf is two seats away, but the player between them is dead, so the
     // survivors close up and they become neighbours.
-    expect(growls(circle(['DOM', 'ALD', 'LOB', 'VID'], [1]))).toBe(true)
+    expect(growls(circle(['SENSE', 'PLAIN', 'KILLER', 'INSPECT'], [1]))).toBe(true)
   })
 
   it('is silent with no tamer in the game', () => {
-    expect(growls(circle(['LOB', 'ALD', 'VID']))).toBe(false)
+    expect(growls(circle(['KILLER', 'PLAIN', 'INSPECT']))).toBe(false)
   })
 
   it('is silent when the tamer is dead', () => {
-    expect(growls(circle(['LOB', 'DOM', 'ALD'], [1]))).toBe(false)
+    expect(growls(circle(['KILLER', 'SENSE', 'PLAIN'], [1]))).toBe(false)
   })
 })

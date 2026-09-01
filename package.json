@@ -1,9 +1,9 @@
 {
-  "name": "pueblo-duerme",
+  "name": "omerta",
   "private": true,
   "version": "0.0.0",
   "type": "module",
-  "description": "Narrator assistant for the Pueblo Duerme party game",
+  "description": "Narrator assistant for Omertà, a social deduction party game",
   "license": "MIT",
   "scripts": {
     "dev": "vite",

@@ -23,52 +23,52 @@ const cast = (roles: RoleId[], names?: string[]): PlayerSetup[] =>
 
 describe('createGame', () => {
   it('gives every player a distinct id even when names collide', () => {
-    const state = createGame(cast(['LOB', 'VID'], ['Ana', 'Ana']))
+    const state = createGame(cast(['KILLER', 'INSPECT'], ['Ana', 'Ana']))
     expect(state.players.map((p) => p.id)).toEqual([0, 1])
     expect(state.players[0]!.name).toBe(state.players[1]!.name)
   })
 
   it('grants the Anciano one survivable wolf attack', () => {
-    const state = createGame(cast(['ANC', 'LOB']))
+    const state = createGame(cast(['SURVIVE', 'KILLER']))
     expect(state.players[0]!.wolfAttacksSurvivable).toBe(1)
     expect(state.players[1]!.wolfAttacksSurvivable).toBe(0)
   })
 
   it('stamps a version so saved games can be migrated later', () => {
-    expect(createGame(cast(['ALD'])).version).toBe(STATE_VERSION)
+    expect(createGame(cast(['PLAIN'])).version).toBe(STATE_VERSION)
   })
 })
 
 describe('stepping through a night', () => {
   it('walks the schedule in order and reports completion', () => {
-    let state = startNight(createGame(cast(['PRO', 'VID', 'LOB', 'ALD'])))
-    expect(state.schedule).toEqual(['PRO', 'VID', 'LOB'])
+    let state = startNight(createGame(cast(['GUARD', 'INSPECT', 'KILLER', 'PLAIN'])))
+    expect(state.schedule).toEqual(['GUARD', 'INSPECT', 'KILLER'])
 
-    expect(currentStep(state)).toBe('PRO')
-    state = recordAction(state, { kind: 'target', roleId: 'PRO', actor: 0, target: 3 })
-    expect(currentStep(state)).toBe('VID')
+    expect(currentStep(state)).toBe('GUARD')
+    state = recordAction(state, { kind: 'target', roleId: 'GUARD', actor: 0, target: 3 })
+    expect(currentStep(state)).toBe('INSPECT')
 
-    state = recordAction(state, { kind: 'target', roleId: 'VID', actor: 1, target: 2 })
-    state = recordAction(state, { kind: 'target', roleId: 'LOB', actor: 2, target: 3 })
+    state = recordAction(state, { kind: 'target', roleId: 'INSPECT', actor: 1, target: 2 })
+    state = recordAction(state, { kind: 'target', roleId: 'KILLER', actor: 2, target: 3 })
 
     expect(isNightComplete(state)).toBe(true)
     expect(currentStep(state)).toBeNull()
   })
 
   it('stops prompting for the Protector once he is dead', () => {
-    let state = startNight(createGame(cast(['PRO', 'LOB', 'ALD'])))
-    state = recordAction(state, { kind: 'skip', roleId: 'PRO' })
-    state = recordAction(state, { kind: 'target', roleId: 'LOB', actor: 1, target: 0 })
+    let state = startNight(createGame(cast(['GUARD', 'KILLER', 'PLAIN'])))
+    state = recordAction(state, { kind: 'skip', roleId: 'GUARD' })
+    state = recordAction(state, { kind: 'target', roleId: 'KILLER', actor: 1, target: 0 })
     state = endNight(state)
 
     expect(state.players[0]!.alive).toBe(false)
-    expect(startNight(state).schedule).toEqual(['LOB'])
+    expect(startNight(state).schedule).toEqual(['KILLER'])
   })
 
   it('forbids the Protector repeating a target, per the script', () => {
-    let state = startNight(createGame(cast(['PRO', 'LOB', 'ALD'])))
-    state = recordAction(state, { kind: 'target', roleId: 'PRO', actor: 0, target: 2 })
-    state = recordAction(state, { kind: 'skip', roleId: 'LOB' })
+    let state = startNight(createGame(cast(['GUARD', 'KILLER', 'PLAIN'])))
+    state = recordAction(state, { kind: 'target', roleId: 'GUARD', actor: 0, target: 2 })
+    state = recordAction(state, { kind: 'skip', roleId: 'KILLER' })
     state = startNight(endNight(state))
 
     // The engine records who was shielded last night; the UI uses this to grey
@@ -80,11 +80,11 @@ describe('stepping through a night', () => {
 
 describe('undo', () => {
   it('restores the previous state exactly', () => {
-    let session = newSession(startNight(createGame(cast(['PRO', 'VID', 'LOB']))))
+    let session = newSession(startNight(createGame(cast(['GUARD', 'INSPECT', 'KILLER']))))
     const before = structuredClone(session.current)
 
     session = advance(session, (s) =>
-      recordAction(s, { kind: 'target', roleId: 'PRO', actor: 0, target: 2 }),
+      recordAction(s, { kind: 'target', roleId: 'GUARD', actor: 0, target: 2 }),
     )
     expect(session.current.pending).toHaveLength(1)
 
@@ -95,21 +95,21 @@ describe('undo', () => {
   it('does not delete an unrelated action when stepping back past a skip', () => {
     // v1's prevStep() popped the events array unconditionally, so stepping
     // back past a role that recorded nothing destroyed someone else's action.
-    let session = newSession(startNight(createGame(cast(['PRO', 'VID', 'LOB']))))
+    let session = newSession(startNight(createGame(cast(['GUARD', 'INSPECT', 'KILLER']))))
 
     session = advance(session, (s) =>
-      recordAction(s, { kind: 'target', roleId: 'PRO', actor: 0, target: 2 }),
+      recordAction(s, { kind: 'target', roleId: 'GUARD', actor: 0, target: 2 }),
     )
-    session = advance(session, (s) => recordAction(s, { kind: 'skip', roleId: 'VID' }))
+    session = advance(session, (s) => recordAction(s, { kind: 'skip', roleId: 'INSPECT' }))
     session = undo(session)
 
     expect(session.current.pending).toEqual([
-      { kind: 'target', roleId: 'PRO', actor: 0, target: 2 },
+      { kind: 'target', roleId: 'GUARD', actor: 0, target: 2 },
     ])
   })
 
   it('is a no-op at the start of history', () => {
-    const session = newSession(createGame(cast(['ALD'])))
+    const session = newSession(createGame(cast(['PLAIN'])))
     expect(canUndo(session)).toBe(false)
     expect(undo(session)).toEqual(session)
   })
@@ -117,21 +117,21 @@ describe('undo', () => {
 
 describe('win conditions', () => {
   it('village wins when the last wolf dies', () => {
-    let state = createGame(cast(['LOB', 'ALD', 'VID']))
+    let state = createGame(cast(['KILLER', 'PLAIN', 'INSPECT']))
     state = lynch(state, 0)
-    expect(winner(state)).toBe('village')
+    expect(winner(state)).toBe('town')
   })
 
   it('wolves win once they equal the villagers', () => {
-    let state = createGame(cast(['LOB', 'ALD', 'VID']))
+    let state = createGame(cast(['KILLER', 'PLAIN', 'INSPECT']))
     state = lynch(state, 1)
-    expect(winner(state)).toBe('wolves')
+    expect(winner(state)).toBe('crew')
   })
 
   it('lovers win together as the last two alive', () => {
-    let state = startNight(createGame(cast(['CUP', 'LOB', 'ALD', 'VID'])))
-    state = recordAction(state, { kind: 'pair', roleId: 'CUP', first: 1, second: 2 })
-    state = recordAction(state, { kind: 'skip', roleId: 'LOB' })
+    let state = startNight(createGame(cast(['PAIR', 'KILLER', 'PLAIN', 'INSPECT'])))
+    state = recordAction(state, { kind: 'pair', roleId: 'PAIR', first: 1, second: 2 })
+    state = recordAction(state, { kind: 'skip', roleId: 'KILLER' })
     state = endNight(state)
 
     state = lynch(state, 0)
@@ -142,13 +142,13 @@ describe('win conditions', () => {
   })
 
   it('reports no winner while the game is live', () => {
-    expect(winner(createGame(cast(['LOB', 'ALD', 'VID', 'PRO'])))).toBeNull()
+    expect(winner(createGame(cast(['KILLER', 'PLAIN', 'INSPECT', 'GUARD'])))).toBeNull()
   })
 })
 
 describe('the Cazador', () => {
   it('takes someone with him when lynched', () => {
-    let state = createGame(cast(['CAZ', 'LOB', 'ALD', 'VID']))
+    let state = createGame(cast(['AVENGE', 'KILLER', 'PLAIN', 'INSPECT']))
     state = lynch(state, 0)
     expect(state.awaitingHunterShot).toBe(0)
 
@@ -159,25 +159,25 @@ describe('the Cazador', () => {
 })
 
 describe('a full multi-night game', () => {
-  it('runs start to finish with no DOM and no strings', () => {
+  it('runs start to finish with no SENSE and no strings', () => {
     // Deliberately gives two players the same name — the exact configuration
     // that silently corrupts v1.
     let state = createGame(
       cast(
-        ['LOB', 'ALB', 'VID', 'PRO', 'BRU', 'PIR', 'ANC', 'ALD'],
+        ['KILLER', 'ROGUE', 'INSPECT', 'GUARD', 'MEDIC', 'SILENCE', 'SURVIVE', 'PLAIN'],
         ['Ana', 'Beto', 'Ana', 'Dani', 'Eva', 'Fer', 'Gil', 'Hugo'],
       ),
     )
 
     // ---- Night 1: Pirómano acts (odd), albino does not ----
     state = startNight(state)
-    expect(state.schedule).toEqual(['PRO', 'VID', 'PIR', 'LOB', 'BRU'])
+    expect(state.schedule).toEqual(['GUARD', 'INSPECT', 'SILENCE', 'KILLER', 'MEDIC'])
 
-    state = recordAction(state, { kind: 'target', roleId: 'PRO', actor: 3, target: 7 })
-    state = recordAction(state, { kind: 'target', roleId: 'VID', actor: 2, target: 0 })
-    state = recordAction(state, { kind: 'target', roleId: 'PIR', actor: 5, target: 7 })
-    state = recordAction(state, { kind: 'target', roleId: 'LOB', actor: 0, target: 7 })
-    state = recordAction(state, { kind: 'skip', roleId: 'BRU' })
+    state = recordAction(state, { kind: 'target', roleId: 'GUARD', actor: 3, target: 7 })
+    state = recordAction(state, { kind: 'target', roleId: 'INSPECT', actor: 2, target: 0 })
+    state = recordAction(state, { kind: 'target', roleId: 'SILENCE', actor: 5, target: 7 })
+    state = recordAction(state, { kind: 'target', roleId: 'KILLER', actor: 0, target: 7 })
+    state = recordAction(state, { kind: 'skip', roleId: 'MEDIC' })
     state = endNight(state)
 
     // Protected, so Hugo lives and the village is not told the wolves tried.
@@ -191,13 +191,13 @@ describe('a full multi-night game', () => {
 
     // ---- Night 2: albino acts (even), Pirómano is dead anyway ----
     state = startNight(state)
-    expect(state.schedule).toEqual(['PRO', 'VID', 'LOB', 'ALB', 'BRU'])
+    expect(state.schedule).toEqual(['GUARD', 'INSPECT', 'KILLER', 'ROGUE', 'MEDIC'])
 
-    state = recordAction(state, { kind: 'target', roleId: 'PRO', actor: 3, target: 2 })
-    state = recordAction(state, { kind: 'target', roleId: 'VID', actor: 2, target: 1 })
-    state = recordAction(state, { kind: 'target', roleId: 'LOB', actor: 0, target: 6 })
-    state = recordAction(state, { kind: 'target', roleId: 'ALB', actor: 1, target: 7 })
-    state = recordAction(state, { kind: 'potion', roleId: 'BRU', target: 7, potion: 'heal' })
+    state = recordAction(state, { kind: 'target', roleId: 'GUARD', actor: 3, target: 2 })
+    state = recordAction(state, { kind: 'target', roleId: 'INSPECT', actor: 2, target: 1 })
+    state = recordAction(state, { kind: 'target', roleId: 'KILLER', actor: 0, target: 6 })
+    state = recordAction(state, { kind: 'target', roleId: 'ROGUE', actor: 1, target: 7 })
+    state = recordAction(state, { kind: 'potion', roleId: 'MEDIC', target: 7, potion: 'heal' })
     state = endNight(state)
 
     // The Anciano survived his first attack; Hugo was healed by the witch.
@@ -210,9 +210,9 @@ describe('a full multi-night game', () => {
     expect(anas).toHaveLength(2)
     expect(anas.every((p) => p.alive)).toBe(true)
 
-    // ---- Night 3: Pirómano gone, so no PIR step even though it is odd ----
+    // ---- Night 3: Pirómano gone, so no SILENCE step even though it is odd ----
     state = startNight(state)
-    expect(state.schedule).toEqual(['PRO', 'VID', 'LOB', 'BRU'])
+    expect(state.schedule).toEqual(['GUARD', 'INSPECT', 'KILLER', 'MEDIC'])
 
     expect(winner(state)).toBeNull()
     expect(state.log.length).toBeGreaterThan(0)

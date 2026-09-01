@@ -1,4 +1,4 @@
-import { isWolfRole, type RoleId } from './roles'
+import { isCrewRole, type RoleId } from './roles'
 import { scheduleFor } from './schedule'
 import { applyDeaths, resolveNight } from './resolve'
 import {
@@ -24,7 +24,7 @@ const newPlayer = (id: PlayerId, setup: PlayerSetup): Player => ({
   protectedTonight: false,
   protectedLastNight: false,
   // The Anciano survives his first wolf attack.
-  wolfAttacksSurvivable: setup.roleId === 'ANC' ? 1 : 0,
+  wolfAttacksSurvivable: setup.roleId === 'SURVIVE' ? 1 : 0,
   loverOf: null,
   silencedOnDay: null,
   extraVotesOnDay: null,
@@ -111,7 +111,7 @@ export const lynch = (state: GameState, target: PlayerId): GameState =>
 
 /** The Cazador's revenge shot, taken after he dies. */
 export const hunterShot = (state: GameState, target: PlayerId): GameState => {
-  const next = killDuringDay(state, target, 'hunter')
+  const next = killDuringDay(state, target, 'revenge')
   return { ...next, awaitingHunterShot: null }
 }
 
@@ -135,7 +135,7 @@ const killDuringDay = (
   }
 }
 
-export type Winner = 'village' | 'wolves' | 'lovers' | null
+export type Winner = 'town' | 'crew' | 'lovers' | null
 
 /**
  * Lovers on opposite teams win together if they are the last two alive, which
@@ -150,9 +150,9 @@ export const winner = (state: GameState): Winner => {
     if (a.loverOf === b.id && b.loverOf === a.id) return 'lovers'
   }
 
-  const wolves = living.filter((p) => isWolfRole(p.roleId)).length
-  if (wolves === 0) return 'village'
-  if (wolves >= living.length - wolves) return 'wolves'
+  const crew = living.filter((p) => isCrewRole(p.roleId)).length
+  if (crew === 0) return 'town'
+  if (crew >= living.length - crew) return 'crew'
   return null
 }
 

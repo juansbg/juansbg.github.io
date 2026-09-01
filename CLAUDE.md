@@ -4,15 +4,17 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-A **narrator assistant** for the party game *Pueblo Duerme* (Werewolf / Mafia), currently Spanish-only (English is a goal — see Product direction). It is a tool for the single person running the game — not for the players. It tracks who has which role, walks the narrator through the night phase step by step in the correct role order, resolves kills/protections, and prints a morning report of what happened.
+**Omertà** — a narrator assistant for a social-deduction party game in the Werewolf/Mafia family. It is a tool for the single person running the game, not for the players. It tracks who has which role, walks the narrator through the night step by step in script order, resolves kills and protections, and prints a morning report.
+
+The game is themed around **organised crime**, with a light occult streak on two roles. It began as a Spanish werewolf game (*Pueblo Duerme*, still live in `legacy/`) and was re-themed during the v3 rewrite. It ships in Spanish and English.
 
 Deployed as a GitHub Pages site (`juansbg.github.io`).
 
 ## Current state: a v3 rewrite is underway
 
-The project is being rebuilt. The roadmap is six sprints; **Sprints 0 (scaffolding) and 1 (engine) are done.**
+The project is being rebuilt. The roadmap is six sprints; **Sprints 0 (scaffolding), 1 (engine) and 2 (i18n) are done.**
 
-The engine in `src/engine/` is complete and at full narrator-script parity — 54 tests, no DOM, no strings. Sprint 2 (i18n) is next, and needs the role-name set signed off before strings are written.
+`src/engine/` is complete and at full narrator-script parity. `src/i18n/` holds the Spanish and English string tables and the outcome renderer. 73 tests, no DOM, no strings in the engine. **Sprint 3 (the UI) is next** — the first sprint that touches the screen, and the point at which design tokens and autosave land.
 
 | | Path | Status |
 |---|---|---|
@@ -47,9 +49,9 @@ Two rules the whole design rests on:
 1. **The engine never produces a user-visible string.** It emits structured outcomes (`{type: 'kill', roleId: 'LOB', targetId: 3, blockedBy: 'PRO'}`) and the UI renders sentences at display time. v1 could never be translated because it stored rendered Spanish fragments on each event and *rewrote them mid-resolution* (`"Ha muerto "` → `"Han intentado matar a "`) to signal a blocked kill — the sentence was carrying game state.
 2. **`GameState` is JSON-serializable.** Autosave and undo both fall out of this for free.
 
-Role identity is the 3-letter Spanish acronym (`LOB`, `VID`, `BRU`, …), defined once in `src/engine/roles.ts`. These are internal IDs only — never display them. Display names come from `src/i18n/`.
+Role identity is a **function-based ID** — `KILLER`, `INSPECT`, `GUARD`, `MEDIC`, `CONVERT` — defined once in `src/engine/roles.ts`. IDs name what a role *does*, never what it is *called*, so a re-skin costs nothing but a string table. Teams are `town` and `crew`.
 
-Note `NIN` vs `NIA`: v1 used `NIN` for Niño Salvaje and `NIA` for Niña Pequeña; v2 used `NIN` for the little girl. **v3 follows v1.**
+This is deliberate and was learned the hard way: the IDs were Spanish werewolf acronyms (`LOB`, `VID`, `BRU`) until the theme changed to organised crime and every one of them became a lie. **Never reintroduce a theme word into an ID, a team name, or a death cause.** `roles.test.ts` enforces the shape.
 
 ## Why v1 is being replaced (verified, not theoretical)
 

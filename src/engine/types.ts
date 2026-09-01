@@ -66,8 +66,8 @@ export interface GameState {
 export type NightAction =
   | { kind: 'target'; roleId: RoleId; actor: PlayerId | null; target: PlayerId }
   | { kind: 'pair'; roleId: RoleId; first: PlayerId; second: PlayerId }
-  | { kind: 'potion'; roleId: 'BRU'; target: PlayerId; potion: 'heal' | 'kill' }
-  | { kind: 'split'; roleId: 'SEC'; sectOne: PlayerId[]; sectTwo: PlayerId[] }
+  | { kind: 'potion'; roleId: 'MEDIC'; target: PlayerId; potion: 'heal' | 'kill' }
+  | { kind: 'split'; roleId: 'SPLIT'; sectOne: PlayerId[]; sectTwo: PlayerId[] }
   /** A role that acts but picks no target — the Infecto raising its hand. */
   | { kind: 'confirm'; roleId: RoleId }
   /** A role that becomes another: the Actor's card, the Perro Lobo's side. */
@@ -86,12 +86,12 @@ export type NightAction =
  */
 export type Outcome =
   | { type: 'death'; night: number; target: PlayerId; cause: DeathCause; public: true }
-  | { type: 'attackBlocked'; night: number; target: PlayerId; by: 'PRO' | 'ANC' | 'BRU'; public: false }
-  | { type: 'inspected'; night: number; target: PlayerId; by: 'VID'; public: false }
+  | { type: 'attackBlocked'; night: number; target: PlayerId; by: 'GUARD' | 'SURVIVE' | 'MEDIC'; public: false }
+  | { type: 'inspected'; night: number; target: PlayerId; by: 'INSPECT'; public: false }
   | { type: 'protected'; night: number; target: PlayerId; public: false }
   | { type: 'lovers'; night: number; first: PlayerId; second: PlayerId; public: false }
   | { type: 'father'; night: number; target: PlayerId; public: false }
-  | { type: 'converted'; night: number; target: PlayerId; by: 'INF'; public: false }
+  | { type: 'converted'; night: number; target: PlayerId; by: 'CONVERT'; public: false }
   | { type: 'silenced'; night: number; day: number; target: PlayerId; public: true }
   | { type: 'extraVote'; night: number; day: number; target: PlayerId; public: true }
   | { type: 'sectSplit'; night: number; public: false }
@@ -99,11 +99,11 @@ export type Outcome =
   | { type: 'roleChanged'; night: number; target: PlayerId; to: RoleId; public: false }
 
 export type DeathCause =
-  | 'wolves'
-  | 'albino'
-  | 'witch'
+  | 'killers'
+  | 'rogue'
+  | 'poison'
   | 'lynch'
   | 'heartbreak'
-  | 'hunter'
+  | 'revenge'
 
 export const STATE_VERSION = 1

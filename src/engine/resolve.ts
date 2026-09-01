@@ -1,11 +1,11 @@
-import { isWolfRole } from './roles'
+import { isCrewRole } from './roles'
 import type { DeathCause, GameState, NightAction, Outcome, Player, PlayerId } from './types'
 
 /**
  * Resolves one night's recorded actions into deaths and outcomes.
  *
  * This is the corrected descendant of v1's `prepararInforme()`. Two structural
- * differences: it is pure (it returns new players rather than mutating the DOM
+ * differences: it is pure (it returns new players rather than mutating the SENSE
  * and the state together), and it emits structured outcomes rather than
  * Spanish sentence fragments, so the morning report can be rendered in any
  * language.
@@ -49,7 +49,7 @@ export const resolveNight = (state: GameState): Resolution => {
 
   // ---- Setup-style actions (first night) -------------------------------
 
-  const pairing = actionOf(state.pending, 'CUP', 'pair')
+  const pairing = actionOf(state.pending, 'PAIR', 'pair')
   if (pairing) {
     const a = find(players, pairing.first)
     const b = find(players, pairing.second)
@@ -60,14 +60,14 @@ export const resolveNight = (state: GameState): Resolution => {
     }
   }
 
-  const father = actionOf(state.pending, 'NIN', 'target')
+  const father = actionOf(state.pending, 'PROTEGE', 'target')
   if (father) {
-    const child = players.find((p) => p.roleId === 'NIN')
+    const child = players.find((p) => p.roleId === 'PROTEGE')
     if (child) child.fatherOf = father.target
     outcomes.push({ type: 'father', night, target: father.target, public: false })
   }
 
-  const split = actionOf(state.pending, 'SEC', 'split')
+  const split = actionOf(state.pending, 'SPLIT', 'split')
   if (split) {
     for (const p of players) {
       if (split.sectOne.includes(p.id)) p.sect = 0
@@ -81,7 +81,7 @@ export const resolveNight = (state: GameState): Resolution => {
 
   for (const p of players) p.protectedTonight = false
 
-  const guard = actionOf(state.pending, 'PRO', 'target')
+  const guard = actionOf(state.pending, 'GUARD', 'target')
   if (guard) {
     const target = find(players, guard.target)
     if (target) {
@@ -104,11 +104,11 @@ export const resolveNight = (state: GameState): Resolution => {
 
     if (target.wolfAttacksSurvivable > 0) {
       target.wolfAttacksSurvivable -= 1
-      outcomes.push({ type: 'attackBlocked', night, target: target.id, by: 'ANC', public: false })
+      outcomes.push({ type: 'attackBlocked', night, target: target.id, by: 'SURVIVE', public: false })
       return
     }
     if (target.protectedTonight) {
-      outcomes.push({ type: 'attackBlocked', night, target: target.id, by: 'PRO', public: false })
+      outcomes.push({ type: 'attackBlocked', night, target: target.id, by: 'GUARD', public: false })
       return
     }
     kill(target.id, cause)
@@ -126,46 +126,46 @@ export const resolveNight = (state: GameState): Resolution => {
     outcomes.push({ type: 'roleChanged', night, target: subject.id, to: swap.newRole, public: false })
   }
 
-  const wolves = actionOf(state.pending, 'LOB', 'target')
+  const wolves = actionOf(state.pending, 'KILLER', 'target')
   if (wolves) {
-    const infecting = actionOf(state.pending, 'INF', 'confirm') !== undefined
+    const infecting = actionOf(state.pending, 'CONVERT', 'confirm') !== undefined
     const victim = find(players, wolves.target)
 
     if (infecting && !infectionUsed && victim?.alive) {
       // The Infecto converts instead of killing — the victim becomes a wolf
       // and must be told. This also changes tomorrow's night schedule.
-      victim.roleId = 'LOB'
+      victim.roleId = 'KILLER'
       infectionUsed = true
-      outcomes.push({ type: 'converted', night, target: victim.id, by: 'INF', public: false })
-      outcomes.push({ type: 'roleChanged', night, target: victim.id, to: 'LOB', public: false })
+      outcomes.push({ type: 'converted', night, target: victim.id, by: 'CONVERT', public: false })
+      outcomes.push({ type: 'roleChanged', night, target: victim.id, to: 'KILLER', public: false })
     } else {
-      attack(wolves.target, 'wolves')
+      attack(wolves.target, 'killers')
     }
   }
 
-  const albino = actionOf(state.pending, 'ALB', 'target')
-  if (albino) attack(albino.target, 'albino')
+  const albino = actionOf(state.pending, 'ROGUE', 'target')
+  if (albino) attack(albino.target, 'rogue')
 
   // ---- The Bruja's potions --------------------------------------------
   // v1 populated this dropdown and then threw the answer away: there was no
-  // BRU case in configureLastStep(), so the witch never affected anything.
+  // MEDIC case in configureLastStep(), so the witch never affected anything.
 
-  const potion = actionOf(state.pending, 'BRU', 'potion')
+  const potion = actionOf(state.pending, 'MEDIC', 'potion')
   if (potion) {
     if (potion.potion === 'heal') {
       if (deaths.delete(potion.target)) {
-        outcomes.push({ type: 'attackBlocked', night, target: potion.target, by: 'BRU', public: false })
+        outcomes.push({ type: 'attackBlocked', night, target: potion.target, by: 'MEDIC', public: false })
       }
     } else {
       const target = find(players, potion.target)
       // The witch's poison bypasses the Protector.
-      if (target?.alive) kill(target.id, 'witch')
+      if (target?.alive) kill(target.id, 'poison')
     }
   }
 
   // ---- Day-scoped effects ---------------------------------------------
 
-  const arson = actionOf(state.pending, 'PIR', 'target')
+  const arson = actionOf(state.pending, 'SILENCE', 'target')
   if (arson) {
     const target = find(players, arson.target)
     if (target) {
@@ -174,7 +174,7 @@ export const resolveNight = (state: GameState): Resolution => {
     }
   }
 
-  const raven = actionOf(state.pending, 'CUE', 'target')
+  const raven = actionOf(state.pending, 'EXTRA_VOTE', 'target')
   if (raven) {
     const target = find(players, raven.target)
     if (target) {
@@ -183,9 +183,9 @@ export const resolveNight = (state: GameState): Resolution => {
     }
   }
 
-  const seer = actionOf(state.pending, 'VID', 'target')
+  const seer = actionOf(state.pending, 'INSPECT', 'target')
   if (seer) {
-    outcomes.push({ type: 'inspected', night, target: seer.target, by: 'VID', public: false })
+    outcomes.push({ type: 'inspected', night, target: seer.target, by: 'INSPECT', public: false })
   }
 
   // ---- Apply deaths, then cascade -------------------------------------
@@ -216,13 +216,13 @@ export const resolveNight = (state: GameState): Resolution => {
  */
 export const growls = (players: readonly Player[]): boolean => {
   const living = players.filter((p) => p.alive)
-  const tamerIndex = living.findIndex((p) => p.roleId === 'DOM')
+  const tamerIndex = living.findIndex((p) => p.roleId === 'SENSE')
   if (tamerIndex === -1 || living.length < 2) return false
 
   const left = living[(tamerIndex - 1 + living.length) % living.length]!
   const right = living[(tamerIndex + 1) % living.length]!
 
-  return isWolfRole(left.roleId) || isWolfRole(right.roleId)
+  return isCrewRole(left.roleId) || isCrewRole(right.roleId)
 }
 
 /**
@@ -254,11 +254,11 @@ export const applyDeaths = (
         type: 'death',
         night,
         target: id,
-        cause: deaths.get(id) ?? 'wolves',
+        cause: deaths.get(id) ?? 'killers',
         public: true,
       })
 
-      if (player.roleId === 'CAZ' && awaitingHunterShot === null) {
+      if (player.roleId === 'AVENGE' && awaitingHunterShot === null) {
         awaitingHunterShot = player.id
       }
 

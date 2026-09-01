@@ -11,7 +11,7 @@ const makePlayer = (id: number, roleId: RoleId, name = `P${id}`): Player => ({
   alive: true,
   protectedTonight: false,
   protectedLastNight: false,
-  wolfAttacksSurvivable: roleId === 'ANC' ? 1 : 0,
+  wolfAttacksSurvivable: roleId === 'SURVIVE' ? 1 : 0,
   loverOf: null,
   silencedOnDay: null,
   extraVotesOnDay: null,
@@ -44,8 +44,8 @@ const deadIds = (outcomes: Outcome[]): number[] =>
 describe('wolf attacks', () => {
   it('kills an unprotected victim', () => {
     const state = stateWith(
-      ['LOB', 'ALD'],
-      [{ kind: 'target', roleId: 'LOB', actor: 0, target: 1 }],
+      ['KILLER', 'PLAIN'],
+      [{ kind: 'target', roleId: 'KILLER', actor: 0, target: 1 }],
     )
     const { players, outcomes } = resolveNight(state)
 
@@ -55,10 +55,10 @@ describe('wolf attacks', () => {
 
   it('is stopped by the Protector, and the block stays secret', () => {
     const state = stateWith(
-      ['LOB', 'ALD', 'PRO'],
+      ['KILLER', 'PLAIN', 'GUARD'],
       [
-        { kind: 'target', roleId: 'PRO', actor: 2, target: 1 },
-        { kind: 'target', roleId: 'LOB', actor: 0, target: 1 },
+        { kind: 'target', roleId: 'GUARD', actor: 2, target: 1 },
+        { kind: 'target', roleId: 'KILLER', actor: 0, target: 1 },
       ],
     )
     const { players, outcomes } = resolveNight(state)
@@ -67,23 +67,23 @@ describe('wolf attacks', () => {
     expect(players[1]!.alive).toBe(true)
 
     const blocked = outcomes.find((o) => o.type === 'attackBlocked')
-    expect(blocked).toMatchObject({ by: 'PRO', public: false })
+    expect(blocked).toMatchObject({ by: 'GUARD', public: false })
   })
 
   it('lets the Anciano survive his first attack but not his second', () => {
     const first = stateWith(
-      ['LOB', 'ANC'],
-      [{ kind: 'target', roleId: 'LOB', actor: 0, target: 1 }],
+      ['KILLER', 'SURVIVE'],
+      [{ kind: 'target', roleId: 'KILLER', actor: 0, target: 1 }],
     )
     const afterFirst = resolveNight(first)
 
     expect(afterFirst.players[1]!.alive).toBe(true)
     expect(afterFirst.players[1]!.wolfAttacksSurvivable).toBe(0)
-    expect(afterFirst.outcomes.find((o) => o.type === 'attackBlocked')).toMatchObject({ by: 'ANC' })
+    expect(afterFirst.outcomes.find((o) => o.type === 'attackBlocked')).toMatchObject({ by: 'SURVIVE' })
 
     const second = stateWith(
-      ['LOB', 'ANC'],
-      [{ kind: 'target', roleId: 'LOB', actor: 0, target: 1 }],
+      ['KILLER', 'SURVIVE'],
+      [{ kind: 'target', roleId: 'KILLER', actor: 0, target: 1 }],
       { night: 2, players: afterFirst.players },
     )
     expect(resolveNight(second).players[1]!.alive).toBe(false)
@@ -91,8 +91,8 @@ describe('wolf attacks', () => {
 
   it('lets the albino wolf kill another wolf', () => {
     const state = stateWith(
-      ['LOB', 'ALB', 'ALD'],
-      [{ kind: 'target', roleId: 'ALB', actor: 1, target: 0 }],
+      ['KILLER', 'ROGUE', 'PLAIN'],
+      [{ kind: 'target', roleId: 'ROGUE', actor: 1, target: 0 }],
       { night: 2 },
     )
     expect(resolveNight(state).players[0]!.alive).toBe(false)
@@ -101,28 +101,28 @@ describe('wolf attacks', () => {
 
 describe("the Bruja's potions", () => {
   // v1 populated the Curar/Matar dropdown and discarded the answer entirely:
-  // configureLastStep() had no BRU case.
+  // configureLastStep() had no MEDIC case.
   it('heals the wolves’ victim', () => {
     const state = stateWith(
-      ['LOB', 'ALD', 'BRU'],
+      ['KILLER', 'PLAIN', 'MEDIC'],
       [
-        { kind: 'target', roleId: 'LOB', actor: 0, target: 1 },
-        { kind: 'potion', roleId: 'BRU', target: 1, potion: 'heal' },
+        { kind: 'target', roleId: 'KILLER', actor: 0, target: 1 },
+        { kind: 'potion', roleId: 'MEDIC', target: 1, potion: 'heal' },
       ],
     )
     const { players, outcomes } = resolveNight(state)
 
     expect(deadIds(outcomes)).toEqual([])
     expect(players[1]!.alive).toBe(true)
-    expect(outcomes.find((o) => o.type === 'attackBlocked')).toMatchObject({ by: 'BRU' })
+    expect(outcomes.find((o) => o.type === 'attackBlocked')).toMatchObject({ by: 'MEDIC' })
   })
 
   it('poisons a second victim on the same night', () => {
     const state = stateWith(
-      ['LOB', 'ALD', 'BRU', 'VID'],
+      ['KILLER', 'PLAIN', 'MEDIC', 'INSPECT'],
       [
-        { kind: 'target', roleId: 'LOB', actor: 0, target: 1 },
-        { kind: 'potion', roleId: 'BRU', target: 3, potion: 'kill' },
+        { kind: 'target', roleId: 'KILLER', actor: 0, target: 1 },
+        { kind: 'potion', roleId: 'MEDIC', target: 3, potion: 'kill' },
       ],
     )
     expect(deadIds(resolveNight(state).outcomes).sort()).toEqual([1, 3])
@@ -130,10 +130,10 @@ describe("the Bruja's potions", () => {
 
   it('poisons through the Protector’s shield', () => {
     const state = stateWith(
-      ['LOB', 'ALD', 'BRU', 'PRO'],
+      ['KILLER', 'PLAIN', 'MEDIC', 'GUARD'],
       [
-        { kind: 'target', roleId: 'PRO', actor: 3, target: 1 },
-        { kind: 'potion', roleId: 'BRU', target: 1, potion: 'kill' },
+        { kind: 'target', roleId: 'GUARD', actor: 3, target: 1 },
+        { kind: 'potion', roleId: 'MEDIC', target: 1, potion: 'kill' },
       ],
     )
     expect(resolveNight(state).players[1]!.alive).toBe(false)
@@ -143,8 +143,8 @@ describe("the Bruja's potions", () => {
 describe('Cupido', () => {
   it('pairs two lovers', () => {
     const state = stateWith(
-      ['CUP', 'ALD', 'VID'],
-      [{ kind: 'pair', roleId: 'CUP', first: 1, second: 2 }],
+      ['PAIR', 'PLAIN', 'INSPECT'],
+      [{ kind: 'pair', roleId: 'PAIR', first: 1, second: 2 }],
     )
     const { players } = resolveNight(state)
 
@@ -154,12 +154,12 @@ describe('Cupido', () => {
 
   it('kills the surviving lover of heartbreak', () => {
     const paired = resolveNight(
-      stateWith(['CUP', 'ALD', 'VID', 'LOB'], [{ kind: 'pair', roleId: 'CUP', first: 1, second: 2 }]),
+      stateWith(['PAIR', 'PLAIN', 'INSPECT', 'KILLER'], [{ kind: 'pair', roleId: 'PAIR', first: 1, second: 2 }]),
     )
 
     const state = stateWith(
       [],
-      [{ kind: 'target', roleId: 'LOB', actor: 3, target: 1 }],
+      [{ kind: 'target', roleId: 'KILLER', actor: 3, target: 1 }],
       { night: 2, players: paired.players },
     )
     const { players, outcomes } = resolveNight(state)
@@ -175,42 +175,42 @@ describe('Cupido', () => {
 describe('the Infecto', () => {
   it('converts its victim into a wolf instead of killing them', () => {
     const state = stateWith(
-      ['INF', 'ALD', 'LOB'],
+      ['CONVERT', 'PLAIN', 'KILLER'],
       [
-        { kind: 'target', roleId: 'LOB', actor: 2, target: 1 },
-        { kind: 'skip', roleId: 'PRO' },
-        { kind: 'confirm', roleId: 'INF' },
+        { kind: 'target', roleId: 'KILLER', actor: 2, target: 1 },
+        { kind: 'skip', roleId: 'GUARD' },
+        { kind: 'confirm', roleId: 'CONVERT' },
       ],
     )
     const { players, outcomes, infectionUsed } = resolveNight(state)
 
     expect(players[1]!.alive).toBe(true)
-    expect(players[1]!.roleId).toBe('LOB')
+    expect(players[1]!.roleId).toBe('KILLER')
     expect(infectionUsed).toBe(true)
     expect(outcomes.find((o) => o.type === 'converted')).toBeDefined()
   })
 
   it('only converts once per game — the second attack kills', () => {
     const state = stateWith(
-      ['INF', 'ALD', 'LOB'],
+      ['CONVERT', 'PLAIN', 'KILLER'],
       [
-        { kind: 'target', roleId: 'LOB', actor: 2, target: 1 },
-        { kind: 'confirm', roleId: 'INF' },
+        { kind: 'target', roleId: 'KILLER', actor: 2, target: 1 },
+        { kind: 'confirm', roleId: 'CONVERT' },
       ],
       { infectionUsed: true },
     )
     const { players } = resolveNight(state)
 
     expect(players[1]!.alive).toBe(false)
-    expect(players[1]!.roleId).toBe('ALD')
+    expect(players[1]!.roleId).toBe('PLAIN')
   })
 })
 
 describe('day-scoped effects', () => {
   it('silences the Píromano’s target for the coming day', () => {
     const state = stateWith(
-      ['PIR', 'ALD'],
-      [{ kind: 'target', roleId: 'PIR', actor: 0, target: 1 }],
+      ['SILENCE', 'PLAIN'],
+      [{ kind: 'target', roleId: 'SILENCE', actor: 0, target: 1 }],
       { night: 1, day: 0 },
     )
     const { players, outcomes } = resolveNight(state)
@@ -221,10 +221,10 @@ describe('day-scoped effects', () => {
 
   it('records the Cuervo’s extra vote publicly and the Vidente’s look secretly', () => {
     const state = stateWith(
-      ['CUE', 'VID', 'ALD'],
+      ['EXTRA_VOTE', 'INSPECT', 'PLAIN'],
       [
-        { kind: 'target', roleId: 'CUE', actor: 0, target: 2 },
-        { kind: 'target', roleId: 'VID', actor: 1, target: 2 },
+        { kind: 'target', roleId: 'EXTRA_VOTE', actor: 0, target: 2 },
+        { kind: 'target', roleId: 'INSPECT', actor: 1, target: 2 },
       ],
     )
     const { outcomes } = resolveNight(state)
@@ -237,8 +237,8 @@ describe('day-scoped effects', () => {
 describe('the Cazador', () => {
   it('still owes a shot when killed', () => {
     const state = stateWith(
-      ['LOB', 'CAZ'],
-      [{ kind: 'target', roleId: 'LOB', actor: 0, target: 1 }],
+      ['KILLER', 'AVENGE'],
+      [{ kind: 'target', roleId: 'KILLER', actor: 0, target: 1 }],
     )
     expect(resolveNight(state).awaitingHunterShot).toBe(1)
   })
@@ -248,8 +248,8 @@ describe('duplicate names', () => {
   // The v1 corruption this engine exists to prevent.
   it('kills only the targeted player when two share a name', () => {
     const state = stateWith(
-      ['LOB', 'VID', 'ALD'],
-      [{ kind: 'target', roleId: 'LOB', actor: 0, target: 2 }],
+      ['KILLER', 'INSPECT', 'PLAIN'],
+      [{ kind: 'target', roleId: 'KILLER', actor: 0, target: 2 }],
     )
     state.players[1]!.name = 'Ana'
     state.players[2]!.name = 'Ana'
@@ -265,8 +265,8 @@ describe('duplicate names', () => {
 describe('purity', () => {
   it('does not mutate the state it is given', () => {
     const state = stateWith(
-      ['LOB', 'ALD'],
-      [{ kind: 'target', roleId: 'LOB', actor: 0, target: 1 }],
+      ['KILLER', 'PLAIN'],
+      [{ kind: 'target', roleId: 'KILLER', actor: 0, target: 1 }],
     )
     const before = structuredClone(state)
     resolveNight(state)
@@ -276,10 +276,10 @@ describe('purity', () => {
 
   it('emits no user-visible strings', () => {
     const state = stateWith(
-      ['LOB', 'ALD', 'PRO', 'BRU'],
+      ['KILLER', 'PLAIN', 'GUARD', 'MEDIC'],
       [
-        { kind: 'target', roleId: 'PRO', actor: 2, target: 1 },
-        { kind: 'target', roleId: 'LOB', actor: 0, target: 1 },
+        { kind: 'target', roleId: 'GUARD', actor: 2, target: 1 },
+        { kind: 'target', roleId: 'KILLER', actor: 0, target: 1 },
       ],
     )
     const { outcomes } = resolveNight(state)
@@ -288,8 +288,8 @@ describe('purity', () => {
     const allowed = new Set([
       'death', 'attackBlocked', 'inspected', 'protected', 'lovers', 'father',
       'converted', 'silenced', 'extraVote', 'sectSplit', 'growl', 'roleChanged',
-      'wolves', 'albino', 'witch', 'lynch', 'heartbreak', 'hunter',
-      'PRO', 'ANC', 'BRU', 'VID', 'INF', 'LOB',
+      'killers', 'rogue', 'poison', 'lynch', 'heartbreak', 'revenge',
+      'GUARD', 'SURVIVE', 'MEDIC', 'INSPECT', 'CONVERT', 'KILLER',
     ])
     for (const outcome of outcomes) {
       for (const value of Object.values(outcome)) {
