@@ -476,3 +476,28 @@ describe('the night table is safe to turn around', () => {
     expect(nightMarkup(state, 'en')).toContain(strings('en').ui.night.showRoles)
   })
 })
+
+describe('who the narrator wakes for the Family', () => {
+  const who = (html: string) => html.match(/card__who">([^<]*)</)?.[1] ?? ''
+
+  it('names every living member, the Godfather and the Renegade included', () => {
+    const html = nightMarkup(atRole(['KILLER', 'CONVERT', 'PLAIN', 'INSPECT', 'ROGUE', 'GUARD'], 'KILLER'), 'en')
+    expect(who(html)).toContain('P0')
+    expect(who(html)).toContain('P1')
+    expect(who(html)).toContain('P4')
+    expect(who(html)).not.toContain('P2')
+    // Names only: which of them is the Godfather is not the Family's to know.
+    expect(who(html)).not.toContain(strings('en').roles.CONVERT.name)
+  })
+
+  it('leaves out the Associate until he has joined, and the dead', () => {
+    const state = atRole(['KILLER', 'CONVERT', 'PLAIN', 'INSPECT', 'PICK_SIDE'], 'KILLER')
+    const dead = { ...state, players: state.players.map((p) => (p.id === 1 ? { ...p, alive: false } : p)) }
+    expect(who(nightMarkup(dead, 'en'))).toBe('P0')
+  })
+
+  it('still names only the Godfather at his own step', () => {
+    const html = nightMarkup(atRole(['KILLER', 'CONVERT', 'PLAIN', 'INSPECT', 'GUARD'], 'CONVERT'), 'en')
+    expect(who(html)).toBe('P1')
+  })
+})

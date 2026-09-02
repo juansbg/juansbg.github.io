@@ -89,7 +89,15 @@ export const nightMarkup = (
     )
 
   // The narrator has to know who to wake, not just which role. v1 never said.
-  const holders = holdersOf(state.players, roleId)
+  // The Family wakes as a whole: the Godfather and the Renegade sit up with
+  // the killers, and to the rest of the Family they are simply Family, so
+  // this is names only. The Associate has joined nobody until he chooses.
+  const holders =
+    roleId === 'KILLER'
+      ? state.players.filter(
+          (p) => p.alive && ROLES[p.roleId].team === 'crew' && p.roleId !== 'PICK_SIDE',
+        )
+      : holdersOf(state.players, roleId)
   const who =
     holders.length > 0
       ? `<p class="card__who">${holders.map((p) => esc(p.name)).join(' · ')}</p>`
