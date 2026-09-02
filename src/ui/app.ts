@@ -21,6 +21,7 @@ import {
 } from '../engine/state'
 import type { NightAction, PlayerId } from '../engine/types'
 import { detectLocale, renderWinner, strings } from '../i18n'
+import { accentOf } from './accent'
 import { buzz, esc, on, swap } from './dom'
 import { clear, clearRoster, load, loadRoster, save, saveRoster, type AppState } from './store'
 import { editorMarkup, MIN_PLAYERS, namesMarkup, rosterMarkup } from './screens/setup'
@@ -211,7 +212,7 @@ function render(): void {
       .join('')
 
     return `
-      <section class="screen screen--day" style="--role: var(--role-AVENGE)">
+      <section class="screen screen--day" data-accent="${accentOf('AVENGE')}">
         <h1 class="title title--sm">${esc(t.roles.AVENGE.name)}</h1>
         <p class="subtitle subtitle--sm">${esc(shooter?.name ?? '')} — ${esc(t.roles.AVENGE.prompt)}</p>
         <div class="table table--list"><div class="targets">${targets}</div></div>

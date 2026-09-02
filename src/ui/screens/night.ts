@@ -2,6 +2,7 @@ import { ROLES, type RoleId } from '../../engine/roles'
 import { currentStep } from '../../engine/state'
 import type { GameState, Player, PlayerId } from '../../engine/types'
 import { strings, type Locale } from '../../i18n'
+import { accentOf } from '../accent'
 import { esc } from '../dom'
 import { circleMarkup, holdersOf, listMarkup } from './circle'
 import { outcomeCardMarkup } from './timeline'
@@ -113,7 +114,7 @@ export const nightMarkup = (
       : `${potion}<button class="btn btn--ghost" type="button" data-skip>${esc(t.ui.night.noOne)}</button>`
 
   return `
-    <section class="screen screen--night" style="--role: var(--role-${roleId})">
+    <section class="screen screen--night" data-accent="${accentOf(roleId)}">
       <header class="screen__head">
         <p class="night__counter">${esc(t.ui.night.stepCounter(state.stepIndex + 1, state.schedule.length))}</p>
         <div class="screen__tools">
@@ -206,8 +207,7 @@ export const inspectionMarkup = (
   const role = ROLES[subject.roleId]
 
   return `
-    <section class="screen screen--inspect" data-inspect
-             style="--role: var(--role-${subject.roleId})">
+    <section class="screen screen--inspect" data-inspect>
       <p class="inspect__who">${esc(subject.name)}</p>
       <h1 class="inspect__role">${esc(t.roles[subject.roleId].name)}</h1>
       <p class="inspect__team" data-team="${role.team}">
@@ -241,8 +241,7 @@ export const questionCardMarkup = (
       : ''
 
   return `
-    <section class="screen screen--inspect screen--ask" data-ask-card
-             style="--role: var(--role-${subject.roleId})">
+    <section class="screen screen--inspect screen--ask" data-ask-card>
       ${progress}
       <p class="inspect__who">${esc(subject.name)}</p>
       <h1 class="inspect__role inspect__role--ask">${esc(r.name)}</h1>

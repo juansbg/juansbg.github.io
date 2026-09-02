@@ -31,6 +31,19 @@ The project is being rebuilt. The roadmap is six sprints; **Sprints 0-3 are done
 - **Seats can be rearranged only during setup** (`swapSeats` / `moveSeat` in `engine/state.ts`). Ids are seating positions and are referenced from the log and lovers once play starts, so both refuse after that.
 - Three actions use `window.confirm` (clear names, end the game, restart). Native dialogs flash white in a dark room; replacing them with an in-app confirm sheet is the top open polish item.
 
+### Design language
+
+**`docs/DESIGN.md` is the authority for anything visual.** Read it before touching `src/ui/`. The short version:
+
+- **Four colours, named, and nothing else.** Vendetta `#FF0F0F` (blood, the crew, anything lethal), Midnight `#000029` (the ground), Ash `#D8D4C0` (secondary ink, hairlines, the town), Ledger `#F7F6F2` (primary ink; the one bright surface, used for the morning report and the held role card). Every other value in `tokens.css` is a `color-mix()` of these. Never add a fifth, however neutral it looks.
+- **Three faces, self-hosted.** Bebas Neue for anything that is a label (titles, buttons, seat names, the marks), IBM Plex Sans for anything read aloud, IBM Plex Mono for numbers. They come from `@fontsource` packages imported in `src/main.ts`, never a CDN.
+- **Radius is zero everywhere.** The `--radius-*` tokens resolve to `0`. Depth is a hairline and a surface step, not a shadow.
+- **Colour is keyed by side, not by role.** Markup carries `data-accent="crew|town|occult|system"` from `src/ui/accent.ts`; a two-letter `.mark` carries the role's identity. There are no per-role hues.
+- **Two contrast traps:** text on a Vendetta button is Midnight, never white; red on paper is a rule or a strike-through, never small text.
+- **The held role card and the inspect card carry no team colour.** The glow of a phone across a table must not say which side.
+
+`docs/design-language.html` is the same spec rendered as a page, with live components.
+
 ### Two traps worth knowing
 
 - `dom.ts`'s `swap()` must always run its callback. `document.startViewTransition` rejects when the tab is hidden or a transition is in flight; an unhandled rejection there means the screen silently stops updating. It now falls back to a plain paint.

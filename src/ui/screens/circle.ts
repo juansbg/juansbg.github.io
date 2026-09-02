@@ -1,6 +1,7 @@
 import { ROLES } from '../../engine/roles'
 import type { Player, PlayerId } from '../../engine/types'
 import { strings, type Locale } from '../../i18n'
+import { accentOf } from '../accent'
 import { esc } from '../dom'
 
 /**
@@ -62,7 +63,7 @@ export const circleMarkup = (
         <button class="seat" type="button"
                 ${canPick ? `data-${pickAttr}="${p.id}"` : 'disabled'}
                 ${canPick ? '' : 'aria-hidden="true"'}
-                style="--role: var(--role-${p.roleId})"
+                data-accent="${accentOf(p.roleId)}"
                 data-named="${named}"
                 data-team="${role.team}"
                 ${p.alive ? '' : 'data-dead'}
@@ -71,6 +72,7 @@ export const circleMarkup = (
                 ${selected.includes(p.id) ? 'data-selected' : ''}
                 ${p.hasQuestion ? 'data-question-flag' : ''}
                 ${revealTeams && role.team === 'crew' && p.alive ? 'data-crew' : ''}>
+          <span class="seat__n" aria-hidden="true">${String(p.id + 1).padStart(2, '0')}</span>
           <span class="seat__name">${named ? esc(p.name) : '—'}</span>
           ${showRoles ? `<span class="seat__role">${esc(t.roles[p.roleId].name)}</span>` : ''}
           ${p.hasQuestion ? '<span class="seat__flag" aria-hidden="true">?</span>' : ''}

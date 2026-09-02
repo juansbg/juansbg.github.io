@@ -396,12 +396,14 @@ body {
   /* The diameter is the smaller of the room's width and height, capped; the
      floor keeps a degenerate layout from inverting the radius. */
   --avail: max(min(100cqw, 100cqh, 24.5rem), 9rem);
-  /* Seats fill the chord between neighbours (chord ≈ 2r·sin(π/n)) up to a
-     third of the table, so four players get four big tiles rather than four
-     dots on an empty ring, and twenty still fit without overlapping. */
+  /* Seats sit inside the chord between neighbours (chord ≈ 2r·sin(π/n)) up
+     to just under a third of the table, so four players get four big tiles
+     rather than four dots on an empty ring, and twenty still fit. The
+     factors are tighter than they were for round seats: squares meet at
+     their corners, where circles only kissed. */
   --seat: clamp(
     2.75rem,
-    min(calc(var(--avail) * 0.34), calc(var(--avail) * 0.86 * sin(pi / var(--seats, 8)))),
+    min(calc(var(--avail) * 0.31), calc(var(--avail) * 0.72 * sin(pi / var(--seats, 8)))),
     7rem
   );
   --radius: calc((var(--avail) - var(--seat)) / 2);
@@ -1371,9 +1373,9 @@ body.is-revealing .bar {
 
 .log__row {
   display: grid;
-  grid-template-columns: 2.25rem auto 1fr auto;
+  grid-template-columns: 1.5rem auto 1fr auto;
   align-items: center;
-  gap: var(--space-3);
+  gap: var(--space-2);
   padding: var(--space-2) 0;
   border-bottom: 1px solid var(--hairline);
   font-size: var(--text-sm);
@@ -1389,15 +1391,18 @@ body.is-revealing .bar {
   min-width: 0;
 }
 
+/* Small, but still a full-height target: the row is the touch area. */
 .log__revert {
   flex: none;
   min-height: var(--touch);
-  padding: 0 var(--space-3);
+  max-width: 6rem;
+  padding: 0 var(--space-2);
   border: 1px solid var(--hairline-strong);
   border-radius: 0;
   background: transparent;
   color: var(--fg-2);
-  font-size: var(--text-display-min);
+  font-size: 1rem;
+  letter-spacing: 0.04em;
   line-height: 1;
   cursor: pointer;
 }

@@ -1,6 +1,7 @@
 import type { Session, TimelineEntry } from '../../engine/state'
 import type { GameState, Outcome, Player, PlayerId } from '../../engine/types'
 import { outcomeAccent, renderOutcome, strings, type Locale } from '../../i18n'
+import { accentOf, monogram, outcomeAccentOf, type Accent } from '../accent'
 import { esc } from '../dom'
 
 /**
@@ -10,9 +11,11 @@ import { esc } from '../dom'
  * the silent steps most of all, so every recorded move appears here — not just
  * the public outcomes the morning report reads aloud.
  *
- * Every row carries the colour of the role that made the move. v1 coloured its
- * report cards this way and it was the most readable thing about it: a red
- * card is a killing, a purple one is the Santera, without reading a word.
+ * Every row is a ledger line: the night, a two-letter mark in the colour of
+ * the side that made the move, the sentence, and the way back. v1 coloured
+ * its report cards per role and it was the most readable thing about it;
+ * with a four-colour palette the mark's letters carry the role and its
+ * colour carries the side (docs/DESIGN.md).
  */
 
 const nameOf = (players: readonly Player[], id: PlayerId | undefined): string =>
@@ -67,12 +70,12 @@ export const describeEntry = (
   }
 }
 
-/** The accent an entry should carry: its role, or the town for a lynching. */
-const entryAccent = (entry: TimelineEntry): string => {
-  if (entry.roleId) return `var(--role-${entry.roleId})`
-  if (entry.kind === 'lynch') return 'var(--town)'
-  if (entry.kind === 'hunterShot') return 'var(--role-AVENGE)'
-  return 'var(--fg-faint)'
+/** The accent an entry should carry: its role's side, or the town for a lynching. */
+const entryAccent = (entry: TimelineEntry): Accent => {
+  if (entry.roleId) return accentOf(entry.roleId)
+  if (entry.kind === 'lynch') return 'town'
+  if (entry.kind === 'hunterShot') return accentOf('AVENGE')
+  return 'system'
 }
 
 /** A glyph per kind of move, so rows scan without reading. */
@@ -101,13 +104,15 @@ export const timelineMarkup = (session: Session, locale: Locale): string => {
     .reverse()
     .map(({ entry, i }) => {
       const divider = entry.kind === 'nightStart' || entry.kind === 'nightEnd'
+      const mark = entry.roleId ? monogram(t.roles[entry.roleId].name) : entryGlyph(entry)
       return `
         <li class="log__row${divider ? ' log__row--divider' : ''}${
           entry.action?.kind === 'skip' ? ' log__row--quiet' : ''
         }"
             data-night="${entry.night}"
-            style="--accent: ${entryAccent(entry)}">
-          <span class="log__glyph" aria-hidden="true">${entryGlyph(entry)}</span>
+            data-accent="${entryAccent(entry)}">
+          <span class="log__night" aria-hidden="true">N${entry.night}</span>
+          <span class="mark" aria-hidden="true">${mark}</span>
           <span class="log__text">${esc(describeEntry(entry, players, locale))}</span>
           <button class="log__revert" type="button" data-revert="${i}">
             ${esc(t.ui.timeline.revertHere)}
@@ -131,9 +136,19 @@ export const timelineMarkup = (session: Session, locale: Locale): string => {
   `
 }
 
+/** The sentence with the subject's name set bold, so the narrator sees it first. */
+const emphasise = (line: string, subject: string | undefined): string => {
+  const at = subject ? line.indexOf(subject) : -1
+  if (subject === undefined || at === -1) return esc(line)
+  return `${esc(line.slice(0, at))}<span class="report__badge">${esc(subject)}</span>${esc(
+    line.slice(at + subject.length),
+  )}`
+}
+
 /**
- * One public outcome as a coloured card — the unit of the morning report and
- * of the end-of-game history. Direct descendant of v1's `displayCards`.
+ * One public outcome as a line of newsprint — the unit of the morning report
+ * and of the end-of-game history. Direct descendant of v1's `displayCards`:
+ * the mark carries the side that caused it, the letters the role.
  */
 export const outcomeCardMarkup = (
   outcome: Outcome,
@@ -143,17 +158,17 @@ export const outcomeCardMarkup = (
 ): string | null => {
   const line = renderOutcome(outcome, players, locale)
   if (line === null) return null
-  const accent = outcomeAccent(outcome)
-  const colour = accent === 'town' ? 'var(--town)' : `var(--role-${accent})`
+  const t = strings(locale)
+  const source = outcomeAccent(outcome)
+  const mark = source === 'town' ? '⚖' : monogram(t.roles[source].name)
 
-  // The name is pulled out as a badge so it reads first, as v1's did.
   const subject =
     'target' in outcome ? players.find((p) => p.id === outcome.target)?.name : undefined
 
   return `
-    <li class="report__card" style="--accent: ${colour}; --i: ${index}" data-kind="${outcome.type}">
-      ${subject ? `<span class="report__badge">${esc(subject)}</span>` : ''}
-      <span class="report__line">${esc(line)}</span>
+    <li class="report__card" data-accent="${outcomeAccentOf(outcome)}" style="--i: ${index}" data-kind="${outcome.type}">
+      <span class="mark" aria-hidden="true">${mark}</span>
+      <span class="report__line">${emphasise(line, subject)}</span>
     </li>
   `
 }

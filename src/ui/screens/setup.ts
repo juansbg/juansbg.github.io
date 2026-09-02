@@ -159,5 +159,3 @@ export const editorMarkup = (player: Player, locale: Locale): string => {
     </div>
   `
 }
-
-export const roleAccent = (roleId: RoleId): string => `var(--role-${ROLES[roleId].id})`

@@ -60,25 +60,31 @@ describe('the names screen', () => {
   })
 })
 
-describe('report cards carry the colour of their cause', () => {
+describe('report lines carry the side of their cause', () => {
   const players = createGame(cast(['KILLER', 'PLAIN', 'MEDIC'], ['Ana', 'Beto', 'Caro'])).players
 
   const card = (outcome: Outcome) => outcomeCardMarkup(outcome, players, 'en') ?? ''
 
-  it('paints a killing in the killers’ colour', () => {
+  it('marks a killing as the crew, with the killers’ monogram', () => {
     const html = card({ type: 'death', night: 1, target: 1, cause: 'killers', public: true })
-    expect(html).toContain('--accent: var(--role-KILLER)')
+    expect(html).toContain('data-accent="crew"')
+    expect(html).toContain('class="mark" aria-hidden="true">FA<')
     expect(html).toContain('data-kind="death"')
   })
 
-  it('paints a poisoning in the Santera’s colour', () => {
+  it('marks a poisoning as occult — the Santera is town, but hollow', () => {
     const html = card({ type: 'death', night: 1, target: 1, cause: 'poison', public: true })
-    expect(html).toContain('--accent: var(--role-MEDIC)')
+    expect(html).toContain('data-accent="occult"')
   })
 
-  it('paints an execution in the town’s colour', () => {
+  it('marks an execution as the town', () => {
     const html = card({ type: 'death', night: 1, target: 1, cause: 'lynch', public: true })
-    expect(html).toContain('--accent: var(--town)')
+    expect(html).toContain('data-accent="town"')
+  })
+
+  it('never emits a per-role colour', () => {
+    const html = card({ type: 'death', night: 1, target: 1, cause: 'killers', public: true })
+    expect(html).not.toContain('--role')
   })
 
   it('pulls the name out as a badge so it reads first', () => {
@@ -119,7 +125,7 @@ describe('the end-of-game history', () => {
 })
 
 describe('the log', () => {
-  it('colours each row by the role that moved', () => {
+  it('marks each row with the side of the role that moved', () => {
     let session = newSession(createGame(cast(['KILLER', 'PLAIN', 'GUARD'])))
     session = advance(session, startNight, { night: 1, kind: 'nightStart' })
     const guard: NightAction = { kind: 'target', roleId: 'GUARD', actor: 2, target: 1 }
@@ -127,7 +133,10 @@ describe('the log', () => {
       night: 1, kind: 'action', roleId: 'GUARD', action: guard,
     })
     const html = timelineMarkup(session, 'en')
-    expect(html).toContain('--accent: var(--role-GUARD)')
+    expect(html).toContain('data-accent="town"')
+    // The mark carries the role: "The Bodyguard" → BO.
+    expect(html).toContain('class="mark" aria-hidden="true">BO<')
+    expect(html).not.toContain('--role')
   })
 
   it('marks night boundaries as dividers', () => {

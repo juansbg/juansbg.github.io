@@ -1,8 +1,15 @@
 /* The single design-token set for the app.
  *
- * The two legacy trees carried different colour tables for the same roles
- * (legacy/v1/script.js:43-62 vs legacy/v2/game.js:11-25). This replaces both.
- * Nothing outside this file may invent a colour.
+ * The full design language is docs/DESIGN.md. Nothing outside this file may
+ * invent a colour, a typeface or a radius. The two legacy trees carried
+ * different colour tables for the same roles; this replaces both.
+ *
+ * Four colours, and everything else mixed from them with color-mix():
+ *
+ *   Vendetta  #FF0F0F  blood, the crew, anything lethal. A verb, never decoration.
+ *   Midnight  #000029  the ground.
+ *   Ash       #D8D4C0  secondary ink, hairlines, the town.
+ *   Ledger    #F7F6F2  primary ink at night; the one bright surface by day.
  *
  * Dark-first and deliberately dim: the narrator uses this one-handed, in a
  * dark room, while reading aloud. Nothing here should ever flash white. */
@@ -10,39 +17,75 @@
 :root {
   color-scheme: dark;
 
-  /* Surfaces — a noir stack, near-black to raised. */
-  --bg: #0b0d12;
-  --surface: #141821;
-  --surface-raised: #1c2130;
-  --surface-sunken: #070910;
+  /* The four. */
+  --vendetta: #ff0f0f;
+  --midnight: #000029;
+  --ash: #d8d4c0;
+  --ledger: #f7f6f2;
 
-  /* Ink */
-  --fg: #f2f4f8;
-  --fg-muted: #8b93a7;
-  --fg-faint: #4d5566;
+  /* Surfaces — Midnight, lifted with a little Ledger. */
+  --bg: var(--midnight);
+  --bg-day: color-mix(in oklab, var(--midnight) 84%, var(--ash));
+  --surface: color-mix(in oklab, var(--midnight) 91%, var(--ledger));
+  --surface-raised: color-mix(in oklab, var(--midnight) 84%, var(--ledger));
+  --surface-sunken: color-mix(in oklab, var(--midnight) 96%, var(--ledger));
 
-  /* Brand — the smoky gold of a speakeasy lamp. */
-  --accent: #e3b23c;
-  --accent-dim: #8a6d24;
-  --on-accent: #0b0d12;
+  /* Paper: the morning report and the role card. The only bright surface. */
+  --paper: var(--ledger);
+  --on-paper: var(--midnight);
+  --on-paper-muted: color-mix(in oklab, var(--midnight) 62%, var(--ledger));
+  --paper-rule: color-mix(in oklab, var(--midnight) 18%, var(--ledger));
 
-  /* Teams */
-  --town: #4bb3a5;
-  --crew: #d1453f;
-  --dead: #3a4152;
+  /* Ink — Ledger speaks, Ash annotates, the rest recede. */
+  --fg: var(--ledger);
+  --fg-2: var(--ash);
+  --fg-muted: color-mix(in oklab, var(--ash) 62%, var(--midnight));
+  --fg-faint: color-mix(in oklab, var(--ash) 36%, var(--midnight));
 
-  /* Semantics */
-  --danger: #d1453f;
-  --ok: #4bb3a5;
+  /* Lines. Depth comes from a hairline and a step up the surface scale. */
+  --hairline: color-mix(in oklab, var(--ash) 22%, transparent);
+  --hairline-strong: color-mix(in oklab, var(--ash) 48%, transparent);
 
-  /* Type scale — clamp(), never bare vw. v1 sized everything in vw against a
-     980px viewport, which is why it broke outside a phone. */
+  /* Vendetta states — the only colour with states. */
+  --lethal: var(--vendetta);
+  --on-lethal: var(--midnight); /* never white on red: 3.6:1 fails */
+  --lethal-dim: color-mix(in oklab, var(--vendetta) 55%, var(--midnight));
+  --lethal-glow: color-mix(in oklab, var(--vendetta) 38%, transparent);
+
+  /* Teams and states. Colour says whose side; type says who. */
+  --town: var(--ash);
+  --crew: var(--vendetta);
+  --dead: var(--fg-faint);
+
+  /* The primary action is the narrator signing the page: Ledger on Midnight. */
+  --accent: var(--ledger);
+  --accent-dim: var(--ash);
+  --on-accent: var(--midnight);
+  --danger: var(--vendetta);
+  --on-danger: var(--midnight);
+  --ok: var(--ash);
+  --on-ok: var(--midnight);
+
+  /* Faces. Self-hosted via @fontsource (src/main.ts); the PWA rule bans CDNs.
+     Display is Bebas Neue: caps only, so it never carries a sentence that is
+     read aloud. Plex Sans is for anything read aloud, Plex Mono for numbers. */
+  --font-display: 'Bebas Neue', 'Oswald', Impact, 'Arial Narrow', sans-serif;
+  --font-body: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+  --track-display: 0.03em;
+  --track-label: 0.12em;
+
+  /* Type scale — clamp(), never bare vw. Display steps are Bebas, text steps
+     are Plex. v1 sized everything in vw against a 980px viewport, which is
+     why it broke outside a phone. */
   --text-xs: clamp(0.75rem, 3vw, 0.875rem);
   --text-sm: clamp(0.875rem, 3.5vw, 1rem);
-  --text-md: clamp(1rem, 4.2vw, 1.25rem);
-  --text-lg: clamp(1.25rem, 5.5vw, 1.75rem);
-  --text-xl: clamp(1.75rem, 8vw, 3rem);
-  --text-hero: clamp(2.25rem, 11vw, 4.5rem);
+  --text-md: clamp(1rem, 4.2vw, 1.2rem);
+  --text-lg: clamp(1.5rem, 5.5vw, 2rem);
+  --text-xl: clamp(2.25rem, 8vw, 3.5rem);
+  --text-hero: clamp(3.5rem, 14vw, 7rem);
+  /* Bebas below this gets spidery in the dark. */
+  --text-display-min: 1.25rem;
 
   /* Spacing */
   --space-1: 0.25rem;
@@ -53,51 +96,57 @@
   --space-6: 2rem;
   --space-7: 3rem;
 
-  --radius-sm: 8px;
-  --radius-md: 14px;
-  --radius-lg: 22px;
-  --radius-pill: 999px;
+  /* Shape: there are no corners. The tokens stay so a stray reference still
+     resolves, and resolves to zero. */
+  --radius-sm: 0;
+  --radius-md: 0;
+  --radius-lg: 0;
+  --radius-pill: 0;
+  /* Register-mark tick length: the one ornament, on file cards. */
+  --mark: 10px;
 
   /* The smallest comfortable one-handed target. */
   --touch: 48px;
 
-  /* Motion. Snappy: nothing here is decorative, and nothing outlasts the
-     narrator's patience mid-sentence. */
+  /* Motion: cuts, not fades. Nothing here is decorative, and nothing
+     outlasts the narrator's patience mid-sentence. Nothing bounces. */
   --dur-instant: 90ms;
   --dur-fast: 150ms;
   --dur-base: 220ms;
-  --dur-slow: 320ms;
+  --dur-slow: 600ms; /* dawn only: the ground colour at phase change */
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
-  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
 
-  --shadow-lift: 0 6px 24px rgb(0 0 0 / 0.45);
-  --shadow-deep: 0 18px 48px rgb(0 0 0 / 0.6);
+  --shadow-lift: 0 6px 24px rgb(0 0 0 / 0.55); /* the menu sheet */
+  --shadow-deep: 0 18px 48px rgb(0 0 0 / 0.7); /* the reveal card */
 }
 
-/* Per-role accents. Keyed by the engine's function IDs, so a re-theme never
-   touches this file — only the string tables change. */
-:root {
-  --role-KILLER: #d1453f;
-  --role-CONVERT: #a4322f;
-  --role-ROGUE: #e8776f;
-  --role-PICK_SIDE: #b5615c;
+/* Role accents collapse to team + kind. Markup carries data-accent, set from
+   src/ui/accent.ts, and the two-letter mark carries identity. Never a hue
+   per role: the palette is four colours. */
+[data-accent='crew'] {
+  --role: var(--crew);
+  --role-fill: var(--crew);
+  --role-ink: var(--midnight);
+}
 
-  --role-PLAIN: #7d8699;
-  --role-INSPECT: #4b8fd1;
-  --role-GUARD: #4bb3a5;
-  --role-MEDIC: #a678d8;
-  --role-SURVIVE: #6fa34b;
-  --role-SILENCE: #e08a3c;
-  --role-EXTRA_VOTE: #c9b94a;
-  --role-PAIR: #d867a4;
-  --role-PROTEGE: #c98f4a;
-  --role-SENSE: #8a7a5c;
-  --role-AVENGE: #b8574a;
-  --role-MARTYR: #93a8d8;
-  --role-SWAP: #9d7bc0;
-  --role-PEEK: #55a8c4;
-  --role-SPLIT: #7a5cb8;
+[data-accent='town'] {
+  --role: var(--town);
+  --role-fill: var(--town);
+  --role-ink: var(--midnight);
+}
+
+/* The occult roles are hollow: an outline instead of a fill. */
+[data-accent='occult'] {
+  --role: var(--ash);
+  --role-fill: transparent;
+  --role-ink: var(--ash);
+}
+
+[data-accent='system'] {
+  --role: var(--fg-muted);
+  --role-fill: transparent;
+  --role-ink: var(--fg-muted);
 }
 
 @media (prefers-reduced-motion: reduce) {

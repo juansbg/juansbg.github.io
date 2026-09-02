@@ -1,0 +1,854 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Omertà Design Language</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+</head>
+<body>
+<style>
+  /* ─────────────────────────────────────────────────────────────
+     This page is written in the language it describes.
+     Single theme on purpose: the app lives in a dark room.
+     ───────────────────────────────────────────────────────────── */
+  :root {
+    color-scheme: dark;
+
+    /* The four. */
+    --vendetta: #FF0F0F;
+    --midnight: #000029;
+    --ash:      #D8D4C0;
+    --ledger:   #F7F6F2;
+
+    /* Ground and surfaces: Midnight, lifted with a little Ledger. */
+    --ground:        var(--midnight);
+    --surface:       color-mix(in oklab, var(--midnight) 91%, var(--ledger));
+    --surface-2:     color-mix(in oklab, var(--midnight) 84%, var(--ledger));
+    --ground-day:    color-mix(in oklab, var(--midnight) 84%, var(--ash));
+
+    /* Ink: Ledger speaks, Ash annotates, the rest recede. */
+    --ink:        var(--ledger);
+    --ink-2:      var(--ash);
+    --ink-mute:   color-mix(in oklab, var(--ash) 62%, var(--midnight));
+    --ink-faint:  color-mix(in oklab, var(--ash) 36%, var(--midnight));
+
+    /* Lines. */
+    --hairline:        color-mix(in oklab, var(--ash) 22%, transparent);
+    --hairline-strong: color-mix(in oklab, var(--ash) 48%, transparent);
+
+    /* Vendetta states. */
+    --vendetta-dim:  color-mix(in oklab, var(--vendetta) 55%, var(--midnight));
+    --vendetta-glow: color-mix(in oklab, var(--vendetta) 38%, transparent);
+
+    --display: 'Bebas Neue', 'Oswald', Impact, 'Arial Narrow', sans-serif;
+    --body:    'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    --mono:    'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+
+    --dur-fast: 150ms;
+    --dur-base: 220ms;
+    --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  }
+
+  * { box-sizing: border-box; }
+  html { background: var(--ground); }
+  body {
+    margin: 0;
+    background: var(--ground);
+    color: var(--ink);
+    font-family: var(--body);
+    font-size: 1rem;
+    line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  ::selection { background: var(--vendetta); color: var(--midnight); }
+  a { color: var(--ink); text-decoration-color: var(--vendetta); text-underline-offset: 3px; }
+  :focus-visible { outline: 2px solid var(--vendetta); outline-offset: 2px; }
+
+  h1, h2, h3, h4 {
+    font-family: var(--display);
+    font-weight: 400;
+    letter-spacing: 0.02em;
+    line-height: 0.95;
+    margin: 0;
+    text-wrap: balance;
+    text-transform: uppercase;
+  }
+  h2 { font-size: clamp(2.25rem, 6vw, 4rem); }
+  h3 { font-size: clamp(1.5rem, 3.5vw, 2rem); color: var(--ink); }
+  p { margin: 0; max-width: 62ch; }
+  p + p { margin-top: 0.85rem; }
+  strong { font-weight: 600; color: var(--ink); }
+  code {
+    font-family: var(--mono);
+    font-size: 0.9em;
+    color: var(--ash);
+    background: var(--surface);
+    padding: 0.05em 0.35em;
+  }
+
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: 0.75rem;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    color: var(--ink-mute);
+  }
+  .eyebrow b { color: var(--vendetta); font-weight: 500; }
+
+  .wrap { max-width: 76rem; margin: 0 auto; padding: 0 clamp(1rem, 4vw, 3rem); }
+
+  /* ── Hero ───────────────────────────────────────────────────── */
+  .hero { padding: clamp(2.5rem, 7vw, 5.5rem) 0 0; }
+  .hero-top { display: flex; justify-content: space-between; align-items: baseline; gap: 1rem; flex-wrap: wrap; }
+  .hero h1 {
+    font-size: clamp(5rem, 22vw, 15rem);
+    line-height: 0.82;
+    letter-spacing: 0.01em;
+    margin: 0.5rem 0 0 -0.04em;
+  }
+  .hero h1 span { color: var(--vendetta); }
+  .hero-lede {
+    display: grid; grid-template-columns: 1fr 1fr; gap: 2rem;
+    margin-top: 1.5rem; padding-top: 1.25rem; border-top: 1px solid var(--hairline-strong);
+  }
+  .hero-lede p { font-size: clamp(1.05rem, 1.6vw, 1.25rem); color: var(--ink-2); max-width: 44ch; }
+  @media (max-width: 720px) { .hero-lede { grid-template-columns: 1fr; } }
+
+  .strip {
+    display: grid;
+    grid-template-columns: 1.6fr 2.2fr 1.3fr 1fr;
+    margin-top: 2.5rem;
+    border: 1px solid var(--hairline-strong);
+  }
+  .strip > div {
+    min-height: clamp(11rem, 26vw, 18rem);
+    padding: 1rem;
+    display: flex; flex-direction: column; justify-content: space-between;
+    border-right: 1px solid var(--hairline-strong);
+  }
+  .strip > div:last-child { border-right: 0; }
+  .strip .name { font-family: var(--display); font-size: clamp(1.75rem, 3.5vw, 2.75rem); line-height: 0.9; letter-spacing: 0.02em; }
+  .strip .hex { font-family: var(--mono); font-size: 0.8rem; letter-spacing: 0.08em; }
+  .strip .use { font-size: 0.85rem; margin-top: 0.4rem; max-width: 22ch; }
+  .strip .c-vendetta { background: var(--vendetta); color: var(--midnight); }
+  .strip .c-midnight { background: var(--midnight); color: var(--ledger); }
+  .strip .c-ash      { background: var(--ash); color: var(--midnight); }
+  .strip .c-ledger   { background: var(--ledger); color: var(--midnight); }
+  @media (max-width: 720px) {
+    .strip { grid-template-columns: 1fr 1fr; }
+    .strip > div { min-height: 10rem; }
+    .strip > div:nth-child(2) { border-right: 0; }
+    .strip > div:nth-child(-n+2) { border-bottom: 1px solid var(--hairline-strong); }
+  }
+
+  /* ── Sections ───────────────────────────────────────────────── */
+  section { padding: clamp(3rem, 7vw, 5.5rem) 0 0; }
+  .sec-head { min-width: 0;
+    display: grid; grid-template-columns: 9rem 1fr; gap: 1rem; align-items: end;
+    padding-bottom: 1rem; border-bottom: 1px solid var(--hairline-strong);
+    margin-bottom: clamp(1.5rem, 3vw, 2.5rem);
+  }
+  .sec-head .eyebrow { padding-bottom: 0.45rem; }
+  @media (max-width: 720px) { .sec-head { grid-template-columns: 1fr; gap: 0.25rem; } }
+
+  .cols { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(17rem, 100%), 1fr)); gap: 1.5rem 2.5rem; }
+  .cols-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 2rem 3rem; }
+  @media (max-width: 720px) { .cols-2 { grid-template-columns: 1fr; } }
+
+  .lead { font-size: 1.125rem; color: var(--ink-2); max-width: 56ch; }
+  .lead + * { margin-top: 2rem; }
+  .sub { margin-top: 2.5rem; }
+  .sub h3 { margin-bottom: 1rem; }
+  .sub h3 small { font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.12em; color: var(--ink-mute); margin-left: 0.75rem; vertical-align: middle; }
+
+  /* Register marks: the one ornament. */
+  .file {
+    position: relative;
+    border: 1px solid var(--hairline);
+    background: var(--surface);
+    padding: 1.25rem;
+  }
+  .file::before, .file::after {
+    content: ""; position: absolute; width: 10px; height: 10px;
+    border-color: var(--ash); border-style: solid;
+  }
+  .file::before { top: -1px; left: -1px; border-width: 1px 0 0 1px; }
+  .file::after  { bottom: -1px; right: -1px; border-width: 0 1px 1px 0; }
+
+  /* Principles */
+  .principles { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(15rem, 100%), 1fr)); gap: 1px; background: var(--hairline); border: 1px solid var(--hairline); }
+  .principles > div { background: var(--ground); padding: 1.5rem 1.25rem; }
+  .principles h3 { font-size: 1.75rem; margin-bottom: 0.5rem; }
+  .principles p { color: var(--ink-2); font-size: 0.95rem; }
+
+  /* Palette table */
+  table { border-collapse: collapse; width: 100%; font-size: 0.95rem; }
+  th, td { text-align: left; padding: 0.65rem 0.75rem; border-bottom: 1px solid var(--hairline); vertical-align: top; }
+  th { font-family: var(--mono); font-weight: 500; font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--ink-mute); }
+  td.mono, .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+  td:first-child { color: var(--ink); font-weight: 500; }
+  .tbl-wrap { overflow-x: auto; }
+  .chip { display: inline-block; width: 0.9em; height: 0.9em; vertical-align: -0.1em; margin-right: 0.5em; border: 1px solid var(--hairline-strong); }
+
+  .scale { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(8.5rem, 100%), 1fr)); gap: 1px; background: var(--hairline); border: 1px solid var(--hairline); }
+  .scale > div { padding: 0.9rem 0.85rem; min-height: 7rem; display: flex; flex-direction: column; justify-content: space-between; }
+  .scale .t { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.06em; }
+  .scale .d { font-size: 0.8rem; opacity: 0.85; }
+
+  .pass { color: var(--ash); } .large { color: var(--ink-mute); } .fail { color: var(--vendetta); }
+
+  /* Type specimens */
+  .specimen { border: 1px solid var(--hairline); padding: 1.25rem; display: grid; gap: 0.5rem; }
+  .specimen .who { display: flex; justify-content: space-between; gap: 1rem; align-items: baseline; }
+  .specimen .sample { color: var(--ink); overflow-wrap: anywhere; }
+  .sample-display { font-family: var(--display); font-size: clamp(3rem, 7vw, 5.5rem); line-height: 0.9; letter-spacing: 0.02em; text-transform: uppercase; }
+  .sample-body { font-family: var(--body); font-size: 1.125rem; line-height: 1.5; max-width: 40ch; }
+  .sample-mono { font-family: var(--mono); font-size: 1rem; line-height: 1.6; font-variant-numeric: tabular-nums; white-space: pre; overflow-x: auto; }
+  .steps { display: grid; gap: 0.75rem; }
+  .steps > div { display: grid; grid-template-columns: minmax(4.5rem, 8rem) minmax(0, 1fr); gap: 1rem; align-items: baseline; border-bottom: 1px solid var(--hairline); padding-bottom: 0.6rem; }
+  .steps .k { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.1em; color: var(--ink-mute); text-transform: uppercase; }
+  .steps .v { text-transform: uppercase; font-family: var(--display); letter-spacing: 0.02em; line-height: 1; }
+
+  /* Rules list */
+  ul.rules { list-style: none; padding: 0; margin: 0; display: grid; gap: 0.7rem; }
+  ul.rules li { padding-left: 1.4rem; position: relative; color: var(--ink-2); max-width: 60ch; }
+  ul.rules li::before { content: ""; position: absolute; left: 0; top: 0.62em; width: 0.6rem; height: 2px; background: var(--vendetta); }
+  ul.rules li strong { color: var(--ink); }
+
+  /* Do / don't */
+  .dd { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--hairline); border: 1px solid var(--hairline); }
+  .dd > div { background: var(--ground); padding: 1.25rem; }
+  .dd h4 { font-size: 1.5rem; margin-bottom: 0.75rem; }
+  .dd .no h4 { color: var(--vendetta); }
+  .dd ul { margin: 0; padding-left: 1.1rem; color: var(--ink-2); display: grid; gap: 0.45rem; font-size: 0.95rem; }
+  @media (max-width: 720px) { .dd { grid-template-columns: 1fr; } }
+
+  /* ── Components ─────────────────────────────────────────────── */
+  .demo { border: 1px solid var(--hairline); padding: 1.5rem; display: grid; gap: 1.25rem; align-content: start; }
+  .demo .eyebrow { margin-bottom: -0.5rem; }
+  .row { display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: center; }
+
+  .btn {
+    font-family: var(--display); font-size: 1.375rem; letter-spacing: 0.04em; text-transform: uppercase;
+    line-height: 1; min-height: 48px; padding: 0.7rem 1.25rem 0.55rem;
+    border: 1px solid transparent; border-radius: 0; cursor: pointer;
+    transition: background var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out), transform 90ms;
+  }
+  .btn:active { transform: translateY(1px); }
+  .btn-primary { background: var(--ledger); color: var(--midnight); }
+  .btn-primary:hover { background: var(--ash); }
+  .btn-secondary { background: transparent; color: var(--ledger); border-color: var(--hairline-strong); }
+  .btn-secondary:hover { border-color: var(--ash); }
+  .btn-lethal { background: var(--vendetta); color: var(--midnight); }
+  .btn-lethal:hover { background: color-mix(in oklab, var(--vendetta) 88%, var(--ledger)); }
+  .btn-quiet { background: transparent; color: var(--ash); border-color: transparent; font-family: var(--body); font-size: 0.95rem; font-weight: 500; letter-spacing: 0; text-transform: none; }
+  .btn:disabled { background: transparent; color: var(--ink-faint); border-color: var(--hairline); cursor: not-allowed; }
+
+  /* Seats */
+  .seat {
+    width: 64px; height: 64px; display: grid; place-items: center; text-align: center;
+    border: 1px solid var(--hairline-strong); background: var(--surface);
+    font-family: var(--display); font-size: 1.1rem; letter-spacing: 0.03em; line-height: 1; padding-top: 2px;
+    position: relative;
+  }
+  .seat .n { position: absolute; top: 3px; left: 5px; font-family: var(--mono); font-size: 0.6rem; color: var(--ink-mute); letter-spacing: 0; }
+  .seat.crew { border-color: var(--vendetta); box-shadow: 0 0 0 1px var(--vendetta) inset, 0 0 18px var(--vendetta-glow); animation: breathe 2.6s ease-in-out infinite; }
+  .seat.selected { background: var(--ledger); color: var(--midnight); border-color: var(--ledger); }
+  .seat.selected .n { color: var(--midnight); }
+  .seat.dead { color: var(--ink-faint); border-color: var(--hairline); background: transparent; }
+  .seat.dead::after { content: ""; position: absolute; inset: 50% 8px auto; height: 2px; background: var(--vendetta-dim); transform: rotate(-12deg); }
+  .seat.off { opacity: 0.35; border-style: dashed; }
+  @keyframes breathe { 0%,100% { box-shadow: 0 0 0 1px var(--vendetta) inset, 0 0 14px var(--vendetta-glow); } 50% { box-shadow: 0 0 0 1px var(--vendetta) inset, 0 0 26px var(--vendetta-glow); } }
+
+  /* Outcome ledger lines */
+  .ledger { border-top: 1px solid var(--hairline-strong); }
+  .line { display: grid; grid-template-columns: 3.2rem 2.5rem 1fr; gap: 0.85rem; align-items: center; padding: 0.7rem 0; border-bottom: 1px solid var(--hairline); }
+  .line .ts { font-family: var(--mono); font-size: 0.72rem; color: var(--ink-mute); letter-spacing: 0.06em; }
+  .line .mark { width: 2.5rem; height: 2.5rem; display: grid; place-items: center; font-family: var(--display); font-size: 1.05rem; letter-spacing: 0.05em; padding-top: 2px; line-height: 1; }
+  .line .mark.crew { background: var(--vendetta); color: var(--midnight); }
+  .line .mark.town { background: var(--ash); color: var(--midnight); }
+  .line .mark.occult { background: transparent; color: var(--ash); border: 1px solid var(--ash); }
+  .line .mark.sys { background: transparent; color: var(--ink-mute); border: 1px solid var(--hairline-strong); }
+  .line .txt { font-size: 0.95rem; }
+  .line .txt em { font-style: normal; font-weight: 600; }
+  .line.blocked .txt { color: var(--ink-2); }
+  .line.blocked .txt s { text-decoration-color: var(--vendetta); }
+
+  /* Bar + menu sheet */
+  .bar { display: grid; grid-template-columns: 1fr auto; align-items: stretch; border-top: 1px solid var(--hairline-strong); background: var(--surface); }
+  .bar > * { border-radius: 0; }
+  .bar .btn-quiet { min-height: 56px; justify-self: start; padding-left: 1rem; }
+  .bar .more { width: 56px; min-height: 56px; border-left: 1px solid var(--hairline); background: transparent; color: var(--ledger); border-top: 0; border-right: 0; border-bottom: 0; font-size: 1.4rem; letter-spacing: 0.1em; cursor: pointer; }
+
+  /* Newsprint report */
+  .paper { background: var(--ledger); color: var(--midnight); padding: 1.25rem 1.25rem 1rem; position: relative; }
+  .paper .masthead { display: flex; justify-content: space-between; align-items: baseline; border-bottom: 2px solid var(--midnight); padding-bottom: 0.35rem; }
+  .paper .masthead h4 { font-size: 2rem; }
+  .paper .masthead span { font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.12em; }
+  .paper .body { padding-top: 0.75rem; display: grid; gap: 0.5rem; font-size: 0.95rem; }
+  .paper .body div { border-bottom: 1px solid color-mix(in oklab, var(--midnight) 18%, var(--ledger)); padding-bottom: 0.45rem; }
+  .paper .body b { font-weight: 600; }
+  .paper .dead-line { color: var(--vendetta); font-weight: 600; }
+  .stamp {
+    position: absolute; right: 1rem; top: 3.4rem; transform: rotate(-8deg);
+    font-family: var(--display); font-size: 1.5rem; letter-spacing: 0.12em; line-height: 1;
+    color: var(--vendetta); border: 2px solid var(--vendetta); padding: 0.35rem 0.5rem 0.2rem;
+    opacity: 0.9; mix-blend-mode: multiply;
+  }
+
+  /* Hold to reveal */
+  .hold {
+    display: grid; place-items: center; text-align: center; gap: 0.75rem;
+    min-height: 15rem; border: 1px solid var(--hairline-strong); background: var(--surface);
+    user-select: none; -webkit-user-select: none; touch-action: none; cursor: pointer; position: relative; overflow: hidden;
+  }
+  .hold .prompt { font-family: var(--display); font-size: 1.75rem; letter-spacing: 0.05em; }
+  .hold .prompt small { display: block; font-family: var(--body); font-size: 0.85rem; letter-spacing: 0; text-transform: none; color: var(--ink-mute); margin-top: 0.35rem; }
+  .hold .card {
+    position: absolute; inset: 0; display: grid; place-items: center; gap: 0.25rem; align-content: center;
+    background: var(--ledger); color: var(--midnight);
+    transform: translateY(100%); transition: transform var(--dur-base) var(--ease-out);
+  }
+  .hold.on .card { transform: translateY(0); }
+  .hold .card .who { font-family: var(--display); font-size: 3.5rem; line-height: 0.9; letter-spacing: 0.02em; }
+  .hold .card .team { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase; }
+  .hold .card .redact { display: inline-block; width: 8ch; height: 0.9em; background: var(--midnight); vertical-align: middle; }
+  .hold .bar-fill { position: absolute; left: 0; bottom: 0; height: 3px; width: 100%; transform: scaleX(0); transform-origin: left; background: var(--vendetta); transition: transform 380ms linear; }
+  .hold.arming .bar-fill { transform: scaleX(1); }
+
+  /* Phase tiles */
+  .phases { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--hairline); border: 1px solid var(--hairline); }
+  .phases > div { padding: 1.5rem 1.25rem; min-height: 11rem; display: flex; flex-direction: column; justify-content: space-between; }
+  .phases .night { background: var(--ground); }
+  .phases .day { background: var(--ground-day); }
+  .phases h4 { font-size: 2.25rem; }
+  .phases p { font-size: 0.9rem; color: var(--ink-2); }
+  @media (max-width: 600px) { .phases { grid-template-columns: 1fr; } }
+
+  /* Motion table */
+  .motion { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr)); gap: 1px; background: var(--hairline); border: 1px solid var(--hairline); }
+  .motion > div { background: var(--ground); padding: 1.1rem; }
+  .motion .k { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.1em; color: var(--ink-mute); text-transform: uppercase; }
+  .motion .v { font-family: var(--display); font-size: 1.75rem; letter-spacing: 0.03em; margin: 0.2rem 0 0.4rem; }
+  .motion p { font-size: 0.9rem; color: var(--ink-2); }
+
+  /* Code block */
+  pre {
+    margin: 0; padding: 1.25rem; overflow-x: auto;
+    background: var(--surface); border: 1px solid var(--hairline);
+    font-family: var(--mono); font-size: 0.8rem; line-height: 1.55; color: var(--ash);
+    tab-size: 2;
+  }
+  pre .c { color: var(--ink-mute); }
+  pre .k { color: var(--ledger); }
+  pre .r { color: var(--vendetta); }
+  .code-head { display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--hairline); border-bottom: 0; padding: 0.5rem 0.75rem 0.5rem 1.25rem; background: var(--surface-2); }
+  .code-head .btn { min-height: 36px; font-size: 1.05rem; padding: 0.45rem 0.8rem 0.35rem; }
+
+  footer { margin-top: clamp(3rem, 7vw, 5.5rem); padding: 1.5rem 0 3rem; border-top: 1px solid var(--hairline-strong); display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; }
+
+  @media (prefers-reduced-motion: reduce) {
+    *, *::before, *::after { animation: none !important; transition-duration: 1ms !important; }
+  }
+</style>
+
+<header class="hero">
+  <div class="wrap">
+    <div class="hero-top">
+      <div class="eyebrow"><b>Design language</b> &nbsp;·&nbsp; v3 · September 2026</div>
+      <div class="eyebrow">Four colours · Three faces · No corners</div>
+    </div>
+    <h1>Omer<span>tà</span></h1>
+    <div class="hero-lede">
+      <p>A case file the narrator holds in the dark. Every screen is a page from the dossier: hard edges, hairline rules, one red for anything that draws blood, and type that does the theatre so the colour doesn't have to.</p>
+      <p>The four colours below are the whole palette. Everything else on this page, and everything in the app, is mixed from them with <code>color-mix()</code>. Nothing gets invented outside this set.</p>
+    </div>
+
+    <div class="strip" aria-label="The four colours">
+      <div class="c-vendetta">
+        <div><div class="name">Vendetta</div><div class="use">The red. Blood, the crew, the button that kills. A verb, never a decoration.</div></div>
+        <div class="hex">#FF0F0F</div>
+      </div>
+      <div class="c-midnight">
+        <div><div class="name">Midnight</div><div class="use">The ground. Every night screen sits on this. Never pure black: the blue is what makes it feel like a room, not a void.</div></div>
+        <div class="hex">#000029</div>
+      </div>
+      <div class="c-ash">
+        <div><div class="name">Ash</div><div class="use">Cigar ash. Secondary ink, hairlines, the town's colour, anything muted.</div></div>
+        <div class="hex">#D8D4C0</div>
+      </div>
+      <div class="c-ledger">
+        <div><div class="name">Ledger</div><div class="use">The paper the books are kept on. Primary ink at night; the one bright surface by day.</div></div>
+        <div class="hex">#F7F6F2</div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main class="wrap">
+
+  <!-- ─────────────────────────── PRINCIPLES ─────────────────────────── -->
+  <section id="principles">
+    <div class="sec-head"><div class="eyebrow">Exhibit A</div><h2>Four rules everything answers to</h2></div>
+    <div class="principles">
+      <div><h3>The room is dark</h3><p>One hand, one thumb, one voice reading aloud. Nothing flashes white. Nothing is smaller than 48px to hit. Contrast is a feature, not a compliance box.</p></div>
+      <div><h3>Colour is evidence</h3><p>Every colour on screen means something: whose side, who's dead, what's lethal. If a colour is only there to look nice, remove it. Red in particular is rationed.</p></div>
+      <div><h3>Type does the theatre</h3><p>Bebas Neue at poster size carries the mood, so the interface underneath can be plain, fast and legible. Personality lives in the headline, not in gradients.</p></div>
+      <div><h3>The phone is a prop</h3><p>It gets passed around a table. The reveal must not leak across the room, the bar must vanish while a player holds it, and a dead phone battery should not end the game.</p></div>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────── PALETTE ─────────────────────────── -->
+  <section id="palette">
+    <div class="sec-head"><div class="eyebrow">Exhibit B</div><h2>Palette</h2></div>
+    <p class="lead">Four base colours, each with a job. The derived scale below is how they stretch to cover surfaces, ink, lines and states without a fifth colour ever appearing.</p>
+
+    <div class="sub">
+      <h3>Surfaces <small>from Midnight</small></h3>
+      <div class="scale">
+        <div style="background:var(--midnight);color:var(--ledger)"><span class="t">--ground</span><span class="d">Midnight. The page.</span></div>
+        <div style="background:var(--surface);color:var(--ledger)"><span class="t">--surface</span><span class="d">91% Midnight + Ledger. Cards, the bar.</span></div>
+        <div style="background:var(--surface-2);color:var(--ledger)"><span class="t">--surface-2</span><span class="d">84% Midnight + Ledger. Sheets, menus.</span></div>
+        <div style="background:var(--ground-day);color:var(--ledger)"><span class="t">--ground-day</span><span class="d">84% Midnight + Ash. The daytime page.</span></div>
+        <div style="background:var(--ledger);color:var(--midnight)"><span class="t">--paper</span><span class="d">Ledger. Morning report, role card. The only bright surface.</span></div>
+      </div>
+    </div>
+
+    <div class="sub">
+      <h3>Ink <small>Ledger speaks, Ash annotates</small></h3>
+      <div class="scale">
+        <div style="background:var(--midnight);color:var(--ledger)"><span class="t">--ink</span><span class="d">Ledger. Titles, names, anything read aloud.</span></div>
+        <div style="background:var(--midnight);color:var(--ash)"><span class="t">--ink-2</span><span class="d">Ash. Body copy, hints, secondary labels.</span></div>
+        <div style="background:var(--midnight);color:var(--ink-mute)"><span class="t">--ink-mute</span><span class="d">62% Ash + Midnight. Timestamps, eyebrows.</span></div>
+        <div style="background:var(--midnight);color:var(--ink-faint)"><span class="t">--ink-faint</span><span class="d">36% Ash + Midnight. Disabled, the dead.</span></div>
+        <div style="background:var(--midnight);color:var(--ledger)"><span class="t">--hairline</span><span class="d" style="border-top:1px solid var(--hairline);padding-top:6px">22% Ash. Every rule and border.</span></div>
+      </div>
+    </div>
+
+    <div class="sub">
+      <h3>Vendetta states <small>the only colour with states</small></h3>
+      <div class="scale">
+        <div style="background:var(--vendetta);color:var(--midnight)"><span class="t">--vendetta</span><span class="d">Full. Lethal buttons, crew marks, the dead in the report.</span></div>
+        <div style="background:var(--vendetta-dim);color:var(--ledger)"><span class="t">--vendetta-dim</span><span class="d">55% + Midnight. Strike-throughs, blocked kills.</span></div>
+        <div style="background:var(--midnight);color:var(--ledger)"><span class="t">--vendetta-glow</span><span class="d" style="box-shadow:0 0 18px var(--vendetta-glow);border:1px solid var(--vendetta);padding:4px 6px">38% + transparent. The crew's night glow.</span></div>
+      </div>
+    </div>
+
+    <div class="sub cols-2">
+      <div>
+        <h3>Who gets which colour</h3>
+        <ul class="rules">
+          <li><strong>Crew is Vendetta.</strong> Their seats glow red for the narrator at night, their marks in the log are solid red squares.</li>
+          <li><strong>Town is Ash.</strong> Civilians, paper people. Solid Ash squares in the log, plain Ash hairline seats in the circle.</li>
+          <li><strong>The two occult roles are hollow.</strong> An Ash outline on Midnight instead of a fill. Same palette, visibly other.</li>
+          <li><strong>The dead are faint.</strong> Ink drops to <code>--ink-faint</code> with a single Vendetta-dim strike across the seat. Never removed, never hidden.</li>
+          <li><strong>The narrator's hand is Ledger.</strong> Whatever is selected, focused or primary goes Ledger-on-Midnight, inverted. It reads as "you are here" without needing a third colour.</li>
+        </ul>
+      </div>
+      <div>
+        <h3>Contrast, measured</h3>
+        <div class="tbl-wrap"><table>
+          <thead><tr><th>Pair</th><th>Ratio</th><th>Verdict</th></tr></thead>
+          <tbody>
+            <tr><td><span class="chip" style="background:var(--ledger)"></span>Ledger on Midnight</td><td class="mono">18.8 : 1</td><td class="pass">Any size</td></tr>
+            <tr><td><span class="chip" style="background:var(--ash)"></span>Ash on Midnight</td><td class="mono">13.7 : 1</td><td class="pass">Any size</td></tr>
+            <tr><td><span class="chip" style="background:var(--midnight)"></span>Midnight on Ledger</td><td class="mono">18.8 : 1</td><td class="pass">Any size</td></tr>
+            <tr><td><span class="chip" style="background:var(--vendetta)"></span>Vendetta on Midnight</td><td class="mono">5.2 : 1</td><td class="pass">Body text OK</td></tr>
+            <tr><td><span class="chip" style="background:var(--midnight)"></span>Midnight on Vendetta</td><td class="mono">5.2 : 1</td><td class="pass">Body text OK</td></tr>
+            <tr><td><span class="chip" style="background:var(--ledger)"></span>Ledger on Vendetta</td><td class="mono">3.6 : 1</td><td class="large">Display size only</td></tr>
+            <tr><td><span class="chip" style="background:var(--vendetta)"></span>Vendetta on Ash</td><td class="mono">2.7 : 1</td><td class="fail">Never for text</td></tr>
+          </tbody>
+        </table></div>
+        <p style="margin-top:1rem;font-size:0.9rem;color:var(--ink-2)">The one that bites: text on a red button is <strong>Midnight, not white</strong>. White-on-red looks right and fails. Red text on the newsprint report is fine only as a Bebas headline.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────── TYPE ─────────────────────────── -->
+  <section id="type">
+    <div class="sec-head"><div class="eyebrow">Exhibit C</div><h2>Typography</h2></div>
+    <p class="lead">Three faces, each with one job. Bebas Neue is the right call for titles: it's a condensed poster caps face, it sets tight, and with no rounded terminals it agrees with the corners. It has no lowercase, which is exactly why it needs a workhorse next to it.</p>
+
+    <div class="cols" style="margin-top:2rem">
+      <div class="specimen">
+        <div class="who"><span class="eyebrow">Display · Bebas Neue</span><span class="eyebrow">Titles, buttons, seats</span></div>
+        <div class="sample sample-display">Night three<br>The table<br>Case closed</div>
+        <p style="font-size:0.9rem;color:var(--ink-2)">Always caps, tracked <code>0.02–0.05em</code>, line-height <code>0.9</code>. Never below <code>1.25rem</code>: it gets spidery. Never for a sentence that has to be read aloud.</p>
+      </div>
+      <div class="specimen">
+        <div class="who"><span class="eyebrow">Body · IBM Plex Sans</span><span class="eyebrow">Anything read aloud</span></div>
+        <div class="sample sample-body">The Fixer moved to protect Marta. The crew came for her anyway. Nobody died last night.</div>
+        <p style="font-size:0.9rem;color:var(--ink-2)">Weights 400 / 500 / 600 only. Plex has a typewriter ancestry without being a costume, and its Spanish diacritics are clean at small sizes. Body <code>1rem/1.55</code>, ~62 characters wide.</p>
+      </div>
+      <div class="specimen">
+        <div class="who"><span class="eyebrow">Data · IBM Plex Mono</span><span class="eyebrow">Numbers, log, hex</span></div>
+        <div class="sample sample-mono">N3  02:14  KILLER → seat 07
+N3  02:15  GUARD  → seat 07
+N3  02:16  blocked</div>
+        <p style="font-size:0.9rem;color:var(--ink-2)">Seat numbers, night counters, timestamps, the timeline. Always <code>tabular-nums</code>. Weights 400 / 500. It's the dossier's typewriter, and it shares Plex Sans' skeleton so the two never argue.</p>
+      </div>
+    </div>
+
+    <div class="sub cols-2">
+      <div>
+        <h3>Scale <small>replaces --text-* in tokens.css</small></h3>
+        <div class="steps">
+          <div><span class="k">hero</span><span class="v" style="font-size:clamp(3.5rem,14vw,7rem)">Omertà</span></div>
+          <div><span class="k">xl</span><span class="v" style="font-size:clamp(2.25rem,8vw,3.5rem)">Night 3</span></div>
+          <div><span class="k">lg</span><span class="v" style="font-size:clamp(1.5rem,5.5vw,2rem)">Who do they kill?</span></div>
+          <div><span class="k">md · body</span><span style="font-size:clamp(1rem,4.2vw,1.2rem)">The crew opens its eyes.</span></div>
+          <div><span class="k">sm · body</span><span style="font-size:clamp(0.875rem,3.5vw,1rem);color:var(--ink-2)">Tap a seat, or hold to skip.</span></div>
+          <div><span class="k">xs · mono</span><span class="mono" style="font-size:0.75rem;letter-spacing:0.12em;color:var(--ink-mute)">SEAT 07 · ALIVE</span></div>
+        </div>
+      </div>
+      <div>
+        <h3>Rules</h3>
+        <ul class="rules">
+          <li><strong>Every button label is Bebas.</strong> It's what makes a 48px target look like a target and not a link.</li>
+          <li><strong>Every sentence the narrator reads is Plex Sans.</strong> The night script, the morning report, the outcome text. Never caps.</li>
+          <li><strong>Every number is Plex Mono.</strong> Even inside a sentence: <span class="mono">seat 07</span> sits in Mono while the words around it stay Sans.</li>
+          <li><strong>No italics.</strong> Emphasis is weight 600 or Ledger-on-Ash, never a slant. It keeps the page looking typed, not typeset.</li>
+          <li><strong>Self-host all three.</strong> The PWA rule bans CDNs. Use <code>@fontsource/bebas-neue</code>, <code>@fontsource/ibm-plex-sans</code> and <code>@fontsource/ibm-plex-mono</code>, latin subsets, six woff2 files, roughly 160 KB. Vite bundles them and the service worker caches them.</li>
+          <li><strong>If you ever want lowercase in titles,</strong> the swap is Big Shoulders Display, a Chicago-built condensed grotesque with nine weights. Same silhouette, more range. Bebas first though; it's the stronger voice.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────── SHAPE ─────────────────────────── -->
+  <section id="shape">
+    <div class="sec-head"><div class="eyebrow">Exhibit D</div><h2>Shape &amp; surface</h2></div>
+    <div class="cols-2">
+      <div>
+        <p class="lead">Radius is zero. Everywhere. Buttons, seats, cards, sheets, focus rings, the menu. A single rounded corner would give the game away as a generic app; the hard edge is what makes it a document.</p>
+        <ul class="rules" style="margin-top:1.5rem">
+          <li><strong>Lines, not shadows.</strong> Depth comes from a 1px Ash hairline and a step up the surface scale. Drop shadows are reserved for the menu sheet and the reveal card, the two things that physically sit on top.</li>
+          <li><strong>One ornament: register marks.</strong> The little L-shaped ticks in opposite corners of a file card. They say "this is a page in the file". Use them on cards that represent a record, not on buttons or seats.</li>
+          <li><strong>Hairline grids.</strong> Groups of equal things (principles, phase tiles, the list layout) sit in a 1px grid with the gap painted in <code>--hairline</code>, like ruled paper.</li>
+          <li><strong>The stamp.</strong> A rotated, outlined Vendetta word at 2px stroke. Used once per screen at most: CASE CLOSED on the end-of-game report, BLOCKED across a failed kill. Never on a button.</li>
+          <li><strong>The redaction bar.</strong> A solid Midnight block where a word would be. It's the visual for "you can't see this yet", used in the reveal handoff and the picker for "show a role again".</li>
+          <li><strong>Seats are squares.</strong> Not circles. The seating circle is still a ring of positions, but each seat is a square tile, kept upright so the name reads at any position. Square tiles in a ring look like chairs around a table; circles look like avatars.</li>
+        </ul>
+      </div>
+      <div style="display:grid;gap:1rem;align-content:start">
+        <div class="file">
+          <div class="eyebrow" style="margin-bottom:0.5rem">File card · register marks</div>
+          <div style="font-family:var(--display);font-size:2rem;letter-spacing:0.02em;line-height:0.95">Marta<br><span style="color:var(--ink-mute)">Seat 07</span></div>
+          <div style="margin-top:0.75rem;font-size:0.9rem;color:var(--ink-2)">Town · alive · protected on night 3</div>
+        </div>
+        <div class="dd">
+          <div class="yes"><h4>Do</h4><ul>
+            <li>Paint the gap in a grid, not a border on each cell</li>
+            <li>Use <code>--surface</code> steps for depth</li>
+            <li>Let the Bebas title be the biggest thing on screen</li>
+            <li>Leave Midnight ground visible around cards</li>
+          </ul></div>
+          <div class="no"><h4>Don't</h4><ul>
+            <li>Any <code>border-radius</code> above 0, including pills</li>
+            <li>Gradients, blur, glass, glow on anything but the crew</li>
+            <li>Icons where a Bebas word fits</li>
+            <li>A fifth colour, however "neutral"</li>
+          </ul></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────── COMPONENTS ─────────────────────────── -->
+  <section id="components">
+    <div class="sec-head"><div class="eyebrow">Exhibit E</div><h2>Components</h2></div>
+    <p class="lead">Rendered live, in the tokens above. Everything is a hard rectangle, everything meets the 48px target, and the only red on this whole section is a red that means something.</p>
+
+    <div class="cols" style="margin-top:2rem">
+      <div class="demo">
+        <div class="eyebrow">Buttons</div>
+        <div class="row">
+          <button class="btn btn-primary">Begin the night</button>
+          <button class="btn btn-secondary">Skip</button>
+        </div>
+        <div class="row">
+          <button class="btn btn-lethal">Confirm the hit</button>
+          <button class="btn btn-secondary" disabled>Rewind</button>
+          <button class="btn btn-quiet">Timeline</button>
+        </div>
+        <p style="font-size:0.9rem;color:var(--ink-2)"><strong>Primary is Ledger</strong>, the narrator signs the page. <strong>Secondary is a hairline.</strong> <strong>Lethal is Vendetta</strong> with Midnight ink, and it exists for exactly three actions: confirm a kill, confirm a lynch, end the game. Quiet buttons are Plex Sans and live in the bar.</p>
+      </div>
+
+      <div class="demo">
+        <div class="eyebrow">Seats</div>
+        <div class="row">
+          <div class="seat"><span class="n">01</span>Ana</div>
+          <div class="seat crew"><span class="n">02</span>Luis</div>
+          <div class="seat selected"><span class="n">03</span>Marta</div>
+          <div class="seat dead"><span class="n">04</span>Pau</div>
+          <div class="seat off"><span class="n">05</span>Iris</div>
+        </div>
+        <p style="font-size:0.9rem;color:var(--ink-2)">Alive, <strong>crew</strong> (the narrator-only glow, breathing on a 2.6s cycle, frozen under reduced motion), <strong>selected</strong> (inverted to Ledger), <strong>dead</strong> (faint with one dim strike), <strong>ineligible</strong> (dashed, dimmed, still there). Seat numbers in Mono top-left, always.</p>
+      </div>
+
+      <div class="demo">
+        <div class="eyebrow">Outcome lines · the timeline</div>
+        <div class="ledger">
+          <div class="line"><span class="ts">N3 ·01</span><span class="mark town">GD</span><span class="txt">The <em>Fixer</em> protects <em>Marta</em>.</span></div>
+          <div class="line blocked"><span class="ts">N3 ·02</span><span class="mark crew">KL</span><span class="txt">The crew <s>kills</s> <em>Marta</em>. Blocked.</span></div>
+          <div class="line"><span class="ts">N3 ·03</span><span class="mark occult">MD</span><span class="txt">The <em>Undertaker</em> saves nobody.</span></div>
+          <div class="line"><span class="ts">D3</span><span class="mark sys">·</span><span class="txt">Day breaks. Nobody died.</span></div>
+        </div>
+        <p style="font-size:0.9rem;color:var(--ink-2)"><strong>Colour says whose side, type says who.</strong> The square is the team (Vendetta crew, Ash town, hollow occult, hairline for the system), the two-letter mark is the role, the sentence is Plex Sans. This replaces the nineteen per-role hues in the current tokens.</p>
+      </div>
+
+      <div class="demo">
+        <div class="eyebrow">Bottom bar</div>
+        <div class="bar">
+          <button class="btn btn-quiet">Timeline</button>
+          <button class="more" aria-label="Menu">···</button>
+        </div>
+        <p style="font-size:0.9rem;color:var(--ink-2)">One bar, one menu, both on <code>--surface</code> with a hairline on top. Never rendered during a reveal. The menu opens as a sheet on <code>--surface-2</code> with Bebas items and hairline rows, no icons.</p>
+      </div>
+
+      <div class="demo">
+        <div class="eyebrow">Hold to reveal · try it</div>
+        <div class="hold" id="hold" tabindex="0" aria-label="Press and hold to reveal">
+          <div class="prompt">Hold to see your role<small>Release and it's gone. The card is Ledger for every role, so the glow across the table gives nothing away.</small></div>
+          <div class="card">
+            <div class="team">You are</div>
+            <div class="who">The Fixer</div>
+            <div class="team">Town · protects one player each night</div>
+          </div>
+          <div class="bar-fill"></div>
+        </div>
+      </div>
+
+      <div class="demo">
+        <div class="eyebrow">Morning report · newsprint</div>
+        <div class="paper">
+          <div class="masthead"><h4>Morning three</h4><span>Day 3 · 6 alive</span></div>
+          <div class="stamp">Nobody died</div>
+          <div class="body">
+            <div>The town wakes. <b>Marta</b> was attacked in the night and survived.</div>
+            <div>The <b>Bookkeeper</b> is silenced today and may not speak.</div>
+            <div class="dead-line">Pau is dead. He was the Courier.</div>
+          </div>
+        </div>
+        <p style="font-size:0.9rem;color:var(--ink-2)">The one bright surface, and it appears at dawn when the lights come up. Ledger paper, Midnight ink, a 2px masthead rule, Vendetta only for deaths and the stamp. The same treatment carries the role card and the end-of-game history.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────── PHASE ─────────────────────────── -->
+  <section id="phase">
+    <div class="sec-head"><div class="eyebrow">Exhibit F</div><h2>Night and day</h2></div>
+    <div class="cols-2">
+      <div class="phases">
+        <div class="night"><div><h4>Night</h4><p>Ground is Midnight. Ink is Ledger. The crew glows. This is the default state of everything.</p></div><span class="eyebrow">html[data-phase="night"]</span></div>
+        <div class="day"><div><h4>Day</h4><p>Ground warms to 84% Midnight + Ash. Still dark, still the same ink, but the blue drains out. The report card is the sunrise.</p></div><span class="eyebrow">html[data-phase="day"]</span></div>
+      </div>
+      <div>
+        <ul class="rules">
+          <li><strong>The page never goes light.</strong> Day is a warmer dark, not a white theme. The dark-room constraint holds in both phases; the room's own lights are what change.</li>
+          <li><strong>Dawn is a 600ms crossfade</strong> of the ground colour, the slowest transition in the app. Everything else cuts.</li>
+          <li><strong>The report is the only bright thing by day</strong>, and it scrolls inside its own region so the ground stays visible around it.</li>
+          <li><strong>Setup and reveal are "night".</strong> No phase attribute means Midnight.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────── MOTION ─────────────────────────── -->
+  <section id="motion">
+    <div class="sec-head"><div class="eyebrow">Exhibit G</div><h2>Motion</h2></div>
+    <p class="lead">Film cuts, not app fades. A dossier page is turned, not dissolved. The existing durations stay; what changes is what each one is for.</p>
+    <div class="motion" style="margin-top:2rem">
+      <div><div class="k">Instant · 90ms</div><div class="v">Press</div><p>Button press, seat select. A 1px downward nudge and a colour swap. Nothing eases.</p></div>
+      <div><div class="k">Fast · 150ms</div><div class="v">Cut</div><p>Screen to screen. A hard vertical wipe with <code>--ease-out</code>, like sliding the next page over. No cross-dissolve.</p></div>
+      <div><div class="k">Base · 220ms</div><div class="v">Slide</div><p>The reveal card, the menu sheet, the timeline sheet. Things that physically sit on top slide up from the bottom edge.</p></div>
+      <div><div class="k">Slow · 600ms</div><div class="v">Dawn</div><p>Only the ground colour at phase change. The single deliberately slow moment, so the room notices morning.</p></div>
+      <div><div class="k">Ambient · 2.6s</div><div class="v">Breathe</div><p>The crew glow at night, for the narrator's eyes only. The only looping animation in the app. Frozen at mid-glow under <code>prefers-reduced-motion</code>.</p></div>
+      <div><div class="k">Never</div><div class="v">Bounce</div><p>Drop <code>--ease-spring</code>. Overshoot reads as playful; this game isn't.</p></div>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────── VOICE ─────────────────────────── -->
+  <section id="voice">
+    <div class="sec-head"><div class="eyebrow">Exhibit H</div><h2>Voice</h2></div>
+    <div class="cols-2">
+      <div>
+        <p class="lead">Labels are stamps. Sentences are testimony. The app speaks like a case file: terse in caps, plain in prose, never a joke.</p>
+        <ul class="rules" style="margin-top:1.5rem">
+          <li><strong>Bebas labels are two or three words.</strong> NIGHT 3. THE TABLE. MORNING REPORT. CASE CLOSED. Long enough to be a title, short enough to be a stamp.</li>
+          <li><strong>Buttons name the consequence.</strong> "Confirm the hit", not "OK". "Begin the night", not "Next".</li>
+          <li><strong>Questions to the narrator are questions.</strong> "Who does the crew kill?" as a Bebas <code>lg</code> title over the circle.</li>
+          <li><strong>Outcome sentences are past tense, active, one clause.</strong> "The crew killed Pau." Both languages get the same length and weight.</li>
+          <li><strong>No exclamation marks anywhere.</strong></li>
+        </ul>
+      </div>
+      <div class="file">
+        <div class="eyebrow" style="margin-bottom:0.75rem">Sample screen · night 3, crew's turn</div>
+        <div class="mono" style="font-size:0.72rem;letter-spacing:0.12em;color:var(--ink-mute)">NIGHT 3 · STEP 4 OF 7</div>
+        <div style="font-family:var(--display);font-size:clamp(1.75rem,5.5vw,2.25rem);letter-spacing:0.02em;line-height:0.95;margin:0.5rem 0 0.75rem">Who does the crew kill?</div>
+        <p style="font-size:0.95rem;color:var(--ink-2);max-width:40ch">"The crew opens its eyes and chooses a target. Point, and I'll note it down."</p>
+        <div class="row" style="margin-top:1.25rem"><button class="btn btn-lethal">Confirm the hit</button><button class="btn btn-secondary">No kill tonight</button></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ─────────────────────────── TOKENS ─────────────────────────── -->
+  <section id="tokens">
+    <div class="sec-head"><div class="eyebrow">Exhibit I</div><h2>tokens.css, proposed</h2></div>
+    <p class="lead">Drop-in replacement for the <code>:root</code> block in <code>src/ui/tokens.css</code>. The spacing, touch and duration tokens are unchanged; the radii collapse to zero; the palette, faces and role accents are new. Existing rules that reference <code>--accent</code>, <code>--town</code>, <code>--crew</code> and <code>--role-*</code> keep working through the aliases at the bottom.</p>
+    <div style="margin-top:2rem">
+      <div class="code-head"><span class="eyebrow">src/ui/tokens.css</span><button class="btn btn-secondary" id="copy">Copy</button></div>
+<pre id="tokens-src"><span class="c">/* The single design-token set for the app. Nothing outside this file
+   may invent a colour, a face or a radius. */</span>
+
+<span class="k">:root</span> {
+  color-scheme: dark;
+
+  <span class="c">/* The four. Every other colour is mixed from these. */</span>
+  <span class="r">--vendetta</span>: #FF0F0F;   <span class="c">/* blood, the crew, anything lethal */</span>
+  <span class="r">--midnight</span>: #000029;   <span class="c">/* the ground */</span>
+  <span class="r">--ash</span>:      #D8D4C0;   <span class="c">/* secondary ink, hairlines, the town */</span>
+  <span class="r">--ledger</span>:   #F7F6F2;   <span class="c">/* primary ink; the one bright surface */</span>
+
+  <span class="c">/* Surfaces */</span>
+  --bg:             var(--midnight);
+  --bg-day:         color-mix(in oklab, var(--midnight) 84%, var(--ash));
+  --surface:        color-mix(in oklab, var(--midnight) 91%, var(--ledger));
+  --surface-raised: color-mix(in oklab, var(--midnight) 84%, var(--ledger));
+  --surface-sunken: color-mix(in oklab, var(--midnight) 96%, var(--ledger));
+  --paper:          var(--ledger);
+  --on-paper:       var(--midnight);
+
+  <span class="c">/* Ink */</span>
+  --fg:       var(--ledger);
+  --fg-2:     var(--ash);
+  --fg-muted: color-mix(in oklab, var(--ash) 62%, var(--midnight));
+  --fg-faint: color-mix(in oklab, var(--ash) 36%, var(--midnight));
+
+  <span class="c">/* Lines */</span>
+  --hairline:        color-mix(in oklab, var(--ash) 22%, transparent);
+  --hairline-strong: color-mix(in oklab, var(--ash) 48%, transparent);
+
+  <span class="c">/* Vendetta states: the only colour with states */</span>
+  --lethal:      var(--vendetta);
+  --on-lethal:   var(--midnight);           <span class="c">/* never white on red */</span>
+  --lethal-dim:  color-mix(in oklab, var(--vendetta) 55%, var(--midnight));
+  --lethal-glow: color-mix(in oklab, var(--vendetta) 38%, transparent);
+
+  <span class="c">/* Teams and states */</span>
+  --town:   var(--ash);
+  --crew:   var(--vendetta);
+  --occult: transparent;                    <span class="c">/* hollow: 1px --ash outline */</span>
+  --dead:   var(--fg-faint);
+
+  <span class="c">/* Primary action is the narrator signing the page. */</span>
+  --accent:    var(--ledger);
+  --on-accent: var(--midnight);
+  --danger:    var(--vendetta);
+  --ok:        var(--ash);
+
+  <span class="c">/* Faces. Self-hosted via @fontsource; the PWA rule bans CDNs. */</span>
+  --font-display: 'Bebas Neue', 'Oswald', Impact, 'Arial Narrow', sans-serif;
+  --font-body:    'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono:    'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+  --track-display: 0.03em;
+  --track-label:   0.12em;
+
+  <span class="c">/* Type scale: display steps are Bebas, text steps are Plex. */</span>
+  --text-xs:   clamp(0.75rem, 3vw, 0.875rem);
+  --text-sm:   clamp(0.875rem, 3.5vw, 1rem);
+  --text-md:   clamp(1rem, 4.2vw, 1.2rem);
+  --text-lg:   clamp(1.5rem, 5.5vw, 2rem);
+  --text-xl:   clamp(2.25rem, 8vw, 3.5rem);
+  --text-hero: clamp(3.5rem, 14vw, 7rem);
+
+  --space-1: 0.25rem;  --space-2: 0.5rem;  --space-3: 0.75rem;
+  --space-4: 1rem;     --space-5: 1.5rem;  --space-6: 2rem;  --space-7: 3rem;
+
+  <span class="c">/* Shape: there are no corners. */</span>
+  --radius-sm: 0;  --radius-md: 0;  --radius-lg: 0;  --radius-pill: 0;
+  --mark: 10px;                             <span class="c">/* register-mark tick length */</span>
+
+  --touch: 48px;
+
+  <span class="c">/* Motion: cuts, not fades. */</span>
+  --dur-instant: 90ms;
+  --dur-fast:    150ms;
+  --dur-base:    220ms;
+  --dur-slow:    600ms;                     <span class="c">/* dawn only */</span>
+  --ease-out:    cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  <span class="c">/* --ease-spring removed: nothing here bounces. */</span>
+
+  --shadow-lift: 0 6px 24px rgb(0 0 0 / 0.55);   <span class="c">/* menu sheet only */</span>
+  --shadow-deep: 0 18px 48px rgb(0 0 0 / 0.7);   <span class="c">/* reveal card only */</span>
+}
+
+<span class="c">/* Role accents collapse to team + kind. outcomeAccent() keys on these
+   three instead of nineteen hues; the two-letter mark carries identity. */</span>
+<span class="k">:root</span> {
+  --role-crew:   var(--crew);
+  --role-town:   var(--town);
+  --role-occult: var(--ash);   <span class="c">/* as an outline, not a fill */</span>
+}
+
+<span class="k">html[data-phase="day"]</span> { --bg: var(--bg-day); }
+
+<span class="k">@media</span> (prefers-reduced-motion: reduce) {
+  <span class="k">:root</span> { --dur-instant: 1ms; --dur-fast: 1ms; --dur-base: 1ms; --dur-slow: 1ms; }
+}</pre>
+    </div>
+  </section>
+
+  <footer>
+    <span class="eyebrow">Omertà · design language · for the narrator, not the players</span>
+    <span class="eyebrow">Vendetta · Midnight · Ash · Ledger</span>
+  </footer>
+</main>
+
+<script>
+  // Hold-to-reveal demo. Mirrors the app's security model: pointer down arms,
+  // a short delay opens, any release/cancel/leave/blur closes immediately.
+  (function () {
+    var el = document.getElementById('hold');
+    var timer = null;
+    function arm(e) {
+      if (e.type === 'pointerdown' && e.button !== 0) return;
+      e.preventDefault();
+      el.classList.add('arming');
+      clearTimeout(timer);
+      timer = setTimeout(function () { el.classList.add('on'); }, 380);
+    }
+    function close() {
+      clearTimeout(timer);
+      el.classList.remove('arming', 'on');
+    }
+    el.addEventListener('pointerdown', arm);
+    ['pointerup', 'pointercancel', 'pointerleave', 'blur'].forEach(function (t) { el.addEventListener(t, close); });
+    el.addEventListener('keydown', function (e) { if ((e.key === ' ' || e.key === 'Enter') && !e.repeat) arm(e); });
+    el.addEventListener('keyup', function (e) { if (e.key === ' ' || e.key === 'Enter') close(); });
+    document.addEventListener('visibilitychange', function () { if (document.hidden) close(); });
+    el.addEventListener('contextmenu', function (e) { e.preventDefault(); });
+  })();
+
+  // Copy the token block.
+  (function () {
+    var btn = document.getElementById('copy');
+    var src = document.getElementById('tokens-src');
+    btn.addEventListener('click', function () {
+      var text = src.innerText;
+      var done = function () { btn.textContent = 'Copied'; setTimeout(function () { btn.textContent = 'Copy'; }, 1400); };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(text).then(done, function () { btn.textContent = 'Select and copy'; });
+      } else {
+        var r = document.createRange(); r.selectNodeContents(src);
+        var s = window.getSelection(); s.removeAllRanges(); s.addRange(r);
+        btn.textContent = 'Selected';
+      }
+    });
+  })();
+</script>
+</body>
+</html>

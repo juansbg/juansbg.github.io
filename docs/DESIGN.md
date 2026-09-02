@@ -1,0 +1,176 @@
+# Omertà design language
+
+The visual identity of the v3 app. This is the authority for any UI change;
+`src/ui/tokens.css` is its executable form and `docs/design-language.html`
+is the same spec rendered as a page (open it in a browser; it also lives at
+https://claude.ai/code/artifact/3d1fa747-13b0-47c7-b890-ae49b7c3c262).
+
+**One sentence:** a case file the narrator holds in the dark. Hard edges,
+hairline rules, one red for anything that draws blood, and type that does the
+theatre so colour doesn't have to.
+
+## Four rules everything answers to
+
+1. **The room is dark.** One hand, one thumb, one voice reading aloud.
+   Nothing flashes white. Nothing to hit is smaller than 48px. Contrast is a
+   feature, not a compliance box.
+2. **Colour is evidence.** Every colour on screen means something: whose
+   side, who's dead, what's lethal. A colour that is only there to look nice
+   gets removed. Red in particular is rationed.
+3. **Type does the theatre.** Bebas Neue at poster size carries the mood so
+   the interface underneath can be plain, fast and legible. Personality lives
+   in the headline, never in gradients.
+4. **The phone is a prop.** It is passed around a table. The reveal must not
+   leak across the room, the bar vanishes while a player holds it, and a
+   reload must not end the game.
+
+## Palette
+
+Four colours. Everything else is mixed from them with `color-mix()`. Nothing
+gets invented outside this set, however "neutral".
+
+| Name | Hex | Job |
+|---|---|---|
+| **Vendetta** | `#FF0F0F` | Blood, the crew, the button that kills. A verb, never decoration. |
+| **Midnight** | `#000029` | The ground. Every night screen sits on this. Never pure black. |
+| **Ash** | `#D8D4C0` | Secondary ink, hairlines, the town's colour, anything muted. |
+| **Ledger** | `#F7F6F2` | Primary ink at night. The one bright surface by day. |
+
+### Derived scale (see `tokens.css` for the exact mixes)
+
+- **Surfaces** step up from Midnight with a little Ledger: `--bg`,
+  `--surface`, `--surface-raised`; `--surface-sunken` steps down. `--bg-day`
+  is Midnight with Ash for the daytime ground.
+- **Paper** is Ledger with Midnight ink (`--paper`, `--on-paper`,
+  `--paper-rule`). Used for the morning report, the held role card, and the
+  end-of-game history. Nothing else.
+- **Ink**: `--fg` Ledger, `--fg-2` Ash, `--fg-muted`, `--fg-faint`.
+- **Lines**: `--hairline` (22% Ash), `--hairline-strong` (48% Ash).
+- **Vendetta states**: `--lethal`, `--lethal-dim`, `--lethal-glow`. The only
+  colour with states.
+
+### Who gets which colour
+
+- **Crew is Vendetta.** Seats glow red for the narrator at night; log marks
+  are solid red squares.
+- **Town is Ash.** Solid Ash squares in the log; plain hairline seats.
+- **The two occult roles (`MEDIC`, `SPLIT`) are hollow.** An Ash outline
+  instead of a fill. Same palette, visibly other. They are still town.
+- **The dead are faint**, with one dim Vendetta strike across the seat.
+  Never removed, never hidden.
+- **The narrator's hand is Ledger.** Selected, focused, primary: all invert
+  to Ledger-on-Midnight. No third colour for "you are here".
+
+### Contrast, measured
+
+| Pair | Ratio | Use |
+|---|---|---|
+| Ledger on Midnight | 18.8:1 | any size |
+| Ash on Midnight | 13.7:1 | any size |
+| Midnight on Ledger | 18.8:1 | any size |
+| Vendetta on Midnight | 5.2:1 | body text OK |
+| Midnight on Vendetta | 5.2:1 | body text OK |
+| Ledger on Vendetta | 3.6:1 | display size only |
+| Vendetta on Ash or Ledger | 2.7:1 | **never for text** |
+
+The two that bite: **text on a red button is Midnight, not white**, and
+**red on paper is a rule or a strike-through, never small text.**
+
+## Typography
+
+Three faces, one job each. All three are self-hosted through `@fontsource`
+(imported in `src/main.ts`, latin subsets) because the PWA rule bans CDNs.
+
+| Role | Face | Where |
+|---|---|---|
+| Display | **Bebas Neue** | Titles, buttons, seat names, menu items, the marks. Always caps, tracked `0.02–0.05em`, line-height `0.9`. Never below `1.25rem` (`--text-display-min`). Never for a sentence that is read aloud. |
+| Body | **IBM Plex Sans** 400 / 500 / 600 | Anything the narrator reads aloud: the night prompt, the report, outcome text. Never caps. |
+| Data | **IBM Plex Mono** 400 / 500 | Seat numbers, night counters, timestamps, eyebrow labels. Always `tabular-nums`. |
+
+Rules:
+
+- Every button label is Bebas. Every sentence is Plex Sans. Every number is
+  Plex Mono, even inside a sentence.
+- No italics. Emphasis is weight 600.
+- Scale is `--text-xs` … `--text-hero` in `tokens.css`, all `clamp()`.
+- If lowercase titles are ever wanted, the swap is Big Shoulders Display.
+  Bebas first.
+
+## Shape and surface
+
+- **Radius is zero. Everywhere.** The `--radius-*` tokens exist so a stray
+  reference resolves, and they resolve to `0`.
+- **Lines, not shadows.** Depth is a 1px Ash hairline and a step up the
+  surface scale. `--shadow-*` is reserved for the menu sheet and the held
+  role card, the two things that physically sit on top.
+- **One ornament: register marks.** The L-shaped ticks in opposite corners of
+  a file card (`.file`, `.card`). Only on things that represent a record,
+  never on a button or a seat.
+- **Hairline grids.** Groups of equal things sit in a 1px grid with the gap
+  painted in `--hairline`, like ruled paper.
+- **The stamp** (a rotated, outlined Vendetta word) at most once per screen:
+  CASE CLOSED on the end-of-game report, BLOCKED across a failed kill. Never
+  on a button.
+- **Seats are squares**, kept upright. Chairs around a table, not avatars.
+
+## Components
+
+- **Buttons.** `.btn--primary` Ledger fill, Midnight ink. `.btn--ghost` a
+  hairline. `.btn--danger` Vendetta fill, **Midnight** ink, and it exists for
+  exactly three actions: confirm a kill, confirm a lynch, end the game.
+  `.btn--ok` Ash fill. Disabled is transparent with a hairline.
+- **Seats.** `.seat` is a square tile with the seat number top-left in mono.
+  `[data-crew]` glows (narrator only). `[data-selected]` inverts to Ledger.
+  `[data-dead]` goes faint with a strike. `[data-ineligible]` is dashed and
+  dimmed, still there.
+- **The mark.** `.mark` is a 2rem square with a two-letter monogram in Bebas.
+  Fill and ink come from `data-accent` (`crew` / `town` / `occult` /
+  `system`), set from `src/ui/accent.ts`. Colour says whose side; type says
+  who.
+- **Ledger lines.** The timeline (`.log__row`) is night · mark · sentence ·
+  revert, with a hairline under each row and no background.
+- **Newsprint.** `.report` is Ledger paper with Midnight ink; a killing's
+  name is struck through in Vendetta. On paper the town mark becomes ink
+  (Midnight), because Ash on Ledger is invisible.
+- **The bottom bar.** One bar on `--surface` with a hairline on top; the
+  timeline as quiet Plex text and ⋯ in a square. Never rendered during a
+  reveal.
+- **The held role card.** Paper for every role alike, with the side in mono
+  text. A colour-coded card would tell the table the side before the reader.
+  The same rule applies to the across-the-room inspect card.
+
+## Motion
+
+Film cuts, not app fades. A page is turned, not dissolved. Nothing bounces
+(`--ease-spring` was removed).
+
+| Token | Use |
+|---|---|
+| `--dur-instant` 90ms | press: a 1px nudge and a colour swap |
+| `--dur-fast` 150ms | screen to screen |
+| `--dur-base` 220ms | things that slide up from the bottom: sheets, the role card |
+| `--dur-slow` 600ms | **dawn only**: the ground colour at phase change |
+| 2.6s loop | the crew glow, the only looping animation; frozen under `prefers-reduced-motion` |
+
+## Night and day
+
+`html[data-phase='night']` paints `--bg` (Midnight). `html[data-phase='day']`
+paints `--bg-day` (Midnight + Ash: warmer, still dark). The page never goes
+light; the report card is the sunrise. Setup and the reveal are night.
+
+## Voice
+
+Labels are stamps, sentences are testimony. Bebas labels are two or three
+words (NIGHT 3, THE TABLE, CASE CLOSED). Buttons name the consequence
+("Confirm the hit", not "OK"). Outcome sentences are past tense, active, one
+clause, the same weight in both languages. No exclamation marks.
+
+## Do / don't
+
+**Do:** paint the gap in a grid rather than a border on each cell; use
+`--surface` steps for depth; let the Bebas title be the biggest thing on
+screen; leave Midnight ground visible around cards.
+
+**Don't:** any `border-radius` above 0, pills included; gradients, blur,
+glass, or glow on anything but the crew; icons where a Bebas word fits; a
+fifth colour; a hue per role; white text on red; small red text on paper.

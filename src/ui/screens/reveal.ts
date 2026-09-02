@@ -99,7 +99,13 @@ export const revealMarkup = (props: RevealProps): string => {
   `
 }
 
-/** The card shown while the finger is down. Injected, never pre-rendered. */
+/**
+ * The card shown while the finger is down. Injected, never pre-rendered.
+ *
+ * Deliberately carries no team colour or accent: it is the same paper for
+ * every role, so the glow of the phone across the table gives nothing away.
+ * The side is stated in text, to the one person holding it.
+ */
 export const roleCardMarkup = (player: Player, locale: Locale): string => {
   const t = strings(locale)
   const role = ROLES[player.roleId]
@@ -107,7 +113,7 @@ export const roleCardMarkup = (player: Player, locale: Locale): string => {
   const team = role.team === 'crew' ? t.ui.reveal.teamCrew : t.ui.reveal.teamTown
 
   return `
-    <div class="reveal__card" style="--role: var(--role-${player.roleId})">
+    <div class="reveal__card">
       <p class="reveal__owner">${esc(player.name)}</p>
       <p class="reveal__label">${esc(t.ui.reveal.yourRole)}</p>
       <h2 class="reveal__role">${esc(roleStrings.name)}</h2>
