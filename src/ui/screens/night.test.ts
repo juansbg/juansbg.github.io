@@ -370,3 +370,61 @@ describe('the narrator’s night header', () => {
     expect(html).toContain('data-show-player')
   })
 })
+
+describe('the Chameleon’s step', () => {
+  const state = atRole(['SWAP', 'KILLER', 'PLAIN', 'INSPECT', 'GUARD'], 'SWAP')
+
+  it('lists the cards left in the centre and a way to keep his own', () => {
+    const html = nightMarkup(state, 'en')
+    expect(html).toContain('data-choose-role="MEDIC"')
+    expect(html).not.toContain('data-choose-role="INSPECT"')
+    expect(html).not.toContain('data-choose-role="KILLER"')
+    expect(html).toContain(strings('en').ui.night.keepCard)
+    expect(html).not.toContain('data-night-confirm')
+  })
+
+  it('shows him the centre in his own view', () => {
+    const html = playerViewMarkup(state, 'en')
+    expect(html).toContain(strings('en').roles.MEDIC.name)
+    expect(html).not.toContain(strings('en').roles.INSPECT.name)
+  })
+})
+
+describe('the Cultist’s step', () => {
+  const state = atRole(['SPLIT', 'KILLER', 'PLAIN', 'INSPECT'], 'SPLIT')
+  const confirm = (html: string) => html.match(/data-split-confirm[^>]*/)?.[0] ?? ''
+
+  it('lets every living player be tapped into the first faction', () => {
+    const html = nightMarkup(state, 'en', [1])
+    expect(html).toContain(strings('en').ui.night.splitHint)
+    expect(html).toMatch(/data-target="1"[\s\S]*?data-selected/)
+    expect(html).toMatch(/data-target="3"/)
+  })
+
+  it('locks Confirm until both factions have someone', () => {
+    expect(confirm(nightMarkup(state, 'en', []))).toContain('disabled')
+    expect(confirm(nightMarkup(state, 'en', [1, 2]))).not.toContain('disabled')
+    expect(confirm(nightMarkup(state, 'en', [0, 1, 2, 3]))).toContain('disabled')
+  })
+
+  it('shows the Cultist both factions as they form', () => {
+    const html = playerViewMarkup(state, 'en', [1, 2])
+    expect(html).toContain(strings('en').ui.view.sectOne(['P1', 'P2']))
+    expect(html).toContain(strings('en').ui.view.sectTwo(['P0', 'P3']))
+  })
+})
+
+describe('the Renegade’s targets', () => {
+  it('include his own side but not himself', () => {
+    // He was barred from the Family along with the killers, which removed the
+    // one thing his card is for.
+    const state = night(['ROGUE', 'KILLER', 'CONVERT', 'PLAIN'])
+    const rogue = legalTargets(state, 'ROGUE').map((p) => p.id)
+    expect(rogue).toContain(1)
+    expect(rogue).toContain(2)
+    expect(rogue).toContain(3)
+    expect(rogue).not.toContain(0)
+    // The Family itself still never eats its own.
+    expect(legalTargets(state, 'KILLER').map((p) => p.id)).toEqual([3])
+  })
+})

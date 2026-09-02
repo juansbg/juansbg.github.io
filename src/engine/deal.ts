@@ -55,22 +55,22 @@ const TOWN_POOL: Record<Complexity, readonly RoleId[]> = {
   complex: [
     'INSPECT', 'GUARD', 'MEDIC', 'SURVIVE', 'AVENGE',
     'SILENCE', 'EXTRA_VOTE', 'PAIR', 'PROTEGE', 'SENSE',
-    'PEEK', 'MARTYR',
+    'PEEK', 'MARTYR', 'SWAP',
   ],
 }
 
 /**
- * Roles the dealer must never hand out, because the engine does not fully
- * implement them — dealing one would quietly cost a side a player.
+ * Roles the dealer never hands out on its own.
  *
  * SPLIT: the narrator script says only "divides the town in two" and gives no
- * further rules, so there is nothing to implement without inventing it.
- * SWAP: needs the narrator to record which card was taken from the centre, and
- * that picker does not exist yet.
+ * win condition, so it is a pure manipulation card. Dealing it unasked would
+ * hand a table a rule it did not choose.
+ * PICK_SIDE: counts as crew for the deal but may stay with the town, so it
+ * would quietly unbalance whichever side it does not pick.
  *
  * Both remain available for manual assignment, where the narrator adjudicates.
  */
-export const NOT_AUTO_DEALT: readonly RoleId[] = ['SPLIT', 'SWAP', 'PICK_SIDE']
+export const NOT_AUTO_DEALT: readonly RoleId[] = ['SPLIT', 'PICK_SIDE']
 
 /** Always dealt when the table is big enough — the game needs them. */
 const ESSENTIAL: readonly RoleId[] = ['INSPECT', 'GUARD']

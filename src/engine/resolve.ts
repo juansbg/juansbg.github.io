@@ -127,7 +127,13 @@ export const resolveNight = (state: GameState): Resolution => {
     const subject = players.find((p) => p.roleId === swap.roleId)
     if (!subject) continue
     subject.roleId = swap.newRole
+    // The Veteran's free life comes with the card.
+    if (swap.newRole === 'SURVIVE') subject.wolfAttacksSurvivable = 1
     outcomes.push({ type: 'roleChanged', night, target: subject.id, to: swap.newRole, public: false })
+    // The table learns which card left the centre, never who took it.
+    if (swap.roleId === 'SWAP') {
+      outcomes.push({ type: 'cardTaken', night, role: swap.newRole, public: true })
+    }
   }
 
   const wolves = actionOf(state.pending, 'KILLER', 'target')

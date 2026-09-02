@@ -174,6 +174,7 @@ describe('the dealer never hands out a role that does nothing', () => {
     'KILLER',     // the nightly kill
     'CONVERT',    // converts instead of killing, once
     'ROGUE',      // kills anyone, own side included
+    'SWAP',       // takes a spare card from the centre
   ]
 
   it('only deals roles the engine resolves', () => {

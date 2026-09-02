@@ -1,3 +1,4 @@
+import { spareCards } from '../../engine/cards'
 import { ROLES, type RoleId } from '../../engine/roles'
 import { doomedTonight } from '../../engine/resolve'
 import { currentStep } from '../../engine/state'
@@ -15,8 +16,8 @@ export const legalTargets = (state: GameState, roleId: RoleId): Player[] => {
   if (spec.kind !== 'player') return living
 
   return living.filter((p) => {
-    // The killers never eat their own.
-    if (ROLES[roleId].team === 'crew' && ROLES[p.roleId].team === 'crew') return false
+    // The Family never eats its own. The Renegade may — that is his point.
+    if (roleId === 'KILLER' && ROLES[p.roleId].team === 'crew') return false
     if (!spec.mayTargetSelf && p.roleId === roleId) return false
     // "…but never the same person two nights running."
     if (!spec.mayRepeatConsecutively && p.protectedLastNight) return false
@@ -82,9 +83,11 @@ export const nightMarkup = (
 
   const needed = picksNeeded(roleId)
   const hint =
-    needed > 0 && picked.length < needed
-      ? `<p class="label">${esc(needed === 2 ? t.ui.night.pickTwo : t.ui.night.pickOne)}</p>`
-      : ''
+    spec.kind === 'split'
+      ? `<p class="label">${esc(t.ui.night.splitHint)}</p>`
+      : needed > 0 && picked.length < needed
+        ? `<p class="label">${esc(needed === 2 ? t.ui.night.pickTwo : t.ui.night.pickOne)}</p>`
+        : ''
 
   // A sentence under the prompt when the step has a specific situation to
   // report: who the Family chose, or that both vials are gone.
@@ -115,6 +118,34 @@ export const nightMarkup = (
     action = `<div class="actions actions--row">
         <button class="btn btn--ghost" type="button" data-choose-role="KILLER">${esc(t.ui.night.joinCrew)}</button>
         <button class="btn btn--ghost" type="button" data-choose-role="PLAIN">${esc(t.ui.night.stayTown)}</button>
+      </div>`
+  } else if (roleId === 'SWAP') {
+    // The cards left in the centre, for the narrator to hold up. A scrolling
+    // list in place of the circle: the choice is a card, not a person.
+    const spare = spareCards(state.players)
+    if (spare.length === 0) situation = t.ui.night.noSpareCards
+    chooser =
+      spare.length === 0
+        ? circleMarkup(state.players, locale, { showRoles: true, revealTeams: true })
+        : `<p class="label">${esc(t.ui.night.spareCards)}</p>
+           <div class="table table--list"><div class="targets">${spare
+             .map((id) => `<button class="target" type="button" data-choose-role="${id}">${esc(t.roles[id].name)}</button>`)
+             .join('')}</div></div>`
+    action = `<div class="actions"><button class="btn btn--ghost" type="button" data-skip>${esc(t.ui.night.keepCard)}</button></div>`
+  } else if (spec.kind === 'split') {
+    // Tap everyone in the first faction; the rest are the second. Confirm
+    // is locked until both factions have someone in them.
+    const living = state.players.filter((p) => p.alive).map((p) => p.id)
+    const ready = picked.length > 0 && picked.length < living.length
+    chooser =
+      layout === 'circle'
+        ? circleMarkup(state.players, locale, {
+            pickAttr: 'target', eligible: living, selected: picked, showRoles: true, revealTeams: true,
+          })
+        : listMarkup(state.players, 'target', living, picked)
+    action = `<div class="actions actions--row">
+        <button class="btn btn--ghost" type="button" data-skip>${esc(t.ui.night.noOne)}</button>
+        <button class="btn btn--primary" type="button" data-split-confirm ${ready ? '' : 'disabled'}>${esc(t.ui.night.splitConfirm)}</button>
       </div>`
   } else if (spec.kind === 'potion') {
     // The potion is spent on a specific player, so the vial buttons stay
@@ -263,6 +294,22 @@ export const playerViewMarkup = (
       label: state.infectionUsed ? t.ui.view.convertSpent : t.ui.view.convertLeft,
       spent: state.infectionUsed,
     })
+  }
+  if (roleId === 'SWAP') {
+    // The centre is his to look at; which card he takes stays between him
+    // and the narrator.
+    const spare = spareCards(state.players)
+    lines.push(
+      spare.length > 0
+        ? t.ui.view.spare(spare.map((id) => t.roles[id].name))
+        : t.ui.night.noSpareCards,
+    )
+  }
+  if (roleId === 'SPLIT' && picked.length > 0) {
+    // Only the Cultist ever sees the whole list.
+    const living = state.players.filter((p) => p.alive)
+    lines.push(t.ui.view.sectOne(living.filter((p) => picked.includes(p.id)).map((p) => p.name)))
+    lines.push(t.ui.view.sectTwo(living.filter((p) => !picked.includes(p.id)).map((p) => p.name)))
   }
 
   return `

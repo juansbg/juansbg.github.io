@@ -679,7 +679,29 @@ function bind(): void {
       // Choose the target first; the vial buttons unlock once one is set.
       picked = picked.includes(id) ? [] : [id]
       setState({}, false)
+      return
     }
+
+    if (kind === 'split') {
+      // Build the first faction one tap at a time; Confirm records the split.
+      picked = picked.includes(id) ? picked.filter((p) => p !== id) : [...picked, id]
+      setState({}, false)
+    }
+  })
+
+  // The Cultist's split: whoever was tapped is the first faction, everyone
+  // else living is the second. Neither may be empty.
+  on(root, '[data-split-confirm]', 'click', () => {
+    const roleId = currentStep(game)
+    if (roleId !== 'SPLIT') return
+    const living = game.players.filter((p) => p.alive).map((p) => p.id)
+    const sectOne = living.filter((id) => picked.includes(id))
+    const sectTwo = living.filter((id) => !picked.includes(id))
+    if (sectOne.length === 0 || sectTwo.length === 0) return
+    picked = []
+    buzz()
+    const action: NightAction = { kind: 'split', roleId: 'SPLIT', sectOne, sectTwo }
+    mutate((s) => recordAction(s, action), { night: game.night, kind: 'action', roleId, action })
   })
 
   on(root, '[data-potion]', 'click', (_e, el) => {

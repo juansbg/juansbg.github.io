@@ -409,3 +409,37 @@ describe('who is set to die tonight', () => {
     expect(JSON.stringify(state)).toBe(before)
   })
 })
+
+describe('the Chameleon', () => {
+  const took = (newRole: RoleId) =>
+    resolveNight(
+      stateWith(
+        ['SWAP', 'KILLER', 'PLAIN', 'INSPECT'],
+        [{ kind: 'chooseRole', roleId: 'SWAP', newRole }],
+      ),
+    )
+
+  it('becomes the card he took', () => {
+    const { players, outcomes } = took('GUARD')
+    expect(players[0]!.roleId).toBe('GUARD')
+    expect(outcomes.find((o) => o.type === 'roleChanged')).toMatchObject({ target: 0, to: 'GUARD' })
+  })
+
+  it('tells the table which card left the centre, never who took it', () => {
+    const { outcomes } = took('GUARD')
+    const taken = outcomes.find((o) => o.type === 'cardTaken')
+    expect(taken).toMatchObject({ role: 'GUARD', public: true })
+    expect(taken).not.toHaveProperty('target')
+  })
+
+  it('gets the Veteran’s free life along with the card', () => {
+    expect(took('SURVIVE').players[0]!.wolfAttacksSurvivable).toBe(1)
+  })
+
+  it('does not announce the Associate’s side the same way', () => {
+    const { outcomes } = resolveNight(
+      stateWith(['PICK_SIDE', 'KILLER', 'PLAIN'], [{ kind: 'chooseRole', roleId: 'PICK_SIDE', newRole: 'KILLER' }]),
+    )
+    expect(outcomes.find((o) => o.type === 'cardTaken')).toBeUndefined()
+  })
+})

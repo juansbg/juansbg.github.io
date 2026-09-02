@@ -72,6 +72,7 @@ export const es: Strings = {
     },
     silenced: (name) => `Han quemado la casa de ${name}: hoy no puede hablar ni votar.`,
     extraVote: (name) => `${name} carga hoy con un voto más en su contra.`,
+    cardTaken: (role) => `${role} ya no está en el centro.`,
     growl: () => 'El sabueso ha gruñido esta noche.',
   },
 
@@ -168,6 +169,11 @@ export const es: Strings = {
       spent: 'Gastado',
       bothSpent: 'Las dos pócimas están gastadas. Despiértala igualmente, para que la mesa no note nada.',
       showPlayer: 'Mostrar',
+      spareCards: 'Cartas que quedan en el centro',
+      noSpareCards: 'No queda ninguna carta en el centro.',
+      keepCard: 'Se queda su carta',
+      splitHint: 'Toca a todos los de la primera facción. El resto forman la segunda.',
+      splitConfirm: 'Dividir el pueblo',
     },
     view: {
       showingTo: 'Mostrando a',
@@ -185,6 +191,9 @@ export const es: Strings = {
       poisonSpent: 'Veneno gastado',
       convertLeft: 'Queda una conversión',
       convertSpent: 'Conversión gastada',
+      spare: (roles) => `En el centro quedan: ${roles.join(', ')}.`,
+      sectOne: (names) => `Primera facción: ${names.join(', ')}.`,
+      sectTwo: (names) => `Segunda facción: ${names.join(', ')}.`,
       backToNarrator: 'Volver al narrador',
     },
     day: {

@@ -48,6 +48,8 @@ export interface Strings {
     silenced: (name: string) => string
     extraVote: (name: string) => string
     growl: () => string
+    /** Takes the display name of the role whose card left the centre. */
+    cardTaken: (role: string) => string
   }
 
   winner: {
@@ -152,6 +154,13 @@ export interface Strings {
       bothSpent: string
       /** Turns the phone to the player at this step. */
       showPlayer: string
+      /** The Chameleon's step: the cards left in the centre. */
+      spareCards: string
+      noSpareCards: string
+      keepCard: string
+      /** The Cultist's step: the first faction is tapped, the rest is the second. */
+      splitHint: string
+      splitConfirm: string
     }
     /**
      * The player-facing view of a night step: what the narrator turns the
@@ -171,6 +180,9 @@ export interface Strings {
       poisonSpent: string
       convertLeft: string
       convertSpent: string
+      spare: (roles: readonly string[]) => string
+      sectOne: (names: readonly string[]) => string
+      sectTwo: (names: readonly string[]) => string
       backToNarrator: string
     }
     day: {

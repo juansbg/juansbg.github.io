@@ -72,6 +72,7 @@ export const en: Strings = {
     },
     silenced: (name) => `${name}'s house was burned down — today they cannot speak or vote.`,
     extraVote: (name) => `${name} carries an extra vote against them today.`,
+    cardTaken: (role) => `${role} has been taken from the centre.`,
     growl: () => 'The bloodhound growled in the night.',
   },
 
@@ -168,6 +169,11 @@ export const en: Strings = {
       spent: 'Spent',
       bothSpent: 'Both vials are spent. Wake her anyway, so the table learns nothing.',
       showPlayer: 'Show',
+      spareCards: 'Cards left in the centre',
+      noSpareCards: 'No cards are left in the centre.',
+      keepCard: 'Keeps the card',
+      splitHint: 'Tap everyone in the first faction. The rest form the second.',
+      splitConfirm: 'Split the town',
     },
     view: {
       showingTo: 'Showing to',
@@ -185,6 +191,9 @@ export const en: Strings = {
       poisonSpent: 'Poison spent',
       convertLeft: 'One conversion left',
       convertSpent: 'Conversion spent',
+      spare: (roles) => `Left in the centre: ${roles.join(', ')}.`,
+      sectOne: (names) => `First faction: ${names.join(', ')}.`,
+      sectTwo: (names) => `Second faction: ${names.join(', ')}.`,
       backToNarrator: 'Back to the narrator',
     },
     day: {

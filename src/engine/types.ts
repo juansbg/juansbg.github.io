@@ -110,6 +110,8 @@ export type Outcome =
   | { type: 'sectSplit'; night: number; public: false }
   | { type: 'growl'; night: number; public: true }
   | { type: 'roleChanged'; night: number; target: PlayerId; to: RoleId; public: false }
+  /** The Chameleon took a card from the centre; the table learns which, not who. */
+  | { type: 'cardTaken'; night: number; role: RoleId; public: true }
 
 export type DeathCause =
   | 'killers'
