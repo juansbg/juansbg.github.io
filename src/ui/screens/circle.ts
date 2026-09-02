@@ -66,6 +66,8 @@ export interface CircleOptions {
   perspective?: Perspective
 }
 
+const ARTICLE = /^(the|el|la|los|las)\s+/i
+
 export const circleMarkup = (
   players: readonly Player[],
   locale: Locale,
@@ -76,6 +78,11 @@ export const circleMarkup = (
     pickAttr, eligible, selected = [], showRoles = false, compact = false, revealTeams = false,
     perspective,
   } = options
+  // The tile has room for one word, not a title: "Bodyguard", not "The
+  // Bodyguard"; "Santera", not "La Santera". The sigil above it already says
+  // which role, so the label only has to confirm it.
+  const tileRole = (roleId: Player['roleId']): string =>
+    t.roles[roleId].name.replace(ARTICLE, '').trim()
   // A player is looking: nothing the narrator sees may reach the markup.
   const hidden = perspective !== undefined
   const doomed = perspective?.doomed ?? options.doomed ?? []
@@ -111,8 +118,8 @@ export const circleMarkup = (
                 ${doom ? 'data-doomed' : ''}>
           <span class="seat__n" aria-hidden="true">${String(p.id + 1).padStart(2, '0')}</span>
           ${showRoles && !hidden ? `<span class="seat__sigil">${sigilMarkup(p.roleId)}</span>` : ''}
-          <span class="seat__name">${named ? esc(p.name) : '—'}</span>
-          ${showRoles && !hidden ? `<span class="seat__role">${esc(t.roles[p.roleId].name)}</span>` : ''}
+          <span class="seat__name" style="--len: ${named ? p.name.trim().length : 1}">${named ? esc(p.name) : '—'}</span>
+          ${showRoles && !hidden ? `<span class="seat__role" style="--len: ${tileRole(p.roleId).length}">${esc(tileRole(p.roleId))}</span>` : ''}
           ${self ? `<span class="seat__you">${esc(t.ui.view.you)}</span>` : ''}
           ${!hidden && p.hasQuestion ? '<span class="seat__flag" aria-hidden="true">?</span>' : ''}
           ${doom ? '<span class="seat__doom" aria-hidden="true">✕</span>' : ''}

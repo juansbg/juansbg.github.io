@@ -414,6 +414,24 @@ body {
   min-height: 6rem;
 }
 
+/* --avail and --seat are registered lengths so they compute once, on the
+   circle, against the table's size container, and reach the seats as pixels.
+   Unregistered they would inherit as raw tokens and the cqw/cqh units inside
+   them would be re-resolved against the seat itself, which is also a size
+   container: every seat would then size its name, sigil and label from a
+   phantom 9rem table. */
+@property --avail {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 0px;
+}
+
+@property --seat {
+  syntax: '<length>';
+  inherits: true;
+  initial-value: 0px;
+}
+
 .circle {
   /* The diameter is the smaller of the room's width and height, capped; the
      floor keeps a degenerate layout from inverting the radius. */
@@ -477,11 +495,12 @@ body {
   animation-delay: calc(var(--i) * 24ms);
 }
 
-/* A small tile keeps the name and drops the rest. A twelve-seat table on a
-   phone is about 2.75rem a tile: the role would be "THE C…" and the number
-   would sit on the name. The query measures the tile's content box, which
-   is the tile less 6px of border and padding. */
-@container (max-width: 2.75rem) {
+/* A small tile keeps the sigil and the name and drops the rest. Under a
+   3.25rem content box (a 58px tile) a typical nine-letter role label could
+   not reach 8px on one line, so it goes and the sigil carries the role;
+   under 2.25rem the number would sit on the name. The query measures the
+   tile's content box, which is the tile less 6px of border and padding. */
+@container (max-width: 3.25rem) {
   .seat__role {
     display: none;
   }
@@ -551,8 +570,17 @@ body {
   opacity: 0.5;
 }
 
+/* Name and role label each fit their tile on one line: the size is the
+   tile's width over the text's own length, scaled by the face's advance
+   (Bebas caps ≈ 0.47em with tracking, Plex Mono 0.66em), then capped. The
+   markup sets --len per span. Only a name longer than the floor allows is
+   ever ellipsed. */
 .seat__name {
-  font-size: clamp(0.75rem, calc(var(--seat) * 0.22), 1.125rem);
+  font-size: clamp(
+    0.6875rem,
+    min(calc(var(--seat) * 0.22), calc((var(--seat) - 8px) / (var(--len, 6) * 0.47))),
+    1.125rem
+  );
   line-height: 1;
   padding-top: 2px;
   overflow: hidden;
@@ -562,13 +590,13 @@ body {
 }
 
 .seat__role {
-  font-size: clamp(0.4375rem, calc(var(--seat) * 0.11), 0.6rem);
+  font-size: clamp(0.4rem, calc((var(--seat) - 8px) / (var(--len, 8) * 0.66)), 0.6rem);
   color: var(--fg-muted);
   letter-spacing: 0.04em;
   text-transform: uppercase;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: calc(var(--seat) - 0.75rem);
+  max-width: calc(var(--seat) - 6px);
   white-space: nowrap;
 }
 
