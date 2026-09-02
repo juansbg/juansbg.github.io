@@ -25,7 +25,7 @@ import { buzz, esc, on, swap } from './dom'
 import { clear, clearRoster, load, loadRoster, save, saveRoster, type AppState } from './store'
 import { editorMarkup, MIN_PLAYERS, namesMarkup, rosterMarkup } from './screens/setup'
 import { dealRoles, systemRandom, type Complexity } from '../engine/deal'
-import { dayMarkup, inspectionMarkup, nightMarkup } from './screens/night'
+import { dayMarkup, inspectionMarkup, nightMarkup, questionCardMarkup, questionsIntroMarkup } from './screens/night'
 import { circleMarkup } from './screens/circle'
 import { historyMarkup, timelineMarkup } from './screens/timeline'
 import { bindHold, revealMarkup, roleCardMarkup, type RevealPhase } from './screens/reveal'
@@ -53,6 +53,18 @@ let inspecting: PlayerId | null = null
 let showingLog = false
 /** The overflow sheet behind the ⋯ button. */
 let menuOpen = false
+/**
+ * The questions round: players who flagged a question during the reveal get
+ * their role explained privately, one at a time, before night one — and any
+ * time from the day screen. `asking` is the card on screen; the queue is who
+ * is still waiting; `askReturnTo` is where Done goes when the queue empties.
+ */
+let asking: PlayerId | null = null
+let askQueue: PlayerId[] = []
+let askReturnTo: 'firstNight' | 'day' = 'day'
+let askIntro = false
+/** How many were in the round when it started, so "2 of 2" stays "of 2". */
+let askTotal = 0
 let releaseHandler: (() => void) | null = null
 
 function boot(): AppState {
@@ -114,7 +126,16 @@ function render(): void {
   let body: string
   let sheets = ''
 
-  if (state.screen === 'setup') {
+  const askingPlayer = game.players.find((p) => p.id === asking)
+  const flaggedNow = game.players.filter((p) => p.alive && p.hasQuestion)
+
+  if (askingPlayer) {
+    const total = askReturnTo === 'firstNight' ? askTotal : null
+    const position = total === null ? null : total - askQueue.length
+    body = questionCardMarkup(askingPlayer, state.locale, position, total)
+  } else if (askIntro && flaggedNow.length > 0) {
+    body = questionsIntroMarkup(flaggedNow, state.locale)
+  } else if (state.screen === 'setup') {
     body = game.players.length === 0
       ? namesMarkup(names, state.locale)
       : rosterMarkup(game.players, state.locale, complexity, rearranging, armedSeat)
@@ -275,7 +296,15 @@ function render(): void {
     const items = [
       row('data-lang', t.ui.menu.language, strings(other).languageName),
       inPlay
-        ? row('data-layout', t.ui.menu.layout, state.layout === 'circle' ? t.ui.menu.circle : t.ui.menu.list)
+        ? `<div class="menu__item menu__item--static">
+             <span class="menu__label">${esc(t.ui.menu.layout)}</span>
+             <span class="menu__segment" role="radiogroup" aria-label="${esc(t.ui.menu.layout)}">
+               <button class="menu__seg" type="button" role="radio" data-layout="circle"
+                       aria-checked="${state.layout === 'circle'}">${esc(t.ui.menu.circle)}</button>
+               <button class="menu__seg" type="button" role="radio" data-layout="list"
+                       aria-checked="${state.layout === 'list'}">${esc(t.ui.menu.list)}</button>
+             </span>
+           </div>`
         : '',
       state.screen === 'day' ? row('data-show-role', t.ui.reveal.showAgain) : '',
       inPlay ? row('data-finish', t.ui.over.finishNow, '', true) : '',
@@ -451,9 +480,13 @@ function bind(): void {
     mutate((s) => moveSeat(s, id, direction))
   })
 
-  on(root, '[data-layout]', 'click', () => {
-    menuOpen = false
-    setState({ layout: state.layout === 'circle' ? 'list' : 'circle' })
+  // Pick one, see it take, then close the sheet yourself: an option that
+  // slams the menu shut the moment it is tapped leaves the narrator unsure
+  // anything happened.
+  on(root, '[data-layout]', 'click', (_e, el) => {
+    const layout = el.dataset.layout === 'list' ? 'list' : 'circle'
+    if (layout === state.layout) return
+    setState({ layout }, false)
   })
 
   on(root, '[data-cancel]', 'click', () => {
@@ -537,11 +570,62 @@ function bind(): void {
   // can never skip someone.
   on(root, '[data-reveal-next]', 'click', advanceReveal)
 
-  on(root, '[data-begin]', 'click', () => {
+  const beginFirstNight = (): void => {
+    askIntro = false
     setState({
       session: advance(state.session, startNight, { night: 1, kind: 'nightStart' }),
       screen: 'night',
     })
+  }
+
+  on(root, '[data-begin]', 'click', () => {
+    const flagged = game.players.filter((p) => p.alive && p.hasQuestion)
+    if (flagged.length === 0) {
+      beginFirstNight()
+      return
+    }
+    // Nobody asks out loud; the narrator walks the flagged players privately.
+    askReturnTo = 'firstNight'
+    askQueue = flagged.map((p) => p.id)
+    askTotal = askQueue.length
+    askIntro = true
+    setState({})
+  })
+
+  // Open one player's card: from the round's intro, or from a flagged name on
+  // the day screen. In the round the rest of the queue waits behind it.
+  on(root, '[data-ask]', 'click', (_e, el) => {
+    const id = Number(el.dataset.ask)
+    if (askIntro) {
+      askQueue = askQueue.filter((q) => q !== id)
+      askIntro = false
+    } else {
+      askReturnTo = 'day'
+      askQueue = []
+    }
+    asking = id
+    buzz()
+    setState({})
+  })
+
+  // Done clears the flag — the question is answered — and moves on.
+  on(root, '[data-question-done]', 'click', () => {
+    const id = asking
+    asking = null
+    if (id !== null) {
+      mutate((s) => ({
+        ...s,
+        players: s.players.map((p) => (p.id === id ? { ...p, hasQuestion: false } : p)),
+      }))
+    }
+    const next = askQueue.shift()
+    if (next !== undefined) {
+      asking = next
+      setState({})
+      return
+    }
+    if (askReturnTo === 'firstNight') beginFirstNight()
+    else setState({})
   })
 
   // ---- Night ----

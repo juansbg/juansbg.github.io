@@ -191,3 +191,27 @@ describe('briefs are of similar length', () => {
     }
   })
 })
+
+describe('role details', () => {
+  it('give every role a fuller explanation than its brief, in both languages', () => {
+    for (const locale of LOCALES) {
+      for (const id of ROLE_IDS) {
+        const r = strings(locale).roles[id]
+        expect(r.detail.length, `${locale}/${id}`).toBeGreaterThan(r.brief.length)
+        expect(r.detail).not.toBe(r.brief)
+      }
+    }
+  })
+
+  it('speak to the player, not about them', () => {
+    const second = {
+      es: /\bt[úu]\b|\bte\b|\btus?\b|\b(?:eliges|ganas|puedes|tienes|sobrevives|atas|divides|decides|mueras|proteges|prendes|despiertas|actúas|juegas|amaneces|haces|elig[íi]s|gan[áa]is)\b/i,
+      en: /\byou\b|\byour\b/i,
+    }
+    for (const locale of LOCALES) {
+      for (const id of ROLE_IDS) {
+        expect(strings(locale).roles[id].detail, `${locale}/${id}`).toMatch(second[locale])
+      }
+    }
+  })
+})

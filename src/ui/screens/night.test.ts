@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { legalTargets, nightMarkup, picksNeeded } from './night'
+import { dayMarkup, legalTargets, nightMarkup, picksNeeded, questionCardMarkup, questionsIntroMarkup } from './night'
 import { createGame, startNight, type PlayerSetup } from '../../engine/state'
 import { strings } from '../../i18n'
 import type { RoleId } from '../../engine/roles'
@@ -153,9 +153,11 @@ describe('choosing from the circle', () => {
     }
   })
 
-  it('offers a way back to the other layout', () => {
-    expect(nightMarkup(state, 'en', [])).toContain('data-layout')
-    expect(nightMarkup(state, 'en', [], 'list')).toContain('data-layout')
+  it('leaves the circle/list switch to the menu, not the stage', () => {
+    // One home for the switch: the menu's segmented control. A second icon in
+    // the header was confusing and is gone.
+    expect(nightMarkup(state, 'en', [])).not.toContain('data-layout')
+    expect(nightMarkup(state, 'en', [], 'list')).not.toContain('data-layout')
   })
 
   it('never offers a dead player', () => {
@@ -166,5 +168,47 @@ describe('choosing from the circle', () => {
     const html = nightMarkup(withDead, 'en', [])
     expect(html).not.toMatch(/data-target="2"/)
     expect(html).toContain('data-dead')
+  })
+})
+
+describe('the questions round', () => {
+  const game = createGame(setup(['MEDIC', 'KILLER', 'PLAIN']))
+  const player = { ...game.players[0]!, name: 'Eva', hasQuestion: true }
+
+  it('shows the role, both explanations and a way to mark it answered', () => {
+    const html = questionCardMarkup(player, 'en', 1, 2)
+    expect(html).toContain('Eva')
+    expect(html).toContain(strings('en').roles.MEDIC.name)
+    expect(html).toContain(strings('en').roles.MEDIC.brief)
+    expect(html).toContain(strings('en').roles.MEDIC.detail)
+    expect(html).toContain('data-question-done')
+    expect(html).toContain(strings('en').ui.night.stepCounter(1, 2))
+  })
+
+  it('escapes the player name', () => {
+    const html = questionCardMarkup({ ...player, name: '<b>x</b>' }, 'en')
+    expect(html).not.toContain('<b>x</b>')
+  })
+
+  it('introduces the round with everyone waiting and starts with the first', () => {
+    const flagged = [player, { ...game.players[2]!, name: 'Gil', hasQuestion: true }]
+    const html = questionsIntroMarkup(flagged, 'en')
+    expect(html).toContain('Eva')
+    expect(html).toContain('Gil')
+    expect(html).toContain(`data-ask="${player.id}"`)
+    expect(html).toContain(strings('en').ui.reveal.showRoleTo('Eva'))
+  })
+})
+
+describe('day screen controls', () => {
+  it('keeps undo available, so a wrong execution is one tap to fix', () => {
+    const state = atRole(['KILLER', 'PLAIN', 'INSPECT'], 'KILLER')
+    expect(dayMarkup({ ...state, phase: 'day' }, 'en')).toContain('data-undo')
+  })
+
+  it('makes flagged players tappable rather than just listing them', () => {
+    const state = atRole(['KILLER', 'PLAIN', 'INSPECT'], 'KILLER')
+    const flagged = { ...state, players: state.players.map((p) => (p.id === 1 ? { ...p, hasQuestion: true } : p)) }
+    expect(dayMarkup(flagged, 'en')).toContain('data-ask="1"')
   })
 })

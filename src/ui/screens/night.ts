@@ -42,17 +42,6 @@ export const picksNeeded = (roleId: RoleId): number => {
 
 export type Layout = 'circle' | 'list'
 
-/**
- * The circle/list switch, as an icon in the screen header. It sits beside the
- * chooser it affects; the overflow menu carries the same switch with words.
- */
-export const layoutToggleMarkup = (layout: Layout, locale: Locale): string => {
-  const t = strings(locale)
-  const label = layout === 'circle' ? t.ui.night.asList : t.ui.night.asCircle
-  return `<button class="icon-btn" type="button" data-layout aria-label="${esc(label)}" title="${esc(label)}">${
-    layout === 'circle' ? '☰' : '◯'
-  }</button>`
-}
 
 export const nightMarkup = (
   state: GameState,
@@ -128,7 +117,6 @@ export const nightMarkup = (
       <header class="screen__head">
         <p class="night__counter">${esc(t.ui.night.stepCounter(state.stepIndex + 1, state.schedule.length))}</p>
         <div class="screen__tools">
-          ${layoutToggleMarkup(layout, locale)}
           <button class="icon-btn" type="button" data-undo aria-label="${esc(t.ui.common.undo)}" title="${esc(t.ui.common.undo)}">↶</button>
         </div>
       </header>
@@ -169,9 +157,9 @@ export const dayMarkup = (
   const flagged = state.players.filter((p) => p.alive && p.hasQuestion)
   const questions =
     flagged.length > 0
-      ? `<p class="card__aside card__aside--flag">${esc(t.ui.reveal.hasQuestions)}: ${flagged
-          .map((p) => esc(p.name))
-          .join(' · ')}</p>`
+      ? `<div class="asks"><span class="asks__label">${esc(t.ui.reveal.hasQuestions)}</span>${flagged
+          .map((p) => `<button class="asks__chip" type="button" data-ask="${p.id}">${esc(p.name)}<span class="seat__flag" aria-hidden="true">?</span></button>`)
+          .join('')}</div>`
       : ''
 
   // "Show a role again" and "End the game" live in the overflow menu: they are
@@ -180,7 +168,9 @@ export const dayMarkup = (
     <section class="screen screen--day">
       <header class="screen__head">
         <h1 class="title title--sm">${esc(t.phase.townWakes)}</h1>
-        <div class="screen__tools">${layoutToggleMarkup(layout, locale)}</div>
+        <div class="screen__tools">
+          <button class="icon-btn" type="button" data-undo aria-label="${esc(t.ui.common.undo)}" title="${esc(t.ui.common.undo)}">↶</button>
+        </div>
       </header>
       ${questions}
       <h2 class="label">${esc(t.ui.day.report)}</h2>
@@ -227,6 +217,59 @@ export const inspectionMarkup = (
         <button class="btn btn--ghost" type="button" data-inspect-back>${esc(t.ui.common.back)}</button>
         <button class="btn btn--primary" type="button" data-inspect-done>${esc(t.ui.common.done)}</button>
       </div>
+    </section>
+  `
+}
+
+/**
+ * The private card for a player who flagged a question: their role, side, the
+ * short brief and the fuller explanation, sized to be read at arm's length.
+ * Same shape as the detective's card so the narrator's hands already know it.
+ */
+export const questionCardMarkup = (
+  subject: Player,
+  locale: Locale,
+  position: number | null = null,
+  total: number | null = null,
+): string => {
+  const t = strings(locale)
+  const role = ROLES[subject.roleId]
+  const r = t.roles[subject.roleId]
+  const progress =
+    position !== null && total !== null
+      ? `<p class="reveal__progress">${esc(t.ui.night.stepCounter(position, total))}</p>`
+      : ''
+
+  return `
+    <section class="screen screen--inspect screen--ask" data-ask-card
+             style="--role: var(--role-${subject.roleId})">
+      ${progress}
+      <p class="inspect__who">${esc(subject.name)}</p>
+      <h1 class="inspect__role inspect__role--ask">${esc(r.name)}</h1>
+      <p class="inspect__team" data-team="${role.team}">
+        ${esc(role.team === 'crew' ? t.ui.reveal.teamCrew : t.ui.reveal.teamTown)}
+      </p>
+      <div class="inspect__scroll">
+        <p class="inspect__brief">${esc(r.brief)}</p>
+        <p class="inspect__detail">${esc(r.detail)}</p>
+      </div>
+      <button class="btn btn--primary" type="button" data-question-done>${esc(t.ui.reveal.clearFlag)}</button>
+    </section>
+  `
+}
+
+/** The start of the questions round: who is waiting, and a way to begin. */
+export const questionsIntroMarkup = (flagged: readonly Player[], locale: Locale): string => {
+  const t = strings(locale)
+  const first = flagged[0]
+  return `
+    <section class="screen screen--center">
+      <h1 class="title title--sm">${esc(t.ui.reveal.questionsRound)}</h1>
+      <p class="subtitle">${esc(t.ui.reveal.questionsIntro)}</p>
+      <div class="asks asks--list">${flagged
+        .map((p) => `<span class="asks__chip asks__chip--static">${esc(p.name)}</span>`)
+        .join('')}</div>
+      ${first ? `<button class="btn btn--primary" type="button" data-ask="${first.id}">${esc(t.ui.reveal.showRoleTo(first.name))}</button>` : ''}
     </section>
   `
 }

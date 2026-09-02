@@ -1,5 +1,10 @@
 @import './tokens.css';
 
+/* The visual language is docs/DESIGN.md: a case file the narrator holds in
+   the dark. Hard edges, hairlines instead of shadows, Bebas Neue for anything
+   that is a label and Plex for anything that is read aloud. Colour is
+   evidence — every colour on screen means something. */
+
 *,
 *::before,
 *::after {
@@ -19,16 +24,31 @@ body {
 
 html {
   height: 100dvh;
+  background: var(--bg);
 }
 
 body {
   background: var(--bg);
   color: var(--fg);
-  font-family: system-ui, -apple-system, 'Segoe UI', sans-serif;
+  font-family: var(--font-body);
+  line-height: 1.45;
   -webkit-text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
   /* No blue flash on tap; we own our own press states. */
   -webkit-tap-highlight-color: transparent;
   overscroll-behavior: none;
+}
+
+::selection {
+  background: var(--vendetta);
+  color: var(--midnight);
+}
+
+/* The narrator's hand is Ledger: focus, selection and the primary action all
+   invert to Ledger-on-Midnight rather than introducing a third colour. */
+:focus-visible {
+  outline: 2px solid var(--fg);
+  outline-offset: 2px;
 }
 
 #app {
@@ -43,6 +63,51 @@ body {
   min-height: 0;
   padding: max(var(--space-3), env(safe-area-inset-top)) var(--space-4) var(--space-3);
   overflow: hidden;
+}
+
+/* ---------- Type ---------- */
+
+/* Every label is Bebas: caps, tracked, never below --text-display-min. */
+.display,
+.title,
+.btn,
+.seat__name,
+.target,
+.menu__item,
+.menu__seg,
+.card__title,
+.winner,
+.reveal__lead,
+.reveal__role,
+.reveal__hold,
+.inspect__role,
+.mark,
+.log__revert {
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: var(--track-display);
+  text-transform: uppercase;
+}
+
+/* Every number is Plex Mono, tabular. */
+.mono,
+.label,
+.night__counter,
+.reveal__progress,
+.reveal__label,
+.reveal__team,
+.inspect__team,
+.field__label,
+.sheet__title,
+.history__title,
+.asks__label,
+.menu__value,
+.seat__n,
+.seat__role,
+.log__night,
+.log__row--divider {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
 }
 
 /* ---------- Layout ---------- */
@@ -82,7 +147,7 @@ body {
 
 /* A title sharing its row with tools must stay on one line in Spanish too. */
 .screen__head .title {
-  font-size: clamp(1.375rem, 6.5vw, 2.25rem);
+  font-size: clamp(1.5rem, 7vw, 2.5rem);
 }
 
 .screen__tools {
@@ -91,14 +156,14 @@ body {
   gap: var(--space-1);
 }
 
-/* A section label: small caps, muted. One voice for "what happened",
-   "who does the town execute", "the whole game". */
+/* A section label: a mono eyebrow. One voice for "what happened", "who does
+   the town execute", "the whole game". */
 .label {
   margin: 0;
   color: var(--fg-muted);
   font-size: var(--text-xs);
-  font-weight: 700;
-  letter-spacing: 0.08em;
+  font-weight: 500;
+  letter-spacing: var(--track-label);
   text-transform: uppercase;
 }
 
@@ -112,9 +177,9 @@ body {
 .title {
   margin: 0;
   font-size: var(--text-hero);
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  color: var(--accent);
+  line-height: 0.9;
+  color: var(--fg);
+  text-wrap: balance;
 }
 
 .title--sm {
@@ -123,7 +188,7 @@ body {
 
 .subtitle {
   margin: 0;
-  color: var(--fg-muted);
+  color: var(--fg-2);
   font-size: var(--text-md);
 }
 
@@ -144,29 +209,35 @@ body {
 
 /* ---------- Buttons ---------- */
 
+/* Primary is Ledger — the narrator signs the page. Secondary is a hairline.
+   Lethal is Vendetta with Midnight ink, and exists for exactly three
+   actions: confirm a kill, confirm a lynch, end the game. */
 .btn {
   min-height: var(--touch);
-  padding: var(--space-3) var(--space-5);
-  border: 0;
-  border-radius: var(--radius-pill);
+  padding: var(--space-3) var(--space-5) calc(var(--space-3) - 2px);
+  border: 1px solid transparent;
+  border-radius: 0;
   background: var(--surface-raised);
   color: var(--fg);
-  font: inherit;
-  font-size: var(--text-md);
-  font-weight: 600;
+  font-size: clamp(var(--text-display-min), 5vw, 1.5rem);
+  letter-spacing: 0.04em;
+  line-height: 1;
   cursor: pointer;
   transition:
     transform var(--dur-instant) var(--ease-out),
     background-color var(--dur-fast) var(--ease-out),
-    opacity var(--dur-fast) var(--ease-out);
+    border-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
 }
 
 .btn:active {
-  transform: scale(0.97);
+  transform: translateY(1px);
 }
 
 .btn:disabled {
-  opacity: 0.4;
+  background: transparent;
+  border-color: var(--hairline);
+  color: var(--fg-faint);
   cursor: default;
 }
 
@@ -175,20 +246,35 @@ body {
   color: var(--on-accent);
 }
 
+.btn--primary:active {
+  background: var(--accent-dim);
+}
+
 .btn--ghost {
   background: transparent;
-  border: 1px solid var(--fg-faint);
-  color: var(--fg-muted);
+  border-color: var(--hairline-strong);
+  color: var(--fg);
+}
+
+.btn--ghost:active {
+  border-color: var(--fg-2);
 }
 
 .btn--ok {
   background: var(--ok);
-  color: var(--on-accent);
+  color: var(--on-ok);
 }
 
 .btn--danger {
   background: var(--danger);
-  color: var(--fg);
+  color: var(--on-danger);
+}
+
+.btn--small {
+  min-height: var(--touch);
+  padding: var(--space-2) var(--space-4) calc(var(--space-2) - 1px);
+  font-size: var(--text-display-min);
+  align-self: center;
 }
 
 .icon-btn {
@@ -197,19 +283,74 @@ body {
   width: var(--touch);
   height: var(--touch);
   padding: 0;
-  border: 0;
-  border-radius: 50%;
-  background: var(--surface);
-  color: var(--fg-muted);
+  border: 1px solid var(--hairline-strong);
+  border-radius: 0;
+  background: transparent;
+  color: var(--fg-2);
   font: inherit;
   font-size: 1.25rem;
   line-height: 1;
   cursor: pointer;
-  transition: transform var(--dur-instant) var(--ease-out);
+  transition:
+    transform var(--dur-instant) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out);
 }
 
 .icon-btn:active {
-  transform: scale(0.92);
+  transform: translateY(1px);
+  border-color: var(--fg-2);
+}
+
+/* ---------- The mark ---------- */
+
+/* Two letters in a square: the team as colour, the role as type. Crew is a
+   solid Vendetta square, town a solid Ash one, the occult roles hollow. */
+.mark {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  padding-top: 2px;
+  border: 1px solid var(--role, var(--fg-muted));
+  background: var(--role-fill, transparent);
+  color: var(--role-ink, var(--fg-muted));
+  font-size: 0.95rem;
+  letter-spacing: 0.05em;
+  line-height: 1;
+}
+
+/* ---------- File cards ---------- */
+
+/* Register marks: L-shaped ticks in opposite corners. The one ornament, and
+   only on things that represent a record — never on a button or a seat. */
+.file {
+  position: relative;
+  border: 1px solid var(--hairline);
+  background: var(--surface);
+}
+
+.file::before,
+.file::after {
+  content: '';
+  position: absolute;
+  width: var(--mark);
+  height: var(--mark);
+  border-color: var(--fg-2);
+  border-style: solid;
+  pointer-events: none;
+}
+
+.file::before {
+  top: -1px;
+  left: -1px;
+  border-width: 1px 0 0 1px;
+}
+
+.file::after {
+  right: -1px;
+  bottom: -1px;
+  border-width: 0 1px 1px 0;
 }
 
 /* ---------- Setup ---------- */
@@ -222,23 +363,18 @@ body {
 
 .count {
   aspect-ratio: 1;
-  border: 1px solid var(--surface-raised);
-  border-radius: var(--radius-md);
+  border: 1px solid var(--hairline-strong);
+  border-radius: 0;
   background: var(--surface);
   color: var(--fg);
   font: inherit;
   font-size: var(--text-lg);
-  font-weight: 700;
+  font-weight: 600;
   cursor: pointer;
-  transition:
-    transform var(--dur-instant) var(--ease-out),
-    border-color var(--dur-fast) var(--ease-out),
-    background-color var(--dur-fast) var(--ease-out);
 }
 
 .count:active {
-  transform: scale(0.94);
-  border-color: var(--accent);
+  border-color: var(--fg);
   background: var(--surface-raised);
 }
 
@@ -260,12 +396,13 @@ body {
   /* The diameter is the smaller of the room's width and height, capped; the
      floor keeps a degenerate layout from inverting the radius. */
   --avail: max(min(100cqw, 100cqh, 24.5rem), 9rem);
-  /* Seats scale with the table, and shrink further when there are so many
-     that neighbours would overlap: chord ≈ 2r·sin(π/n). */
+  /* Seats fill the chord between neighbours (chord ≈ 2r·sin(π/n)) up to a
+     third of the table, so four players get four big tiles rather than four
+     dots on an empty ring, and twenty still fit without overlapping. */
   --seat: clamp(
     2.75rem,
-    min(calc(var(--avail) * 0.22), calc(var(--avail) * 0.8 * sin(pi / var(--seats, 8)))),
-    5.25rem
+    min(calc(var(--avail) * 0.34), calc(var(--avail) * 0.86 * sin(pi / var(--seats, 8)))),
+    7rem
   );
   --radius: calc((var(--avail) - var(--seat)) / 2);
   position: relative;
@@ -273,19 +410,21 @@ body {
   height: var(--avail);
 }
 
+/* Seats are square tiles — chairs around a table, not avatars. They stay
+   upright so a name is readable at any position. */
 .seat {
   position: absolute;
   top: 50%;
   left: 50%;
   display: grid;
   place-content: center;
-  gap: 2px;
+  gap: 1px;
   width: var(--seat);
   height: var(--seat);
   margin: calc(var(--seat) / -2);
   padding: var(--space-1);
-  border: 2px solid var(--role, var(--fg-faint));
-  border-radius: 50%;
+  border: 1px solid var(--hairline-strong);
+  border-radius: 0;
   background: var(--surface);
   color: var(--fg);
   font: inherit;
@@ -295,16 +434,18 @@ body {
     rotate(calc(var(--i) * -1turn / var(--seats)));
   transition:
     border-color var(--dur-base) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
     transform var(--dur-base) var(--ease-out),
     opacity var(--dur-base) var(--ease-out);
-  animation: seat-in var(--dur-slow) var(--ease-spring) both;
+  animation: seat-in var(--dur-base) var(--ease-out) both;
   animation-delay: calc(var(--i) * 24ms);
 }
 
 @keyframes seat-in {
   from {
     opacity: 0;
-    scale: 0.6;
+    scale: 0.8;
   }
 }
 
@@ -329,9 +470,20 @@ body {
 .seat:nth-child(19) { --i: 18; }
 .seat:nth-child(20) { --i: 19; }
 
+/* The seat number, top-left, in mono. Ids are seating positions. */
+.seat__n {
+  position: absolute;
+  top: 2px;
+  left: 4px;
+  color: var(--fg-muted);
+  font-size: clamp(0.5rem, calc(var(--seat) * 0.12), 0.625rem);
+  letter-spacing: 0;
+}
+
 .seat__name {
-  font-size: clamp(0.5625rem, calc(var(--seat) * 0.16), 0.875rem);
-  font-weight: 700;
+  font-size: clamp(0.75rem, calc(var(--seat) * 0.22), 1.125rem);
+  line-height: 1;
+  padding-top: 2px;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: calc(var(--seat) - 0.75rem);
@@ -339,8 +491,10 @@ body {
 }
 
 .seat__role {
-  font-size: clamp(0.4375rem, calc(var(--seat) * 0.12), 0.625rem);
+  font-size: clamp(0.4375rem, calc(var(--seat) * 0.11), 0.6rem);
   color: var(--fg-muted);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: calc(var(--seat) - 0.75rem);
@@ -358,19 +512,21 @@ body {
   inset: 0;
   display: grid;
   align-items: end;
-  background: rgb(0 0 0 / 0.6);
+  background: color-mix(in oklab, var(--midnight) 72%, transparent);
   animation: fade-in var(--dur-fast) var(--ease-out) both;
   z-index: 10;
 }
 
+/* Things that physically sit on top slide up from the bottom edge. */
 .sheet__panel {
   display: grid;
   gap: var(--space-4);
   max-height: calc(100dvh - max(var(--space-6), env(safe-area-inset-top)));
   padding: var(--space-3) var(--space-4)
     max(var(--space-5), env(safe-area-inset-bottom));
-  border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  background: var(--surface);
+  border-top: 1px solid var(--hairline-strong);
+  border-radius: 0;
+  background: var(--surface-raised);
   box-shadow: var(--shadow-deep);
   overflow-y: auto;
   animation: sheet-up var(--dur-base) var(--ease-out) both;
@@ -385,17 +541,18 @@ body {
 /* The grab handle every phone sheet has; here it only says "this dismisses". */
 .sheet__handle {
   width: 2.5rem;
-  height: 0.3rem;
-  border-radius: var(--radius-pill);
-  background: var(--fg-faint);
+  height: 2px;
+  background: var(--fg-2);
 }
 
 .sheet__title {
   margin: 0;
   justify-self: start;
   color: var(--fg-muted);
-  font-size: var(--text-sm);
-  font-weight: 600;
+  font-size: var(--text-xs);
+  font-weight: 500;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
 }
 
 @keyframes fade-in {
@@ -415,14 +572,14 @@ body {
   font-size: var(--text-xs);
   color: var(--fg-muted);
   text-transform: uppercase;
-  letter-spacing: 0.06em;
+  letter-spacing: var(--track-label);
 }
 
 .field__input {
   min-height: var(--touch);
   padding: 0 var(--space-3);
-  border: 1px solid var(--surface-raised);
-  border-radius: var(--radius-sm);
+  border: 1px solid var(--hairline-strong);
+  border-radius: 0;
   background: var(--surface-sunken);
   color: var(--fg);
   font: inherit;
@@ -431,7 +588,7 @@ body {
 }
 
 .field__input:focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid var(--fg);
   outline-offset: 1px;
 }
 
@@ -446,31 +603,59 @@ body {
 .night__counter {
   margin: 0;
   color: var(--fg-muted);
-  font-size: var(--text-sm);
-  font-variant-numeric: tabular-nums;
+  font-size: var(--text-xs);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
 }
 
+/* The role's page in the file: a hairline card with the team colour ruled
+   along the top and register marks in the corners. */
 .card {
+  position: relative;
   flex: none;
   padding: var(--space-4) var(--space-5);
-  border-radius: var(--radius-lg);
-  border-left: 4px solid var(--role, var(--accent));
+  border: 1px solid var(--hairline);
+  border-top: 2px solid var(--role, var(--hairline-strong));
+  border-radius: 0;
   background: var(--surface);
-  box-shadow: var(--shadow-lift);
   animation: card-in var(--dur-base) var(--ease-out) both;
+}
+
+.card::before,
+.card::after {
+  content: '';
+  position: absolute;
+  width: var(--mark);
+  height: var(--mark);
+  border-color: var(--fg-2);
+  border-style: solid;
+  pointer-events: none;
+}
+
+.card::before {
+  bottom: -1px;
+  left: -1px;
+  border-width: 0 0 1px 1px;
+}
+
+.card::after {
+  right: -1px;
+  bottom: -1px;
+  border-width: 0 1px 1px 0;
 }
 
 @keyframes card-in {
   from {
     opacity: 0;
-    transform: translateX(12px);
+    transform: translateY(6px);
   }
 }
 
 .card__title {
   margin: 0 0 var(--space-2);
   font-size: var(--text-lg);
-  color: var(--role, var(--accent));
+  line-height: 0.95;
+  color: var(--fg);
 }
 
 .card__body {
@@ -493,27 +678,38 @@ body {
 
 .target {
   min-height: var(--touch);
-  padding: var(--space-2) var(--space-3);
-  border: 1px solid var(--surface-raised);
-  border-radius: var(--radius-md);
+  padding: var(--space-2) var(--space-3) calc(var(--space-2) - 1px);
+  border: 1px solid var(--hairline-strong);
+  border-radius: 0;
   background: var(--surface);
   color: var(--fg);
-  font: inherit;
-  font-size: var(--text-sm);
-  font-weight: 600;
+  font-size: var(--text-display-min);
+  line-height: 1;
   cursor: pointer;
   transition:
     transform var(--dur-instant) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out),
     border-color var(--dur-fast) var(--ease-out);
 }
 
 .target:active {
-  transform: scale(0.96);
-  border-color: var(--role, var(--accent));
+  transform: translateY(1px);
+  border-color: var(--fg-2);
 }
 
 .target[data-silenced] {
   opacity: 0.55;
+}
+
+.target[data-picked] {
+  border-color: var(--fg);
+  background: var(--fg);
+  color: var(--on-accent);
+}
+
+.target:disabled,
+.btn:disabled {
+  cursor: default;
 }
 
 .potion {
@@ -530,17 +726,22 @@ body {
   overflow-y: auto;
 }
 
-/* ---------- Day ---------- */
+/* ---------- Day: the morning report as newsprint ---------- */
 
+/* The one bright surface, and it appears at dawn when the lights come up.
+   Ledger paper, Midnight ink; a killing's name is struck through in red. The
+   same paper carries the end-of-game history. */
 .report {
   display: grid;
-  gap: var(--space-2);
+  gap: 0;
   margin: 0;
-  padding: 0;
+  padding: var(--space-2) var(--space-4);
   list-style: none;
+  background: var(--paper);
+  color: var(--on-paper);
 }
 
-/* The morning report scrolls in its own box past a few cards, so a busy
+/* The morning report scrolls in its own box past a few lines, so a busy
    night never squeezes the circle below it. */
 .report--scroll {
   flex: 0 1 auto;
@@ -549,18 +750,77 @@ body {
   overflow-y: auto;
 }
 
+/* Marks on paper: town is ink, not Ash — Ash on Ledger is invisible. */
+.report [data-accent='town'] {
+  --role: var(--midnight);
+  --role-fill: var(--midnight);
+  --role-ink: var(--ledger);
+}
+
+.report [data-accent='occult'] {
+  --role: var(--midnight);
+  --role-fill: transparent;
+  --role-ink: var(--midnight);
+}
+
+.report [data-accent='system'] {
+  --role: var(--on-paper-muted);
+  --role-ink: var(--on-paper-muted);
+}
+
+.report__card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--paper-rule);
+  font-size: var(--text-md);
+  font-weight: 500;
+  line-height: 1.35;
+  animation: line-in var(--dur-base) var(--ease-out) both;
+  animation-delay: calc(var(--i) * 60ms);
+}
+
+.report__card:last-child {
+  border-bottom: 0;
+}
+
 @keyframes line-in {
   from {
     opacity: 0;
-    transform: translateY(6px);
+    transform: translateY(4px);
   }
+}
+
+.report__line {
+  min-width: 0;
+}
+
+/* The name reads first, so the narrator can announce it. */
+.report__badge {
+  font-weight: 600;
+}
+
+/* Struck from the ledger. Vendetta as a rule, never as small red text: red
+   on paper is 2.7:1 and fails. */
+.report__card[data-kind='death'] .report__badge {
+  text-decoration: line-through;
+  text-decoration-color: var(--vendetta);
+  text-decoration-thickness: 2px;
+}
+
+.report__card--quiet {
+  grid-template-columns: 1fr;
+  color: var(--on-paper-muted);
+  font-weight: 400;
 }
 
 .winner {
   margin: 0;
-  font-size: var(--text-lg);
-  font-weight: 700;
-  color: var(--accent);
+  font-size: var(--text-xl);
+  line-height: 0.95;
+  color: var(--fg);
 }
 
 /* ---------- Reveal ---------- */
@@ -582,24 +842,18 @@ body {
   margin: 0;
   color: var(--fg-faint);
   font-size: var(--text-xs);
-  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--track-label);
 }
 
 .reveal__lead {
   margin: 0;
   font-size: var(--text-xl);
-  font-weight: 700;
-  line-height: 1.2;
+  line-height: 0.95;
+  text-wrap: balance;
 }
 
 .reveal__advance {
   width: 100%;
-}
-
-
-.reveal__hold-label {
-  max-width: 8rem;
-  color: var(--fg-muted);
 }
 
 .reveal__hint {
@@ -615,48 +869,43 @@ body {
 @keyframes reveal-in {
   from {
     opacity: 0;
-    transform: scale(0.96);
+    transform: translateY(12px);
   }
 }
 
 .reveal__owner {
   margin: 0;
-  color: var(--fg-muted);
+  color: var(--on-paper-muted);
   font-size: var(--text-sm);
 }
 
 .reveal__label {
   margin: 0;
-  color: var(--fg-faint);
+  color: var(--on-paper-muted);
   font-size: var(--text-xs);
   text-transform: uppercase;
-  letter-spacing: 0.14em;
+  letter-spacing: var(--track-label);
 }
 
 .reveal__role {
   margin: 0;
   font-size: var(--text-hero);
-  font-weight: 800;
-  line-height: 1;
-  color: var(--role, var(--accent));
+  line-height: 0.9;
+  color: var(--on-paper);
+  text-wrap: balance;
 }
 
+/* The side is text, not colour. The card is the same paper for every role,
+   so the glow across the table gives nothing away. */
 .reveal__team {
   margin: 0;
-  padding: var(--space-2) var(--space-4);
-  border-radius: var(--radius-pill);
-  font-size: var(--text-sm);
-  font-weight: 700;
-}
-
-.reveal__team[data-team='town'] {
-  background: color-mix(in oklab, var(--town) 22%, transparent);
-  color: var(--town);
-}
-
-.reveal__team[data-team='crew'] {
-  background: color-mix(in oklab, var(--crew) 22%, transparent);
-  color: var(--crew);
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--on-paper);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  color: var(--on-paper);
 }
 
 .reveal__prompt {
@@ -664,11 +913,11 @@ body {
   max-width: 22rem;
   font-size: var(--text-md);
   line-height: 1.5;
-  color: var(--fg);
+  color: var(--on-paper);
 }
 
 .reveal__hint--holding {
-  color: var(--accent-dim);
+  color: var(--fg-2);
 }
 
 /* ---------- The bottom bar ---------- */
@@ -678,66 +927,63 @@ body {
    page into scrolling. */
 .bar {
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: space-between;
   gap: var(--space-2);
   /* Inline padding grows past 34rem so the bar's ends line up with the
      screen column on a tablet or desktop instead of the viewport's edges. */
-  padding: var(--space-2) max(var(--space-4), calc((100% - 34rem) / 2))
-    max(var(--space-2), env(safe-area-inset-bottom));
-  border-top: 1px solid color-mix(in oklab, var(--fg-faint) 45%, transparent);
+  padding: 0 max(var(--space-4), calc((100% - 34rem) / 2))
+    env(safe-area-inset-bottom);
+  border-top: 1px solid var(--hairline-strong);
   background: var(--surface);
 }
 
 .bar__btn {
-  min-height: var(--touch);
-  padding: 0 var(--space-4);
-  border: 1px solid var(--fg-faint);
-  border-radius: var(--radius-pill);
+  min-height: calc(var(--touch) + var(--space-2));
+  padding: 0 var(--space-2);
+  border: 0;
+  border-radius: 0;
   background: transparent;
-  color: var(--fg-muted);
+  color: var(--fg-2);
   font: inherit;
   font-size: var(--text-sm);
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
-  transition:
-    transform var(--dur-instant) var(--ease-out),
-    color var(--dur-fast) var(--ease-out),
-    border-color var(--dur-fast) var(--ease-out);
+  transition: color var(--dur-fast) var(--ease-out);
 }
 
 .bar__btn:active {
-  transform: scale(0.96);
-  border-color: var(--accent);
-  color: var(--accent);
+  color: var(--fg);
 }
 
 .bar__menu {
   display: grid;
   place-content: center;
-  width: var(--touch);
-  height: var(--touch);
+  width: calc(var(--touch) + var(--space-2));
+  min-height: calc(var(--touch) + var(--space-2));
   padding: 0;
   border: 0;
-  border-radius: 50%;
-  background: var(--surface-raised);
+  border-left: 1px solid var(--hairline);
+  border-radius: 0;
+  background: transparent;
   color: var(--fg);
   font: inherit;
   font-size: 1.5rem;
   line-height: 1;
   cursor: pointer;
-  transition: transform var(--dur-instant) var(--ease-out);
+  transition: background-color var(--dur-fast) var(--ease-out);
 }
 
 .bar__menu:active {
-  transform: scale(0.92);
+  background: var(--surface-raised);
 }
 
 /* ---------- The overflow menu ---------- */
 
 .menu {
   display: grid;
-  gap: var(--space-1);
+  gap: 0;
+  border-top: 1px solid var(--hairline);
 }
 
 .menu__item {
@@ -746,28 +992,29 @@ body {
   justify-content: space-between;
   gap: var(--space-3);
   min-height: var(--touch);
-  padding: var(--space-2) var(--space-4);
+  padding: var(--space-2) var(--space-2);
   border: 0;
-  border-radius: var(--radius-md);
+  border-bottom: 1px solid var(--hairline);
+  border-radius: 0;
   background: transparent;
   color: var(--fg);
-  font: inherit;
-  font-size: var(--text-md);
-  font-weight: 600;
+  font-size: clamp(var(--text-display-min), 5vw, 1.5rem);
+  line-height: 1;
   text-align: left;
   cursor: pointer;
   transition: background-color var(--dur-fast) var(--ease-out);
 }
 
 .menu__item:active {
-  background: var(--surface-raised);
+  background: var(--surface);
 }
 
 .menu__value {
   flex: none;
   color: var(--fg-muted);
-  font-size: var(--text-sm);
-  font-weight: 500;
+  font-size: var(--text-xs);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
 }
 
 .menu__item--danger {
@@ -802,18 +1049,6 @@ body {
   }
 }
 
-.target[data-picked] {
-  border-color: var(--role, var(--accent));
-  background: color-mix(in oklab, var(--role, var(--accent)) 18%, var(--surface));
-  color: var(--fg);
-}
-
-.target:disabled,
-.btn:disabled {
-  cursor: default;
-}
-
-
 /* ---------- Reveal: held card ---------- */
 
 /* The card is injected beside the still-mounted hold button, so the confirm
@@ -828,12 +1063,18 @@ body {
   display: none;
 }
 
+/* Paper, for every role alike. */
 .reveal__card {
   display: grid;
-  gap: var(--space-4);
+  gap: var(--space-3);
   justify-items: center;
+  width: 100%;
+  padding: var(--space-5) var(--space-4);
+  background: var(--paper);
+  color: var(--on-paper);
+  box-shadow: var(--shadow-deep);
   text-align: center;
-  animation: reveal-in var(--dur-fast) var(--ease-out) both;
+  animation: reveal-in var(--dur-base) var(--ease-out) both;
 }
 
 body.is-revealing .bar {
@@ -878,13 +1119,12 @@ body.is-revealing .bar {
   place-content: center;
   min-height: 5.5rem;
   padding: var(--space-4) var(--space-5);
-  border: 2px solid var(--accent-dim);
-  border-radius: var(--radius-lg);
+  border: 1px solid var(--hairline-strong);
+  border-radius: 0;
   background: var(--surface);
   color: var(--fg);
-  font: inherit;
-  font-size: var(--text-md);
-  font-weight: 700;
+  font-size: clamp(var(--text-display-min), 6vw, 1.75rem);
+  line-height: 1;
   cursor: pointer;
   overflow: hidden;
   user-select: none;
@@ -894,12 +1134,14 @@ body.is-revealing .bar {
   transition: border-color var(--dur-fast) var(--ease-out);
 }
 
+/* A Vendetta rule along the bottom edge that fills left to right. */
 .reveal__fill {
   position: absolute;
-  inset: 0;
+  inset: auto 0 0 0;
+  height: 4px;
   transform-origin: left center;
   scale: 0 1;
-  background: color-mix(in oklab, var(--accent) 30%, transparent);
+  background: var(--vendetta);
 }
 
 .reveal__hold[data-charging] .reveal__fill {
@@ -907,12 +1149,11 @@ body.is-revealing .bar {
 }
 
 .reveal__hold[data-revealed] {
-  border-color: var(--accent);
+  border-color: var(--fg);
 }
 
 .reveal__hold[data-revealed] .reveal__fill {
   scale: 1 1;
-  background: color-mix(in oklab, var(--accent) 18%, transparent);
 }
 
 @keyframes charge {
@@ -921,6 +1162,7 @@ body.is-revealing .bar {
 
 .reveal__hold-label {
   position: relative;
+  max-width: 10rem;
 }
 
 .chips {
@@ -940,13 +1182,13 @@ body.is-revealing .bar {
 .chip {
   min-height: var(--touch);
   padding: 0 var(--space-4);
-  border: 1px solid var(--surface-raised);
-  border-radius: var(--radius-pill);
-  background: var(--surface);
-  color: var(--fg-muted);
+  border: 1px solid var(--hairline-strong);
+  border-radius: 0;
+  background: transparent;
+  color: var(--fg-2);
   font: inherit;
   font-size: var(--text-sm);
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
   transition:
     border-color var(--dur-fast) var(--ease-out),
@@ -955,9 +1197,9 @@ body.is-revealing .bar {
 }
 
 .chip[data-on] {
-  border-color: var(--accent);
-  background: color-mix(in oklab, var(--accent) 16%, var(--surface));
-  color: var(--accent);
+  border-color: var(--fg);
+  background: var(--fg);
+  color: var(--on-accent);
 }
 
 /* ---------- Circle: in-game states ---------- */
@@ -979,36 +1221,56 @@ body.is-revealing .bar {
   cursor: default;
 }
 
-/* The dead stay in their seat — the table layout is the point. */
+/* The dead stay in their seat — the table layout is the point. They go faint,
+   with one dim red strike across the tile. Never removed, never hidden. */
 .seat[data-dead] {
-  border-color: var(--dead) !important;
-  background: var(--surface-sunken);
-  opacity: 0.55;
-}
-
-.seat[data-dead] .seat__name {
+  border-color: var(--hairline);
+  background: transparent;
   color: var(--fg-faint);
-  text-decoration: line-through;
 }
 
+.seat[data-dead]::after {
+  content: '';
+  position: absolute;
+  inset: 50% 12% auto;
+  height: 2px;
+  background: var(--lethal-dim);
+  transform: rotate(-12deg);
+  pointer-events: none;
+}
+
+.seat[data-dead] .seat__name,
+.seat[data-dead] .seat__role,
+.seat[data-dead] .seat__n {
+  color: var(--fg-faint);
+}
+
+/* Selected inverts to Ledger: "you are here" without a third colour. */
 .seat[data-selected] {
-  background: color-mix(in oklab, var(--role, var(--accent)) 26%, var(--surface));
+  border-color: var(--fg);
+  background: var(--fg);
+  color: var(--on-accent);
   scale: 1.06;
+}
+
+.seat[data-selected] .seat__role,
+.seat[data-selected] .seat__n {
+  color: var(--on-accent);
 }
 
 .seat__flag {
   position: absolute;
-  top: -2px;
-  right: -2px;
+  top: -1px;
+  right: -1px;
   display: grid;
   place-content: center;
   width: 1.25rem;
   height: 1.25rem;
-  border-radius: 50%;
-  background: var(--accent);
+  background: var(--fg);
   color: var(--on-accent);
+  font-family: var(--font-mono);
   font-size: 0.7rem;
-  font-weight: 800;
+  font-weight: 500;
 }
 
 /* ---------- Night: who holds the role ---------- */
@@ -1017,17 +1279,18 @@ body.is-revealing .bar {
   margin: 0 0 var(--space-2);
   color: var(--fg);
   font-size: var(--text-md);
-  font-weight: 700;
+  font-weight: 600;
 }
 
 .card__aside--flag {
-  color: var(--accent);
+  color: var(--fg-2);
 }
 
 /* ---------- The across-the-room card ---------- */
 
 /* Read from a metre away by one person, in the dark. Everything else on the
-   screen gets out of its way. */
+   screen gets out of its way. Ledger on Midnight, the same for every role:
+   a colour-coded card would tell the table the side before the reader. */
 .screen--inspect {
   justify-content: center;
   align-items: center;
@@ -1044,29 +1307,21 @@ body.is-revealing .bar {
 .inspect__role {
   margin: 0;
   font-size: clamp(2.5rem, 15vw, 6rem);
-  font-weight: 900;
-  line-height: 0.95;
-  letter-spacing: -0.03em;
-  color: var(--role, var(--accent));
-  animation: reveal-in var(--dur-base) var(--ease-spring) both;
+  line-height: 0.9;
+  color: var(--fg);
+  text-wrap: balance;
+  animation: reveal-in var(--dur-base) var(--ease-out) both;
 }
 
 .inspect__team {
   margin: 0;
-  padding: var(--space-2) var(--space-5);
-  border-radius: var(--radius-pill);
-  font-size: var(--text-md);
-  font-weight: 700;
-}
-
-.inspect__team[data-team='town'] {
-  background: color-mix(in oklab, var(--town) 22%, transparent);
-  color: var(--town);
-}
-
-.inspect__team[data-team='crew'] {
-  background: color-mix(in oklab, var(--crew) 22%, transparent);
-  color: var(--crew);
+  padding: var(--space-2) var(--space-4);
+  border: 1px solid var(--fg-2);
+  color: var(--fg-2);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
 }
 
 .screen--inspect .actions {
@@ -1078,20 +1333,20 @@ body.is-revealing .bar {
 .reveal__question {
   min-height: var(--touch);
   padding: var(--space-2) var(--space-4);
-  border: 1px dashed var(--fg-faint);
-  border-radius: var(--radius-pill);
+  border: 1px dashed var(--hairline-strong);
+  border-radius: 0;
   background: transparent;
-  color: var(--fg-muted);
+  color: var(--fg-2);
   font: inherit;
   font-size: var(--text-sm);
+  font-weight: 500;
   cursor: pointer;
 }
 
 .reveal__question[data-on] {
   border-style: solid;
-  border-color: var(--accent);
-  background: color-mix(in oklab, var(--accent) 16%, transparent);
-  color: var(--accent);
+  border-color: var(--fg);
+  color: var(--fg);
 }
 
 /* ---------- Timeline ---------- */
@@ -1102,47 +1357,66 @@ body.is-revealing .bar {
   overflow: hidden;
 }
 
+/* Ledger lines: night, mark, sentence, and the way back. */
 .log {
   display: grid;
-  gap: var(--space-2);
+  gap: 0;
   min-height: 0;
   margin: 0;
   padding: 0;
+  border-top: 1px solid var(--hairline-strong);
   list-style: none;
   overflow-y: auto;
 }
 
 .log__row {
-  display: flex;
+  display: grid;
+  grid-template-columns: 2.25rem auto 1fr auto;
   align-items: center;
   gap: var(--space-3);
-  justify-content: space-between;
-  padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-md);
-  background: var(--surface-raised);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--hairline);
   font-size: var(--text-sm);
 }
 
+.log__night {
+  color: var(--fg-muted);
+  font-size: var(--text-xs);
+  letter-spacing: 0.06em;
+}
+
 .log__text {
-  flex: 1;
+  min-width: 0;
 }
 
 .log__revert {
   flex: none;
   min-height: var(--touch);
   padding: 0 var(--space-3);
-  border: 1px solid var(--fg-faint);
-  border-radius: var(--radius-pill);
+  border: 1px solid var(--hairline-strong);
+  border-radius: 0;
   background: transparent;
-  color: var(--fg-muted);
-  font: inherit;
-  font-size: var(--text-xs);
+  color: var(--fg-2);
+  font-size: var(--text-display-min);
+  line-height: 1;
   cursor: pointer;
 }
 
 .log__revert:active {
-  border-color: var(--accent);
-  color: var(--accent);
+  border-color: var(--fg);
+  color: var(--fg);
+}
+
+.log__row--divider {
+  color: var(--fg-muted);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+}
+
+.log__row--quiet .log__text {
+  color: var(--fg-muted);
 }
 
 /* ---------- Circle as the target picker ---------- */
@@ -1150,17 +1424,9 @@ body.is-revealing .bar {
 /* Tapping someone in their seat matches what the narrator is looking at
    around the real table. Illegal targets stay visible — the table layout is
    the point — but are dimmed and unclickable so they cannot be hit by
-   mistake. */
+   mistake. A pickable seat has a solid Ash edge; nothing glows but the crew. */
 .seat[data-pickable] {
-  box-shadow: 0 0 0 0 color-mix(in oklab, var(--role, var(--accent)) 55%, transparent);
-  animation: seat-in var(--dur-slow) var(--ease-spring) both,
-    seat-glow 2.6s var(--ease-in-out) infinite;
-  animation-delay: calc(var(--i) * 24ms), calc(var(--i) * 60ms);
-}
-
-@keyframes seat-glow {
-  0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--role, var(--accent)) 45%, transparent); }
-  50% { box-shadow: 0 0 10px 2px color-mix(in oklab, var(--role, var(--accent)) 30%, transparent); }
+  border-color: var(--fg-2);
 }
 
 .seat[data-pickable]:active {
@@ -1168,33 +1434,13 @@ body.is-revealing .bar {
 }
 
 .seat[data-ineligible] {
-  opacity: 0.28;
-  filter: grayscale(1);
-  animation: seat-in var(--dur-slow) var(--ease-spring) both;
+  opacity: 0.35;
+  border-style: dashed;
 }
 
 .seat[data-ineligible] .seat__name,
 .seat[data-ineligible] .seat__role {
   color: var(--fg-faint);
-}
-
-/* The dead are dim regardless, and never pickable. */
-.seat[data-dead] {
-  animation: seat-in var(--dur-slow) var(--ease-spring) both;
-}
-
-.btn--small {
-  min-height: var(--touch);
-  padding: var(--space-2) var(--space-4);
-  font-size: var(--text-sm);
-  align-self: center;
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .seat[data-pickable] {
-    animation: none;
-    box-shadow: 0 0 0 2px color-mix(in oklab, var(--role, var(--accent)) 40%, transparent);
-  }
 }
 
 /* ---------- Names: one field, Enter, repeat ---------- */
@@ -1226,12 +1472,11 @@ body.is-revealing .bar {
   gap: var(--space-1);
   min-height: var(--touch);
   padding: 0 0 0 var(--space-4);
-  border: 1px solid var(--surface-raised);
-  border-radius: var(--radius-pill);
+  border: 1px solid var(--hairline-strong);
   background: var(--surface);
   font-size: var(--text-md);
-  font-weight: 600;
-  animation: seat-in var(--dur-base) var(--ease-spring) both;
+  font-weight: 500;
+  animation: seat-in var(--dur-base) var(--ease-out) both;
   animation-delay: calc(var(--i) * 20ms);
 }
 
@@ -1242,9 +1487,9 @@ body.is-revealing .bar {
   align-self: stretch;
   min-width: 2.75rem;
   border: 0;
-  border-radius: 0 var(--radius-pill) var(--radius-pill) 0;
+  border-left: 1px solid var(--hairline);
   background: transparent;
-  color: var(--fg-faint);
+  color: var(--fg-muted);
   font: inherit;
   font-size: 1.25rem;
   cursor: pointer;
@@ -1255,118 +1500,45 @@ body.is-revealing .bar {
   color: var(--danger);
 }
 
-/* ---------- Report cards, in the colour of the role that caused them ---------- */
+/* ---------- The crew glow ---------- */
 
-/* v1 coloured every morning card by its role, which was the most readable
-   thing about it: a red card is a killing, a purple one is the Santera. The
-   card is tinted rather than filled so it stays legible in the dark. */
-.report__card {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  border-left: 4px solid var(--accent, var(--fg-faint));
-  border-radius: var(--radius-md);
-  background: color-mix(in oklab, var(--accent, var(--surface)) 16%, var(--surface));
-  font-size: var(--text-md);
-  font-weight: 600;
-  line-height: 1.35;
-  animation: line-in var(--dur-base) var(--ease-out) both;
-  animation-delay: calc(var(--i) * 70ms);
-}
-
-.report__line {
-  min-width: 0;
-}
-
-.report__card--quiet {
-  grid-template-columns: 1fr;
-  border-left-color: var(--fg-faint);
-  background: var(--surface);
-  color: var(--fg-muted);
-  font-weight: 500;
-}
-
-/* The name reads first, as a badge, so the narrator can announce it. */
-.report__badge {
-  padding: var(--space-1) var(--space-3);
-  border-radius: var(--radius-pill);
-  background: var(--accent, var(--fg-faint));
-  color: var(--on-accent);
-  font-size: var(--text-sm);
-  font-weight: 800;
-  white-space: nowrap;
-}
-
-.report__card[data-kind='death'] .report__badge {
-  text-decoration: line-through;
-  text-decoration-thickness: 2px;
-}
-
-/* ---------- The log: a coloured, glyphed timeline ---------- */
-
-.log__row {
-  border-left: 4px solid var(--accent, var(--fg-faint));
-  background: color-mix(in oklab, var(--accent, var(--surface-raised)) 12%, var(--surface-raised));
-}
-
-.log__glyph {
-  flex: none;
-  width: 1.5rem;
-  color: var(--accent, var(--fg-muted));
-  font-size: var(--text-md);
-  text-align: center;
-}
-
-.log__row--divider {
-  margin-top: var(--space-2);
-  background: transparent;
-  border-left-color: transparent;
-  color: var(--fg-muted);
-  font-size: var(--text-xs);
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.log__row--divider .log__glyph {
-  color: var(--accent-dim);
-}
-
-.log__row--quiet {
-  opacity: 0.6;
-  font-weight: 500;
-}
-
-/* ---------- The crew glow, from v2 ---------- */
-
-/* The narrator already knows everything; a glance beats reading six labels. */
+/* The narrator already knows everything; a glance beats reading six labels.
+   The only looping animation in the app, and for the narrator's eyes only. */
 .seat[data-crew] {
-  box-shadow: 0 0 14px 3px color-mix(in oklab, var(--crew) 55%, transparent);
+  border-color: var(--crew);
+  box-shadow: 0 0 14px var(--lethal-glow);
+  animation: seat-in var(--dur-base) var(--ease-out) both,
+    seat-glow-crew 2.6s var(--ease-in-out) infinite;
+  animation-delay: calc(var(--i) * 24ms), calc(var(--i) * 60ms);
 }
 
-.seat[data-crew][data-pickable] {
-  animation: seat-in var(--dur-slow) var(--ease-spring) both,
-    seat-glow-crew 2.6s var(--ease-in-out) infinite;
+.seat[data-crew][data-selected] {
+  border-color: var(--fg);
 }
 
 @keyframes seat-glow-crew {
-  0%, 100% { box-shadow: 0 0 10px 2px color-mix(in oklab, var(--crew) 45%, transparent); }
-  50% { box-shadow: 0 0 18px 5px color-mix(in oklab, var(--crew) 60%, transparent); }
+  0%, 100% { box-shadow: 0 0 10px var(--lethal-glow); }
+  50% { box-shadow: 0 0 22px var(--lethal-glow); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .seat[data-crew] {
+    animation: none;
+    box-shadow: 0 0 16px var(--lethal-glow);
+  }
 }
 
 /* ---------- Day and night tint the whole page ---------- */
 
-/* v1 went dark blue at night and warm yellow by day on its card. Doing it to
-   the page ground tells the narrator which phase they are in without reading,
-   while staying dim enough for the room. */
+/* Night is Midnight. Day warms to Midnight mixed with Ash: still dark, the
+   blue drained out. The page never goes light — the report card is the
+   sunrise. Dawn is the single deliberately slow moment in the app. */
 html[data-phase='night'] body {
-  background: color-mix(in oklab, var(--bg) 88%, #1a2a5a);
+  background: var(--bg);
 }
 
 html[data-phase='day'] body {
-  background: color-mix(in oklab, var(--bg) 90%, #5a3d12);
+  background: var(--bg-day);
 }
 
 html[data-phase] body {
@@ -1391,22 +1563,141 @@ html[data-phase] body {
 
 .history__title {
   margin: 0 0 var(--space-2);
-  color: var(--accent);
+  color: var(--fg-muted);
   font-size: var(--text-xs);
-  font-weight: 800;
-  letter-spacing: 0.12em;
+  font-weight: 500;
+  letter-spacing: var(--track-label);
   text-transform: uppercase;
 }
 
 /* ---------- Rearranging seats ---------- */
 
 .btn--ghost[data-on] {
-  border-color: var(--accent);
-  color: var(--accent);
+  border-color: var(--fg);
+  color: var(--fg);
 }
 
 /* The first seat tapped in rearrange mode, waiting for its partner. */
 .seat[data-swap][data-selected] {
   border-style: dashed;
   scale: 1.1;
+}
+
+/* ---------- Menu: segmented select ---------- */
+
+/* Pick one, see it take, close the sheet yourself. A row that slams the menu
+   shut on tap leaves the narrator unsure anything happened. */
+.menu__item--static {
+  cursor: default;
+}
+
+.menu__segment {
+  display: inline-grid;
+  grid-auto-flow: column;
+  grid-auto-columns: 1fr;
+  border: 1px solid var(--hairline-strong);
+}
+
+.menu__seg {
+  min-height: 2.5rem;
+  padding: 0 var(--space-4);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  color: var(--fg-2);
+  font-size: var(--text-display-min);
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+
+.menu__seg[aria-checked='true'] {
+  background: var(--fg);
+  color: var(--on-accent);
+}
+
+/* ---------- Questions: the private explanation card ---------- */
+
+/* Same bones as the detective's card, but with room to read: the role name
+   is smaller and the explanation scrolls inside the card, so the page never
+   scrolls. */
+.screen--ask {
+  gap: var(--space-3);
+}
+
+.inspect__role--ask {
+  font-size: clamp(2rem, 11vw, 4rem);
+}
+
+.inspect__scroll {
+  display: grid;
+  gap: var(--space-3);
+  width: min(100%, 26rem);
+  max-height: 40dvh;
+  padding: var(--space-4);
+  overflow-y: auto;
+  border: 1px solid var(--hairline);
+  background: var(--surface);
+  text-align: left;
+}
+
+.inspect__brief {
+  margin: 0;
+  font-size: var(--text-md);
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+.inspect__detail {
+  margin: 0;
+  color: var(--fg-2);
+  font-size: var(--text-sm);
+  line-height: 1.55;
+}
+
+/* Flagged players, as tappable chips on the day screen and as a list in the
+   round's intro. */
+.asks {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.asks--list {
+  justify-content: center;
+}
+
+.asks__label {
+  color: var(--fg-muted);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+}
+
+.asks__chip {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: var(--touch);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--hairline-strong);
+  background: var(--surface);
+  color: var(--fg);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.asks__chip .seat__flag {
+  position: static;
+}
+
+.asks__chip--static {
+  cursor: default;
 }

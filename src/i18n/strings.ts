@@ -11,6 +11,11 @@ export interface RoleStrings {
   prompt: string
   /** What the player reads on their own reveal card. Second person, to them. */
   brief: string
+  /**
+   * The fuller explanation, for a player who flagged a question: how the role
+   * plays out over a game, in second person. Longer than the brief.
+   */
+  detail: string
 }
 
 /**
@@ -117,6 +122,11 @@ export interface Strings {
       hasQuestion: string
       hasQuestions: string
       questionMarked: string
+      /** The private round before night one for players who flagged a question. */
+      questionsRound: string
+      questionsIntro: string
+      showRoleTo: (name: string) => string
+      clearFlag: string
     }
     night: {
       stepCounter: (current: number, total: number) => string
