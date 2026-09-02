@@ -120,7 +120,7 @@ type SavedGame = Omit<GameState, 'healUsed' | 'poisonUsed'> &
 /**
  * Brings an older snapshot up to the current shape.
  *
- * Version 1 did not track the Santera's vials; a game saved then simply has
+ * Version 1 did not track the Apothecary's vials; a game saved then simply has
  * both unspent, which is the generous reading and the only one available.
  */
 const migrate = (game: SavedGame): GameState => ({

@@ -107,3 +107,28 @@ describe('the Godfather’s step', () => {
     expect(scheduleFor(table(cast), 2, { infectionUsed: true })).toContain('KILLER')
   })
 })
+
+describe('the Family’s step', () => {
+  it('goes on while anyone who wakes with the Family is alive', () => {
+    // The plain member is dead; the Godfather and the Renegade still meet.
+    const players = table(['KILLER', 'CONVERT', 'ROGUE', 'PLAIN', 'INSPECT'])
+    players[0]!.alive = false
+    expect(scheduleFor(players, 2)).toContain('KILLER')
+    players[1]!.alive = false
+    expect(scheduleFor(players, 2)).toContain('KILLER')
+    expect(scheduleFor(players, 2)).toContain('ROGUE')
+  })
+
+  it('stops when the last of them is gone', () => {
+    const players = table(['KILLER', 'CONVERT', 'PLAIN', 'INSPECT'])
+    players[0]!.alive = false
+    players[1]!.alive = false
+    expect(scheduleFor(players, 2)).not.toContain('KILLER')
+  })
+
+  it('does not wake the Family for an Associate who has not joined', () => {
+    const players = table(['KILLER', 'PICK_SIDE', 'PLAIN', 'INSPECT'])
+    players[0]!.alive = false
+    expect(scheduleFor(players, 2)).not.toContain('KILLER')
+  })
+})

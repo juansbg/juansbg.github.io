@@ -314,7 +314,7 @@ describe('the player’s view', () => {
   const otherNames = (locale: (typeof LOCALES)[number], own: RoleId) =>
     ROLE_IDS.filter((id) => id !== own).map((id) => strings(locale).roles[id].name)
 
-  it('shows the Santera who is set to die, and nobody’s role', () => {
+  it('shows the Apothecary who is set to die, and nobody’s role', () => {
     for (const locale of LOCALES) {
       const html = playerViewMarkup(afterHit(atRole(roles, 'MEDIC'), 2), locale)
       expect(html).toContain(strings(locale).ui.view.doomed(['P2']))
@@ -328,7 +328,7 @@ describe('the player’s view', () => {
     }
   })
 
-  it('tells the Santera when no one is dying, and which vials she has left', () => {
+  it('tells the Apothecary when no one is dying, and which vials she has left', () => {
     const html = playerViewMarkup({ ...atRole(roles, 'MEDIC'), healUsed: true }, 'en')
     expect(html).toContain(strings('en').ui.view.doomedNone)
     expect(html).toContain(strings('en').ui.view.cureSpent)
@@ -476,7 +476,7 @@ describe('the night table is safe to turn around', () => {
     expect(html).not.toContain('seat__role')
   })
 
-  it('shows the Santera who is set to die without anyone’s role', () => {
+  it('shows the Apothecary who is set to die without anyone’s role', () => {
     const html = nightMarkup(afterHit(atRole(roles, 'MEDIC'), 2), 'en')
     expect(html).toMatch(/data-target="2"[^>]*data-doomed/)
     expect(html).not.toContain('seat__role')

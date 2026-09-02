@@ -173,7 +173,7 @@ describe('the remembered roster', () => {
 })
 
 describe('older saves', () => {
-  it('migrates a version-1 game, giving the Santera both vials', () => {
+  it('migrates a version-1 game, giving the Apothecary both vials', () => {
     // Version 1 did not track the vials; both unspent is the only reading.
     const game = createGame(cast(['KILLER', 'PLAIN', 'MEDIC']))
     const v1 = JSON.parse(JSON.stringify(game)) as Record<string, unknown>

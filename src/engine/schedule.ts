@@ -1,4 +1,4 @@
-import { NIGHT_ROLES, type RoleId, type Activity } from './roles'
+import { NIGHT_ROLES, ROLES, type RoleId, type Activity } from './roles'
 import type { Player } from './types'
 
 /**
@@ -48,6 +48,16 @@ export const scheduleFor = (
   options: ScheduleOptions = {},
 ): RoleId[] => {
   const livingRoles = new Set(players.filter((p) => p.alive).map((p) => p.roleId))
+
+  // The hit is the Family's, not the plain member's. As long as anyone who
+  // wakes with the Family is alive — the Godfather, the Renegade, a convert —
+  // the step happens; it used to vanish with the last plain member, leaving
+  // the rest of the Family asleep for the rest of the game. The Associate
+  // only counts once he has joined.
+  const familyAwake = players.some(
+    (p) => p.alive && ROLES[p.roleId].team === 'crew' && p.roleId !== 'PICK_SIDE',
+  )
+  if (familyAwake) livingRoles.add('KILLER')
 
   return NIGHT_ROLES.filter(
     (role) =>

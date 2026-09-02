@@ -2065,7 +2065,7 @@ html[data-dawn] body {
 }
 
 /* Set to die tonight. Vendetta is the one colour that means lethal, and on
-   the Santera's table nothing else is red. */
+   the Apothecary's table nothing else is red. */
 .seat[data-doomed] {
   border-color: var(--lethal);
 }

@@ -72,7 +72,7 @@ describe('report lines carry the side of their cause', () => {
     expect(html).toContain('data-kind="death"')
   })
 
-  it('marks a poisoning as occult — the Santera is town, but hollow', () => {
+  it('marks a poisoning as occult — the Apothecary is town, but hollow', () => {
     const html = card({ type: 'death', night: 1, target: 1, cause: 'poison', public: true })
     expect(html).toContain('data-accent="occult"')
   })

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest'
-import { dawnMarkup, dawnSlides, pickLine } from './dawn'
+import { dawnMarkup, dawnSlides, deathLines, pickLine, verdictSlides } from './dawn'
 import { LOCALES, strings } from '../../i18n'
-import { createGame, endNight, recordAction, startNight, type PlayerSetup } from '../../engine/state'
-import type { DeathCause, GameState } from '../../engine/types'
+import { createGame, endNight, lynch, recordAction, startNight, type PlayerSetup } from '../../engine/state'
+import type { DeathCause, GameState, Outcome } from '../../engine/types'
 import type { RoleId } from '../../engine/roles'
 
 const cast = (roles: RoleId[], names?: string[]): PlayerSetup[] =>
@@ -24,7 +24,7 @@ describe('the bank of death lines', () => {
     for (const locale of LOCALES) {
       for (const cause of CAUSES) {
         const bank = strings(locale).ui.dawn.death[cause]
-        expect(bank.length, `${locale}/${cause}`).toBeGreaterThanOrEqual(2)
+        expect(bank.length, `${locale}/${cause}`).toBeGreaterThanOrEqual(10)
         for (const line of bank) expect(line('Ana'), `${locale}/${cause}`).toContain('Ana')
       }
     }
@@ -38,6 +38,33 @@ describe('the bank of death lines', () => {
         }
       }
     }
+  })
+
+  it('fits one phone screen under a name in Bebas, and never repeats itself', () => {
+    // 24ch wide at the display size, five or six lines at most under the name.
+    for (const locale of LOCALES) {
+      for (const cause of CAUSES) {
+        const bank = strings(locale).ui.dawn.death[cause]
+        const rendered = bank.map((line) => line('Margarita'))
+        for (const line of rendered) expect(line.length, `${locale}/${cause}: ${line}`).toBeLessThanOrEqual(140)
+        expect(new Set(rendered).size).toBe(bank.length)
+      }
+    }
+  })
+
+  it('gives every death in a game its own line while the bank lasts', () => {
+    // Three seats whose own picks all land on line 0 of a ten-line bank.
+    const death = (night: number, target: number): Outcome => ({
+      type: 'death', night, target, cause: 'killers', public: true,
+    })
+    const log = [death(1, 3), death(2, 6), death(3, 9)]
+    const lines = deathLines(log, () => 10)
+    expect([...lines.values()]).toEqual([0, 1, 2])
+    // Undoing the last death does not move the earlier ones.
+    expect([...deathLines(log.slice(0, 2), () => 10).values()]).toEqual([0, 1])
+    // A different cause has its own count.
+    const poison: Outcome = { type: 'death', night: 4, target: 0, cause: 'poison', public: true }
+    expect(deathLines([...log, poison], () => 10).get(poison)).toBe(8)
   })
 
   it('picks deterministically and stays inside the bank', () => {
@@ -117,5 +144,38 @@ describe('the dawn markup', () => {
     const html = dawnMarkup(dawnSlides(state, 'en'), 0, 1, 'en')
     expect(html).not.toContain('<b>x</b>')
     expect(html).toContain('&lt;b&gt;')
+  })
+})
+
+describe('the town’s verdict', () => {
+  const afterVote = (): GameState => lynch(bloodyNight(), 2)
+
+  it('is read on its own, not folded into the morning', () => {
+    const state = afterVote()
+    const morning = dawnSlides(state, 'en')
+    expect(morning).toHaveLength(1)
+    expect(morning[0]!.name).toBe('Beto')
+
+    const verdict = verdictSlides(state, 'en')
+    expect(verdict).toHaveLength(1)
+    expect(verdict[0]!.lethal).toBe(true)
+    expect(verdict[0]!.name).toBe('Caro')
+    expect(verdict[0]!.accent).toBe('town')
+    expect(verdict[0]!.mark).toBe('⚖')
+    expect(verdict[0]!.line).toContain('Caro')
+  })
+
+  it('is empty until the town has voted', () => {
+    expect(verdictSlides(bloodyNight(), 'en')).toHaveLength(0)
+  })
+
+  it('carries its own heading over the counter', () => {
+    const state = afterVote()
+    for (const locale of LOCALES) {
+      const html = dawnMarkup(verdictSlides(state, locale), 0, 1, locale, 'verdict')
+      expect(html).toContain(strings(locale).ui.dawn.verdict(1))
+      expect(html).not.toContain(strings(locale).ui.timeline.nightStart(1))
+      expect(html).toContain('data-lethal')
+    }
   })
 })

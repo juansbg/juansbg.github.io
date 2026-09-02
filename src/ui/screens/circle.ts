@@ -24,7 +24,7 @@ import { esc } from '../dom'
  *
  * Only the seats listed get any mark at all; every other seat is a name and
  * a number. `crew` is what the Family sees of itself, `doomed` what the
- * Santera is told, `self` the viewer's own chair, `marked` whatever their
+ * Apothecary is told, `self` the viewer's own chair, `marked` whatever their
  * own step has already chosen.
  */
 export interface Perspective {
@@ -56,7 +56,7 @@ export interface CircleOptions {
    * and a glance beats reading six role labels.
    */
   revealTeams?: boolean
-  /** Who is set to die tonight, for the Santera's step. */
+  /** Who is set to die tonight, for the Apothecary's step. */
   doomed?: readonly PlayerId[]
   /**
    * Render for a player's eyes rather than the narrator's: no roles, no

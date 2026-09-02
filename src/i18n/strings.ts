@@ -202,11 +202,15 @@ export interface Strings {
     dawn: {
       /** Accessible name of the play button on the day screen. */
       play: string
+      /** The counter over the town's verdict, read the way the morning is. */
+      verdict: (day: number) => string
       /**
-       * A small bank of lines per cause of death, so two deaths in one night
-       * do not read the same. Each takes the victim's name. Newsprint voice:
-       * past tense, no exclamation marks. The pick is deterministic, so a
-       * slide reads the same after an undo or a reload.
+       * A bank of lines per cause of death, ten deep, so that no two people
+       * in one game are read the same sentence. Each takes the victim's name
+       * and tells its own small story. Newsprint voice: past tense, no
+       * exclamation marks, and short enough for one phone screen under a name
+       * in Bebas (`dawn.test.ts` holds the limit). The pick is deterministic,
+       * so a slide reads the same after an undo or a reload.
        */
       death: Record<DeathCause, readonly ((name: string) => string)[]>
     }

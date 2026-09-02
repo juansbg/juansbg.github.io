@@ -160,7 +160,7 @@ export const resolveNight = (state: GameState): Resolution => {
   // v1 populated this dropdown and then threw the answer away: there was no
   // MEDIC case in configureLastStep(), so the witch never affected anything.
 
-  // Each vial works once. Nothing tracked this before, so the Santera could
+  // Each vial works once. Nothing tracked this before, so the Apothecary could
   // cure or poison every single night. A cure poured on someone who was not
   // about to die does nothing and is not spent — the UI only offers it on the
   // doomed, but a stale save or a rewind must not burn it either.
@@ -230,7 +230,7 @@ export const resolveNight = (state: GameState): Resolution => {
 /**
  * Who is set to die tonight from the attacks recorded so far.
  *
- * This is what the narrator whispers to the Santera before she chooses, and
+ * This is what the narrator whispers to the Apothecary before she chooses, and
  * what her potion may be spent on. It is a dry run of the night as it stands:
  * the resolver is pure, so asking is free and cannot change anything. Only
  * the direct victims count — a lover who would die of heartbreak is a

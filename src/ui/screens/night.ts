@@ -248,7 +248,7 @@ export const nightMarkup = (
  * relies on disappears. Then only what the role itself already knows. The
  * Family sees the Family — all of it, in one red, with no "you" mark that
  * would single out which of the red seats is the Godfather or the Renegade.
- * The Santera sees who is about to die. Everyone else sees their own seat
+ * The Apothecary sees who is about to die. Everyone else sees their own seat
  * and a plain table.
  */
 export const perspectiveFor = (

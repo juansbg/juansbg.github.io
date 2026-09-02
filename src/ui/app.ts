@@ -28,7 +28,7 @@ import { editorMarkup, MIN_PLAYERS, namesMarkup, rosterMarkup } from './screens/
 import { dealRoles, systemRandom, type Complexity } from '../engine/deal'
 import { dayMarkup, inspectionMarkup, nightMarkup, playerViewMarkup, questionCardMarkup, questionsIntroMarkup } from './screens/night'
 import { circleMarkup } from './screens/circle'
-import { dawnMarkup, dawnSlides } from './screens/dawn'
+import { dawnMarkup, dawnSlides, verdictSlides, type Reading, type Slide } from './screens/dawn'
 import { historyMarkup, timelineMarkup } from './screens/timeline'
 import { bindHold, revealMarkup, roleCardMarkup, type RevealPhase } from './screens/reveal'
 
@@ -66,7 +66,11 @@ let dawn: number | null = null
  * The night ended on the Avenger's death: the slideshow waits for the shot,
  * so the town hears the whole morning at once.
  */
-let dawnAfterShot = false
+let showAfterShot: Reading | null = null
+/** Which reading is up: the morning's, or the town's verdict. */
+let dawnKind: Reading = 'dawn'
+const currentSlides = (): Slide[] =>
+  (dawnKind === 'verdict' ? verdictSlides : dawnSlides)(state.session.current, state.locale)
 /** The overflow sheet behind the ⋯ button. */
 let menuOpen = false
 /**
@@ -172,7 +176,7 @@ function render(entering = false): void {
   // The slideshow only exists on the day screen; anything that leaves it
   // (undo, rewind, next night, restart) drops the slide with it.
   if (state.screen !== 'day' || game.awaitingHunterShot !== null) dawn = null
-  const slides = dawn === null ? [] : dawnSlides(game, state.locale)
+  const slides = dawn === null ? [] : currentSlides()
   const slide = dawn === null ? null : slides[Math.min(dawn, slides.length - 1)] ?? null
   if (slide) document.documentElement.dataset.dawn = slide.lethal ? 'lethal' : 'calm'
   else delete document.documentElement.dataset.dawn
@@ -228,7 +232,7 @@ function render(entering = false): void {
       game.awaitingHunterShot !== null
         ? hunterMarkup()
         : dawn !== null
-          ? dawnMarkup(slides, dawn, game.night, state.locale)
+          ? dawnMarkup(slides, dawn, game.night, state.locale, dawnKind)
           : dayMarkup(game, state.locale, state.layout, peeking)
     if (picking) sheets += pickerMarkup()
   } else {
@@ -935,8 +939,9 @@ function bind(): void {
     }
     // The morning is read to the town from the slideshow, so it starts by
     // itself. If the Avenger died, the shot comes first and the show after.
-    dawnAfterShot = morning.awaitingHunterShot !== null
-    dawn = dawnAfterShot ? null : 0
+    showAfterShot = morning.awaitingHunterShot !== null ? 'dawn' : null
+    dawnKind = 'dawn'
+    dawn = showAfterShot ? null : 0
     setState({ screen: 'day' })
   })
 
@@ -946,8 +951,17 @@ function bind(): void {
     mutate((s) => lynch(s, Number(el.dataset.lynch)), {
       night: game.night, kind: 'lynch', target: Number(el.dataset.lynch),
     })
-    if (winner(state.session.current) !== null) setState({ screen: 'over' })
-    else setState({})
+    const afternoon = state.session.current
+    if (winner(afternoon) !== null) {
+      setState({ screen: 'over' })
+      return
+    }
+    // The verdict is read the way the morning is: full screen, by itself.
+    // If the town hanged the Gunman, his shot comes first and the reading after.
+    showAfterShot = afternoon.awaitingHunterShot !== null ? 'verdict' : null
+    dawnKind = 'verdict'
+    dawn = showAfterShot ? null : 0
+    setState({})
   })
 
   on(root, '[data-shoot]', 'click', (_e, el) => {
@@ -956,8 +970,11 @@ function bind(): void {
     })
     if (winner(state.session.current) !== null) setState({ screen: 'over' })
     else {
-      if (dawnAfterShot) dawn = 0
-      dawnAfterShot = false
+      if (showAfterShot !== null) {
+        dawnKind = showAfterShot
+        dawn = 0
+      }
+      showAfterShot = null
       setState({})
     }
   })
@@ -967,6 +984,7 @@ function bind(): void {
   // ground's own colour transition left the red arriving one slide late.
   // The slide's entrance is its own keyframe; the ground fades in CSS.
   on(root, '[data-dawn-play]', 'click', () => {
+    dawnKind = 'dawn'
     dawn = 0
     buzz()
     setState({}, false)
@@ -977,7 +995,7 @@ function bind(): void {
     // must not also count as a tap on the body it sits outside of.
     e.stopPropagation()
     if (dawn === null) return
-    const count = dawnSlides(game, state.locale).length
+    const count = currentSlides().length
     if (dawn >= count - 1) dawn = null
     else dawn += 1
     setState({}, false)

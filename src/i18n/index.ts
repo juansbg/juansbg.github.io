@@ -83,7 +83,7 @@ export const morningReport = (
  *
  * v1 coloured every morning-report card by the role that caused it, which is
  * what made the report readable at a glance — a red card is a killing, a
- * purple one is the Santera. This is the structured version of that idea.
+ * purple one is the Apothecary. This is the structured version of that idea.
  */
 export const outcomeAccent = (outcome: Outcome): RoleId | 'town' => {
   switch (outcome.type) {

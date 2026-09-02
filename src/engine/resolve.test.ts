@@ -302,7 +302,7 @@ describe('purity', () => {
   })
 })
 
-describe("the Santera's vials work once each", () => {
+describe("the Apothecary's vials work once each", () => {
   // Nothing tracked the vials before, so she could cure or poison every night.
   const hit: NightAction = { kind: 'target', roleId: 'KILLER', actor: 0, target: 1 }
 
@@ -357,7 +357,7 @@ describe("the Santera's vials work once each", () => {
 })
 
 describe('who is set to die tonight', () => {
-  // What the narrator whispers to the Santera, read off the night so far.
+  // What the narrator whispers to the Apothecary, read off the night so far.
   it('lists the direct victims recorded so far', () => {
     const state = stateWith(
       ['KILLER', 'PLAIN', 'PLAIN', 'ROGUE', 'MEDIC'],
