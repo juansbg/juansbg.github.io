@@ -18,6 +18,21 @@ import { esc } from '../dom'
  * not survive a resize.
  */
 
+/**
+ * The table as one player is allowed to see it.
+ *
+ * Only the seats listed get any mark at all; every other seat is a name and
+ * a number. `crew` is what the Family sees of itself, `doomed` what the
+ * Santera is told, `self` the viewer's own chair, `marked` whatever their
+ * own step has already chosen.
+ */
+export interface Perspective {
+  self: readonly PlayerId[]
+  crew: readonly PlayerId[]
+  doomed: readonly PlayerId[]
+  marked: readonly PlayerId[]
+}
+
 export interface CircleOptions {
   /**
    * Data attribute the seats carry, e.g. 'target' renders data-target="3" and
@@ -40,6 +55,14 @@ export interface CircleOptions {
    * and a glance beats reading six role labels.
    */
   revealTeams?: boolean
+  /** Who is set to die tonight, for the Santera's step. */
+  doomed?: readonly PlayerId[]
+  /**
+   * Render for a player's eyes rather than the narrator's: no roles, no team
+   * colour, no question flags, no accent on any seat. Only what the
+   * perspective lists is marked. Everything above that would leak is ignored.
+   */
+  perspective?: Perspective
 }
 
 export const circleMarkup = (
@@ -50,32 +73,47 @@ export const circleMarkup = (
   const t = strings(locale)
   const {
     pickAttr, eligible, selected = [], showRoles = false, compact = false, revealTeams = false,
+    perspective,
   } = options
+  // A player is looking: nothing the narrator sees may reach the markup.
+  const hidden = perspective !== undefined
+  const doomed = perspective?.doomed ?? options.doomed ?? []
 
   const seats = players
     .map((p) => {
       const named = p.name.trim() !== ''
       const role = ROLES[p.roleId]
       const canPick =
-        pickAttr !== undefined && (eligible === undefined ? p.alive : eligible.includes(p.id))
+        !hidden &&
+        pickAttr !== undefined &&
+        (eligible === undefined ? p.alive : eligible.includes(p.id))
+      const crew = hidden
+        ? perspective.crew.includes(p.id)
+        : revealTeams && role.team === 'crew' && p.alive
+      const self = hidden && perspective.self.includes(p.id)
+      const doom = doomed.includes(p.id) && p.alive
 
       return `
         <button class="seat" type="button"
                 ${canPick ? `data-${pickAttr}="${p.id}"` : 'disabled'}
                 ${canPick ? '' : 'aria-hidden="true"'}
-                data-accent="${accentOf(p.roleId)}"
+                data-accent="${hidden ? 'system' : accentOf(p.roleId)}"
                 data-named="${named}"
-                data-team="${role.team}"
+                ${hidden ? '' : `data-team="${role.team}"`}
                 ${p.alive ? '' : 'data-dead'}
-                ${pickAttr !== undefined && !canPick && p.alive ? 'data-ineligible' : ''}
+                ${pickAttr !== undefined && !canPick && p.alive && !hidden ? 'data-ineligible' : ''}
                 ${canPick ? 'data-pickable' : ''}
                 ${selected.includes(p.id) ? 'data-selected' : ''}
-                ${p.hasQuestion ? 'data-question-flag' : ''}
-                ${revealTeams && role.team === 'crew' && p.alive ? 'data-crew' : ''}>
+                ${!hidden && p.hasQuestion ? 'data-question-flag' : ''}
+                ${crew ? 'data-crew' : ''}
+                ${self ? 'data-self' : ''}
+                ${doom ? 'data-doomed' : ''}>
           <span class="seat__n" aria-hidden="true">${String(p.id + 1).padStart(2, '0')}</span>
           <span class="seat__name">${named ? esc(p.name) : '—'}</span>
-          ${showRoles ? `<span class="seat__role">${esc(t.roles[p.roleId].name)}</span>` : ''}
-          ${p.hasQuestion ? '<span class="seat__flag" aria-hidden="true">?</span>' : ''}
+          ${showRoles && !hidden ? `<span class="seat__role">${esc(t.roles[p.roleId].name)}</span>` : ''}
+          ${self ? `<span class="seat__you">${esc(t.ui.view.you)}</span>` : ''}
+          ${!hidden && p.hasQuestion ? '<span class="seat__flag" aria-hidden="true">?</span>' : ''}
+          ${doom ? '<span class="seat__doom" aria-hidden="true">✕</span>' : ''}
         </button>
       `
     })

@@ -62,6 +62,7 @@ export const describeEntry = (
             action.potion === 'heal' ? t.ui.night.heal : t.ui.night.poison,
           )
         case 'chooseRole':
+          return tl.became(roleName, t.roles[action.newRole].name)
         case 'confirm':
         case 'split':
           return tl.acted(roleName)

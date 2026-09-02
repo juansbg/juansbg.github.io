@@ -139,6 +139,39 @@ export interface Strings {
       wakeGroup: string
       asCircle: string
       asList: string
+      /** The Godfather's step: who the Family chose, and the one-time choice. */
+      convertOffer: (name: string) => string
+      convertNoVictim: string
+      convert: string
+      convertDecline: string
+      /** The Associate's first-night choice of side. */
+      joinCrew: string
+      stayTown: string
+      /** A vial already used, appended to its button. */
+      spent: string
+      bothSpent: string
+      /** Turns the phone to the player at this step. */
+      showPlayer: string
+    }
+    /**
+     * The player-facing view of a night step: what the narrator turns the
+     * phone around to show. Every line here is read by a player, so it may
+     * only say what that player's role already knows.
+     */
+    view: {
+      showingTo: string
+      you: string
+      doomed: (names: readonly string[]) => string
+      doomedNone: string
+      victim: (name: string) => string
+      crewMarked: string
+      cureLeft: string
+      cureSpent: string
+      poisonLeft: string
+      poisonSpent: string
+      convertLeft: string
+      convertSpent: string
+      backToNarrator: string
     }
     day: {
       report: string
@@ -178,6 +211,7 @@ export interface Strings {
       pairedUp: (role: string, a: string, b: string) => string
       potion: (role: string, name: string, kind: string) => string
       acted: (role: string) => string
+      became: (role: string, newRole: string) => string
     }
   }
 }

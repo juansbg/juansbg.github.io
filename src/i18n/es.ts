@@ -10,9 +10,9 @@ export const es: Strings = {
     KILLER: { name: 'La Familia', prompt: 'Eligen a su víctima.' , brief: 'Cada noche, con los tuyos, eliges a quién matar. Ganáis cuando la Familia iguale en número al pueblo.' , detail: 'Cada noche el narrador despierta a toda la Familia a la vez y elegís juntos, en silencio, a quién matar; señalad con el dedo y poneos de acuerdo sin hablar. De día sois ciudadanos como los demás: acusad, defended y desviad la sospecha. Ganáis cuando quedéis tantos como el resto del pueblo.' },
     CONVERT: {
       name: 'El Padrino',
-      prompt: 'Decide si hace suyo al elegido en vez de matarlo. Una sola vez.',
-      brief: 'Una vez en toda la partida puedes hacer tuya a la víctima en lugar de matarla: se unirá a la Familia.',
-      detail: 'Eres de la Familia y despiertas con ellos cada noche. Una sola vez en la partida, cuando la Familia elija víctima, puedes levantar la mano: en vez de morir, esa persona se convierte en uno de los vuestros y el narrador se lo dirá en privado. Elige bien el momento; sólo hay una oportunidad.',
+      prompt: 'Cuando la Familia haya elegido, pregúntale en silencio: ¿acoge a la víctima de esta noche en la Familia, o sigue el golpe? Tiene una sola conversión en toda la partida.',
+      brief: 'Despiertas con la Familia. Una vez por partida, cuando hayan elegido víctima, puedes avisar al narrador: esa persona se une a la Familia en vez de morir.',
+      detail: 'Eres de la Familia y despiertas con ellos cada noche para elegir víctima. Una sola vez en toda la partida, cuando la Familia se haya puesto de acuerdo, puedes hacerle una señal al narrador en silencio: a esa persona no la matan, la acogen en la Familia, y el narrador le dice en privado que desde ahora despierta con vosotros. El resto de noches no haces ninguna señal y el golpe sigue como acordasteis. Elige bien el momento: un papel fuerte convertido vale más que un ciudadano.',
     },
     ROGUE: { name: 'El Renegado', prompt: 'Elige otra víctima, incluso de los suyos.' , brief: 'Las noches pares eliges una víctima aparte de la de la Familia. Puede ser cualquiera del pueblo, e incluso uno de los tuyos.' , detail: 'Eres de la Familia, pero las noches pares actúas también por tu cuenta: eliges una segunda víctima que puede ser cualquiera, incluso otro miembro de la Familia. Úsalo para quitar sospechas de encima o para limpiar la casa. Las noches impares sólo actúas con los demás.' },
     PICK_SIDE: { name: 'El Aspirante', prompt: 'Decide de qué lado está.' , brief: 'La primera noche decides en secreto si te unes a la Familia o te quedas con el pueblo. Elijas lo que elijas, nadie más lo sabrá.' , detail: 'La primera noche el narrador te despierta a solas y decides en secreto: ¿te unes a la Familia o te quedas con el pueblo? Si eliges la Familia, despertarás con ellos a partir de entonces. Nadie más sabrá nunca qué elegiste, ni siquiera al final.' },
@@ -28,7 +28,7 @@ export const es: Strings = {
     },
     MEDIC: {
       name: 'La Santera',
-      prompt: 'Dile quién va a morir. Decide si usa el remedio o el veneno.',
+      prompt: 'Dile quién va a morir. Puede gastar el remedio con esa persona, o el veneno con quien quiera. Cada pócima sirve una sola vez en toda la partida.',
       brief: 'Tienes dos pócimas y cada una sirve una sola vez: una salva a quien vaya a morir esa noche, la otra mata a quien tú elijas.',
       detail: 'Tienes dos pócimas y cada una sirve una sola vez. Cada noche el narrador te dice quién va a morir y decides: usar el remedio para salvar a esa persona, usar el veneno para matar a otra, o guardar las dos. Una vez gastada una pócima, no vuelve.',
     },
@@ -159,6 +159,33 @@ export const es: Strings = {
       wakeGroup: 'Que despierten juntos.',
       asCircle: 'Ver en círculo',
       asList: 'Ver en lista',
+      convertOffer: (name) => `La Familia ha elegido a ${name}. ¿El Padrino le acoge en la Familia en vez de matarle?`,
+      convertNoVictim: 'La Familia no ha elegido a nadie esta noche, así que no hay a quién acoger.',
+      convert: 'Acogerle en la Familia',
+      convertDecline: 'Que siga el golpe',
+      joinCrew: 'Se une a la Familia',
+      stayTown: 'Se queda con el pueblo',
+      spent: 'Gastado',
+      bothSpent: 'Las dos pócimas están gastadas. Despiértala igualmente, para que la mesa no note nada.',
+      showPlayer: 'Mostrar',
+    },
+    view: {
+      showingTo: 'Mostrando a',
+      you: 'Tú',
+      doomed: (names) =>
+        names.length === 1
+          ? `${names[0]} va a morir esta noche.`
+          : `${names.join(' y ')} van a morir esta noche.`,
+      doomedNone: 'Nadie va a morir esta noche.',
+      victim: (name) => `La Familia ha elegido a ${name}.`,
+      crewMarked: 'La Familia está marcada en rojo.',
+      cureLeft: 'Remedio disponible',
+      cureSpent: 'Remedio gastado',
+      poisonLeft: 'Veneno disponible',
+      poisonSpent: 'Veneno gastado',
+      convertLeft: 'Queda una conversión',
+      convertSpent: 'Conversión gastada',
+      backToNarrator: 'Volver al narrador',
     },
     day: {
       report: 'Lo que ha pasado esta noche',
@@ -195,6 +222,7 @@ export const es: Strings = {
       pairedUp: (role, a, b) => `${role} ata a ${a} y ${b}`,
       potion: (role, name, kind) => `${role} usa ${kind} con ${name}`,
       acted: (role) => `${role} actúa`,
+      became: (role, newRole) => `${role} pasa a ser ${newRole}`,
     },
   },
 }
