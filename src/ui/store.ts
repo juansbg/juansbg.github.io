@@ -83,19 +83,19 @@ export const load = ():
     if (raw === null) return null
 
     const parsed = JSON.parse(raw) as Saved
-    // A future version bump migrates here rather than stranding the save.
-    if (parsed.version !== STATE_VERSION) return null
+    if (!MIGRATABLE.includes(parsed.version)) return null
     if (!Array.isArray(parsed.game?.players)) return null
 
     // Saves from before history was persisted simply have none. The two
     // arrays must stay the same length; a mismatch means a corrupt save,
     // and an empty history is the safe reading of that.
-    const past = Array.isArray(parsed.past) ? parsed.past : []
+    const past = Array.isArray(parsed.past) ? parsed.past.map(migrate) : []
     const timeline = Array.isArray(parsed.timeline) ? parsed.timeline : []
+    const game = migrate(parsed.game)
     const session: Session =
       past.length === timeline.length
-        ? { current: parsed.game, past, timeline }
-        : newSession(parsed.game)
+        ? { current: game, past, timeline }
+        : newSession(game)
 
     return {
       session,
@@ -109,6 +109,25 @@ export const load = ():
     return null
   }
 }
+
+/** State versions this build can still read. Anything older is dropped. */
+const MIGRATABLE: readonly number[] = [1, STATE_VERSION]
+
+/** A snapshot as an older build may have written it. */
+type SavedGame = Omit<GameState, 'healUsed' | 'poisonUsed'> &
+  Partial<Pick<GameState, 'healUsed' | 'poisonUsed'>>
+
+/**
+ * Brings an older snapshot up to the current shape.
+ *
+ * Version 1 did not track the Santera's vials; a game saved then simply has
+ * both unspent, which is the generous reading and the only one available.
+ */
+const migrate = (game: SavedGame): GameState => ({
+  ...game,
+  healUsed: game.healUsed ?? false,
+  poisonUsed: game.poisonUsed ?? false,
+})
 
 export const clear = (): void => {
   try {

@@ -15,6 +15,8 @@ export interface Resolution {
   players: Player[]
   outcomes: Outcome[]
   infectionUsed: boolean
+  healUsed: boolean
+  poisonUsed: boolean
   awaitingHunterShot: PlayerId | null
 }
 
@@ -42,6 +44,8 @@ export const resolveNight = (state: GameState): Resolution => {
   /** Deaths accumulated this night. A player dies at most once. */
   const deaths = new Map<PlayerId, DeathCause>()
   let infectionUsed = state.infectionUsed
+  let healUsed = state.healUsed
+  let poisonUsed = state.poisonUsed
 
   const kill = (id: PlayerId, cause: DeathCause): void => {
     if (!deaths.has(id)) deaths.set(id, cause)
@@ -123,7 +127,13 @@ export const resolveNight = (state: GameState): Resolution => {
     const subject = players.find((p) => p.roleId === swap.roleId)
     if (!subject) continue
     subject.roleId = swap.newRole
+    // The Veteran's free life comes with the card.
+    if (swap.newRole === 'SURVIVE') subject.wolfAttacksSurvivable = 1
     outcomes.push({ type: 'roleChanged', night, target: subject.id, to: swap.newRole, public: false })
+    // The table learns which card left the centre, never who took it.
+    if (swap.roleId === 'SWAP') {
+      outcomes.push({ type: 'cardTaken', night, role: swap.newRole, public: true })
+    }
   }
 
   const wolves = actionOf(state.pending, 'KILLER', 'target')
@@ -150,16 +160,25 @@ export const resolveNight = (state: GameState): Resolution => {
   // v1 populated this dropdown and then threw the answer away: there was no
   // MEDIC case in configureLastStep(), so the witch never affected anything.
 
+  // Each vial works once. Nothing tracked this before, so the Santera could
+  // cure or poison every single night. A cure poured on someone who was not
+  // about to die does nothing and is not spent — the UI only offers it on the
+  // doomed, but a stale save or a rewind must not burn it either.
+
   const potion = actionOf(state.pending, 'MEDIC', 'potion')
   if (potion) {
     if (potion.potion === 'heal') {
-      if (deaths.delete(potion.target)) {
+      if (!healUsed && deaths.delete(potion.target)) {
+        healUsed = true
         outcomes.push({ type: 'attackBlocked', night, target: potion.target, by: 'MEDIC', public: false })
       }
-    } else {
+    } else if (!poisonUsed) {
       const target = find(players, potion.target)
       // The witch's poison bypasses the Protector.
-      if (target?.alive) kill(target.id, 'poison')
+      if (target?.alive) {
+        poisonUsed = true
+        kill(target.id, 'poison')
+      }
     }
   }
 
@@ -202,9 +221,28 @@ export const resolveNight = (state: GameState): Resolution => {
     players,
     outcomes,
     infectionUsed,
+    healUsed,
+    poisonUsed,
     awaitingHunterShot: applied.awaitingHunterShot,
   }
 }
+
+/**
+ * Who is set to die tonight from the attacks recorded so far.
+ *
+ * This is what the narrator whispers to the Santera before she chooses, and
+ * what her potion may be spent on. It is a dry run of the night as it stands:
+ * the resolver is pure, so asking is free and cannot change anything. Only
+ * the direct victims count — a lover who would die of heartbreak is a
+ * consequence, not someone a cure can be poured on.
+ */
+export const doomedTonight = (state: GameState): PlayerId[] =>
+  resolveNight(state)
+    .outcomes.filter(
+      (o): o is Extract<Outcome, { type: 'death' }> =>
+        o.type === 'death' && (o.cause === 'killers' || o.cause === 'rogue'),
+    )
+    .map((o) => o.target)
 
 /**
  * Does the bear growl this morning?

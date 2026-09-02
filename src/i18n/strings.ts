@@ -48,6 +48,8 @@ export interface Strings {
     silenced: (name: string) => string
     extraVote: (name: string) => string
     growl: () => string
+    /** Takes the display name of the role whose card left the centre. */
+    cardTaken: (role: string) => string
   }
 
   winner: {
@@ -139,6 +141,49 @@ export interface Strings {
       wakeGroup: string
       asCircle: string
       asList: string
+      /** The Godfather's step: who the Family chose, and the one-time choice. */
+      convertOffer: (name: string) => string
+      convertNoVictim: string
+      convert: string
+      convertDecline: string
+      /** The Associate's first-night choice of side. */
+      joinCrew: string
+      stayTown: string
+      /** A vial already used, appended to its button. */
+      spent: string
+      bothSpent: string
+      /** Turns the phone to the player at this step. */
+      showPlayer: string
+      /** The Chameleon's step: the cards left in the centre. */
+      spareCards: string
+      noSpareCards: string
+      keepCard: string
+      /** The Cultist's step: the first faction is tapped, the rest is the second. */
+      splitHint: string
+      splitConfirm: string
+    }
+    /**
+     * The player-facing view of a night step: what the narrator turns the
+     * phone around to show. Every line here is read by a player, so it may
+     * only say what that player's role already knows.
+     */
+    view: {
+      showingTo: string
+      you: string
+      doomed: (names: readonly string[]) => string
+      doomedNone: string
+      victim: (name: string) => string
+      crewMarked: string
+      cureLeft: string
+      cureSpent: string
+      poisonLeft: string
+      poisonSpent: string
+      convertLeft: string
+      convertSpent: string
+      spare: (roles: readonly string[]) => string
+      sectOne: (names: readonly string[]) => string
+      sectTwo: (names: readonly string[]) => string
+      backToNarrator: string
     }
     day: {
       report: string
@@ -193,6 +238,7 @@ export interface Strings {
       pairedUp: (role: string, a: string, b: string) => string
       potion: (role: string, name: string, kind: string) => string
       acted: (role: string) => string
+      became: (role: string, newRole: string) => string
     }
   }
 }

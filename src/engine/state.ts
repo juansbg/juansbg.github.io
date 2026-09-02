@@ -46,6 +46,8 @@ export const createGame = (setups: readonly PlayerSetup[]): GameState => ({
   pending: [],
   log: [],
   infectionUsed: false,
+  healUsed: false,
+  poisonUsed: false,
   awaitingHunterShot: null,
 })
 
@@ -63,7 +65,7 @@ export const startNight = (state: GameState): GameState => {
     phase: 'night',
     night,
     players,
-    schedule: scheduleFor(players, night),
+    schedule: scheduleFor(players, night, { infectionUsed: state.infectionUsed }),
     stepIndex: 0,
     pending: [],
   }
@@ -92,7 +94,8 @@ export const recordAction = (state: GameState, action: NightAction): GameState =
 
 /** Resolves the night and moves to the day. */
 export const endNight = (state: GameState): GameState => {
-  const { players, outcomes, infectionUsed, awaitingHunterShot } = resolveNight(state)
+  const { players, outcomes, infectionUsed, healUsed, poisonUsed, awaitingHunterShot } =
+    resolveNight(state)
 
   return {
     ...state,
@@ -102,6 +105,8 @@ export const endNight = (state: GameState): GameState => {
     pending: [],
     log: [...state.log, ...outcomes],
     infectionUsed,
+    healUsed,
+    poisonUsed,
     awaitingHunterShot,
   }
 }

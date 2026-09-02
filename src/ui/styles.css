@@ -1845,3 +1845,118 @@ html[data-dawn] body {
 .asks__chip--static {
   cursor: default;
 }
+
+/* ---------- The player's view ---------- */
+
+/* The phone turned around mid-step. Same table, none of the narrator's
+   colour: every seat is a name and a number unless the role itself knows
+   better. Ledger on Midnight, like the inspect card, for the same reason. */
+
+.icon-btn--word {
+  width: auto;
+  padding: 0 var(--space-3);
+  font-family: var(--font-display);
+  font-size: var(--text-display-min);
+  letter-spacing: var(--track-display);
+  text-transform: uppercase;
+}
+
+.screen--view {
+  gap: var(--space-3);
+  text-align: center;
+}
+
+.view__eyebrow {
+  margin: 0;
+  color: var(--fg-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+}
+
+.view__role {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  letter-spacing: var(--track-display);
+  text-transform: uppercase;
+  font-size: var(--text-xl);
+  line-height: 0.9;
+  color: var(--fg);
+  text-wrap: balance;
+}
+
+.view__line {
+  margin: 0 auto;
+  max-width: 28rem;
+  font-size: var(--text-md);
+  line-height: 1.4;
+}
+
+.view__chips {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.view__chip {
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--fg-2);
+  color: var(--fg-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+}
+
+.view__chip[data-spent] {
+  border-style: dashed;
+  color: var(--fg-muted);
+}
+
+/* The situation line on the narrator's card: who the Family chose, that the
+   vials are gone. Weight, not colour, sets it off from the prompt. */
+.card__situation {
+  margin: var(--space-2) 0 0;
+  font-size: var(--text-md);
+  font-weight: 600;
+  line-height: 1.4;
+}
+
+/* The viewer's own chair: a Ledger hairline and the word, no third colour. */
+.seat[data-self] {
+  border-color: var(--fg);
+}
+
+.seat__you {
+  font-family: var(--font-display);
+  font-size: clamp(0.5rem, calc(var(--seat) * 0.14), 0.75rem);
+  letter-spacing: var(--track-label);
+  color: var(--fg-2);
+}
+
+/* Set to die tonight. Vendetta is the one colour that means lethal, and on
+   the Santera's table nothing else is red. */
+.seat[data-doomed] {
+  border-color: var(--lethal);
+}
+
+.seat__doom {
+  position: absolute;
+  top: -1px;
+  right: -1px;
+  display: grid;
+  place-content: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  background: var(--lethal);
+  color: var(--on-lethal);
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.btn[data-spent] {
+  border-style: dashed;
+}

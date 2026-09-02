@@ -50,6 +50,8 @@ export const renderOutcome = (
       return t.outcome.extraVote(nameOf(players, outcome.target))
     case 'growl':
       return t.outcome.growl()
+    case 'cardTaken':
+      return t.outcome.cardTaken(t.roles[outcome.role].name)
     // Everything else is either secret (the detective's look, a blocked
     // attack) or bookkeeping the narrator does not read aloud.
     default:
@@ -117,6 +119,8 @@ export const outcomeAccent = (outcome: Outcome): RoleId | 'town' => {
       return 'SENSE'
     case 'roleChanged':
       return outcome.to
+    case 'cardTaken':
+      return 'SWAP'
   }
 }
 

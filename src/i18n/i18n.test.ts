@@ -215,3 +215,20 @@ describe('role details', () => {
     }
   })
 })
+
+describe('the card taken from the centre', () => {
+  it('is read aloud by card, in both languages', () => {
+    let state = createGame(setup(['SWAP', 'KILLER', 'PLAIN', 'INSPECT']))
+    state = startNight(state)
+    state = recordAction(state, { kind: 'chooseRole', roleId: 'SWAP', newRole: 'GUARD' })
+    state = recordAction(state, { kind: 'skip', roleId: 'INSPECT' })
+    state = recordAction(state, { kind: 'skip', roleId: 'KILLER' })
+    state = endNight(state)
+    for (const locale of LOCALES) {
+      const report = morningReport(state, 1, locale).join(' ')
+      expect(report, locale).toContain(strings(locale).roles.GUARD.name)
+      // Which player took it is never said.
+      expect(report).not.toContain('P0')
+    }
+  })
+})

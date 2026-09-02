@@ -65,6 +65,12 @@ export interface GameState {
   log: Outcome[]
   /** The Infecto converts a victim once per game. */
   infectionUsed: boolean
+  /**
+   * The medic's two vials, one cure and one poison, each good once per game.
+   * Neither was tracked before, so the potions were effectively unlimited.
+   */
+  healUsed: boolean
+  poisonUsed: boolean
   /** Set when a dead Cazador still owes a revenge shot the narrator must pick. */
   awaitingHunterShot: PlayerId | null
 }
@@ -104,6 +110,8 @@ export type Outcome =
   | { type: 'sectSplit'; night: number; public: false }
   | { type: 'growl'; night: number; public: true }
   | { type: 'roleChanged'; night: number; target: PlayerId; to: RoleId; public: false }
+  /** The Chameleon took a card from the centre; the table learns which, not who. */
+  | { type: 'cardTaken'; night: number; role: RoleId; public: true }
 
 export type DeathCause =
   | 'killers'
@@ -113,4 +121,4 @@ export type DeathCause =
   | 'heartbreak'
   | 'revenge'
 
-export const STATE_VERSION = 1
+export const STATE_VERSION = 2

@@ -25,6 +25,15 @@ export const actsOnNight = (activity: Activity, night: number): boolean => {
   }
 }
 
+export interface ScheduleOptions {
+  /**
+   * The one-time conversion has been spent. The Godfather wakes with the
+   * Family regardless, so his separate step — "does he signal?" — has nothing
+   * left to ask and is dropped rather than prompting the narrator for nothing.
+   */
+  infectionUsed?: boolean
+}
+
 /**
  * The ordered list of roles the narrator is prompted for on a given night.
  *
@@ -33,10 +42,17 @@ export const actsOnNight = (activity: Activity, night: number): boolean => {
  * `rollsUsed` array — v1 kept that array in sync by hand and dropped entries
  * for players who were never actually dead.
  */
-export const scheduleFor = (players: readonly Player[], night: number): RoleId[] => {
+export const scheduleFor = (
+  players: readonly Player[],
+  night: number,
+  options: ScheduleOptions = {},
+): RoleId[] => {
   const livingRoles = new Set(players.filter((p) => p.alive).map((p) => p.roleId))
 
   return NIGHT_ROLES.filter(
-    (role) => livingRoles.has(role.id) && actsOnNight(role.activity, night),
+    (role) =>
+      livingRoles.has(role.id) &&
+      actsOnNight(role.activity, night) &&
+      !(role.id === 'CONVERT' && options.infectionUsed === true),
   ).map((role) => role.id)
 }

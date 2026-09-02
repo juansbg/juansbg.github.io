@@ -171,3 +171,34 @@ describe('the remembered roster', () => {
     expect(loadRoster()).toEqual(['Ana', 'Beto'])
   })
 })
+
+describe('older saves', () => {
+  it('migrates a version-1 game, giving the Santera both vials', () => {
+    // Version 1 did not track the vials; both unspent is the only reading.
+    const game = createGame(cast(['KILLER', 'PLAIN', 'MEDIC']))
+    const v1 = JSON.parse(JSON.stringify(game)) as Record<string, unknown>
+    delete v1['healUsed']
+    delete v1['poisonUsed']
+    localStorage.setItem(
+      'omerta:v1',
+      JSON.stringify({
+        version: 1, game: v1, locale: 'en', screen: 'night', revealIndex: 0,
+        past: [v1], timeline: [{ night: 0, kind: 'setup' }],
+      }),
+    )
+
+    const loaded = load()!
+    expect(loaded.session.current.healUsed).toBe(false)
+    expect(loaded.session.current.poisonUsed).toBe(false)
+    expect(loaded.session.past[0]!.healUsed).toBe(false)
+  })
+
+  it('drops anything older than that', () => {
+    const game = createGame(cast(['KILLER', 'PLAIN']))
+    localStorage.setItem(
+      'omerta:v1',
+      JSON.stringify({ version: 0, game, locale: 'en', screen: 'night', revealIndex: 0 }),
+    )
+    expect(load()).toBeNull()
+  })
+})

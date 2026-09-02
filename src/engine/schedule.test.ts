@@ -93,3 +93,17 @@ describe('scheduleFor', () => {
     expect(players[1]!.alive).toBe(true)
   })
 })
+
+describe('the Godfather’s step', () => {
+  const cast: RoleId[] = ['CONVERT', 'KILLER', 'PLAIN', 'INSPECT']
+
+  it('is prompted while the conversion is unspent', () => {
+    expect(scheduleFor(table(cast), 2)).toContain('CONVERT')
+  })
+
+  it('is dropped once the conversion is spent', () => {
+    // He still wakes with the Family; there is just nothing left to ask.
+    expect(scheduleFor(table(cast), 2, { infectionUsed: true })).not.toContain('CONVERT')
+    expect(scheduleFor(table(cast), 2, { infectionUsed: true })).toContain('KILLER')
+  })
+})

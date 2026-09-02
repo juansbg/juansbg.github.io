@@ -26,7 +26,7 @@ import { buzz, esc, on, swap } from './dom'
 import { clear, clearRoster, load, loadRoster, save, saveRoster, type AppState } from './store'
 import { editorMarkup, MIN_PLAYERS, namesMarkup, rosterMarkup } from './screens/setup'
 import { dealRoles, systemRandom, type Complexity } from '../engine/deal'
-import { dayMarkup, inspectionMarkup, nightMarkup, questionCardMarkup, questionsIntroMarkup } from './screens/night'
+import { dayMarkup, inspectionMarkup, nightMarkup, playerViewMarkup, questionCardMarkup, questionsIntroMarkup } from './screens/night'
 import { circleMarkup } from './screens/circle'
 import { dawnMarkup, dawnSlides } from './screens/dawn'
 import { historyMarkup, timelineMarkup } from './screens/timeline'
@@ -52,6 +52,11 @@ let rearranging = false
 let armedSeat: PlayerId | null = null
 /** The player whose card is being held up for the detective to read. */
 let inspecting: PlayerId | null = null
+/**
+ * The phone is turned to the player whose step it is. Local and never
+ * persisted: a reload comes back on the narrator's side of the screen.
+ */
+let showingPlayer = false
 let showingLog = false
 /** The dawn slideshow: which slide is up, or null when the report is a list. */
 let dawn: number | null = null
@@ -110,6 +115,8 @@ const mutate = (
   change: Parameters<typeof advance>[1],
   entry?: TimelineEntry,
 ): void => {
+  // Any move belongs to the narrator, so the phone comes back to them.
+  showingPlayer = false
   setState({ session: advance(state.session, change, entry) })
 }
 
@@ -175,7 +182,9 @@ function render(): void {
       ? inspectionMarkup(subject, state.locale)
       : isNightComplete(game)
         ? nightDoneMarkup()
-        : nightMarkup(game, state.locale, picked, state.layout)
+        : showingPlayer
+          ? playerViewMarkup(game, state.locale, picked)
+          : nightMarkup(game, state.locale, picked, state.layout)
   } else if (state.screen === 'day') {
     body =
       game.awaitingHunterShot !== null
@@ -286,6 +295,9 @@ function render(): void {
     // A slide may be held up to the table; the day screen behind it shows
     // every role, so nothing may lead out of the slideshow but its own Done.
     if (dawn !== null) return ''
+    // A player is looking at the screen: the timeline would show them every
+    // move so far, and the menu can end the game.
+    if (state.screen === 'night' && showingPlayer && !isNightComplete(game)) return ''
     const inGame = state.screen !== 'setup'
     const timeline = inGame
       ? `<button class="bar__btn" type="button" data-log>${esc(t.ui.timeline.open)}</button>`
@@ -389,6 +401,7 @@ function bind(): void {
     editing = null
     singleTarget = null
     inspecting = null
+    showingPlayer = false
     showingLog = false
     menuOpen = false
     picked = []
@@ -682,7 +695,29 @@ function bind(): void {
       // Choose the target first; the vial buttons unlock once one is set.
       picked = picked.includes(id) ? [] : [id]
       setState({}, false)
+      return
     }
+
+    if (kind === 'split') {
+      // Build the first faction one tap at a time; Confirm records the split.
+      picked = picked.includes(id) ? picked.filter((p) => p !== id) : [...picked, id]
+      setState({}, false)
+    }
+  })
+
+  // The Cultist's split: whoever was tapped is the first faction, everyone
+  // else living is the second. Neither may be empty.
+  on(root, '[data-split-confirm]', 'click', () => {
+    const roleId = currentStep(game)
+    if (roleId !== 'SPLIT') return
+    const living = game.players.filter((p) => p.alive).map((p) => p.id)
+    const sectOne = living.filter((id) => picked.includes(id))
+    const sectTwo = living.filter((id) => !picked.includes(id))
+    if (sectOne.length === 0 || sectTwo.length === 0) return
+    picked = []
+    buzz()
+    const action: NightAction = { kind: 'split', roleId: 'SPLIT', sectOne, sectTwo }
+    mutate((s) => recordAction(s, action), { night: game.night, kind: 'action', roleId, action })
   })
 
   on(root, '[data-potion]', 'click', (_e, el) => {
@@ -715,6 +750,31 @@ function bind(): void {
     setState({})
   })
 
+  // Turn the phone to the player whose step it is, and back. What they see
+  // is decided by perspectiveFor() in screens/night.ts, never here.
+  on(root, '[data-show-player]', 'click', () => {
+    showingPlayer = true
+    buzz()
+    setState({})
+  })
+
+  on(root, '[data-view-done]', 'click', () => {
+    showingPlayer = false
+    setState({})
+  })
+
+  // The Associate picks a side on the first night; the pick is a role change
+  // the resolver applies at dawn. Anything but a real role id is ignored.
+  on(root, '[data-choose-role]', 'click', (_e, el) => {
+    const roleId = currentStep(game)
+    const newRole = el.dataset.chooseRole ?? ''
+    if (roleId === null || !isRoleId(newRole)) return
+    picked = []
+    buzz()
+    const action: NightAction = { kind: 'chooseRole', roleId, newRole }
+    mutate((s) => recordAction(s, action), { night: game.night, kind: 'action', roleId, action })
+  })
+
   on(root, '[data-inspect-back]', 'click', () => {
     // Undo the detective's pick as well as closing the card.
     inspecting = null
@@ -736,6 +796,7 @@ function bind(): void {
     const index = Number(el.dataset.revert)
     showingLog = false
     inspecting = null
+    showingPlayer = false
     picked = []
     const session = revertTo(state.session, index)
     buzz()
@@ -753,6 +814,7 @@ function bind(): void {
   on(root, '[data-undo]', 'click', () => {
     if (!canUndo(state.session)) return
     picked = []
+    showingPlayer = false
     buzz()
     setState({ session: undo(state.session) })
   })

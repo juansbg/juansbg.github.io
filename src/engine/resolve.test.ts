@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { resolveNight } from './resolve'
+import { doomedTonight, resolveNight } from './resolve'
 import type { GameState, NightAction, Outcome, Player } from './types'
 import { STATE_VERSION } from './types'
 import type { RoleId } from './roles'
@@ -35,6 +35,8 @@ const stateWith = (
   pending,
   log: [],
   infectionUsed: false,
+  healUsed: false,
+  poisonUsed: false,
   awaitingHunterShot: null,
   ...overrides,
 })
@@ -297,5 +299,147 @@ describe('purity', () => {
         if (typeof value === 'string') expect(allowed.has(value)).toBe(true)
       }
     }
+  })
+})
+
+describe("the Santera's vials work once each", () => {
+  // Nothing tracked the vials before, so she could cure or poison every night.
+  const hit: NightAction = { kind: 'target', roleId: 'KILLER', actor: 0, target: 1 }
+
+  it('spends the cure when it saves someone', () => {
+    const state = stateWith(
+      ['KILLER', 'PLAIN', 'MEDIC'],
+      [hit, { kind: 'potion', roleId: 'MEDIC', target: 1, potion: 'heal' }],
+    )
+    const { players, healUsed, poisonUsed } = resolveNight(state)
+    expect(players[1]!.alive).toBe(true)
+    expect(healUsed).toBe(true)
+    expect(poisonUsed).toBe(false)
+  })
+
+  it('does not honour a second cure', () => {
+    const state = stateWith(
+      ['KILLER', 'PLAIN', 'MEDIC'],
+      [hit, { kind: 'potion', roleId: 'MEDIC', target: 1, potion: 'heal' }],
+      { healUsed: true },
+    )
+    const { players, outcomes } = resolveNight(state)
+    expect(players[1]!.alive).toBe(false)
+    expect(outcomes.find((o) => o.type === 'attackBlocked')).toBeUndefined()
+  })
+
+  it('does not spend a cure poured on someone who was not dying', () => {
+    const state = stateWith(
+      ['KILLER', 'PLAIN', 'MEDIC'],
+      [{ kind: 'potion', roleId: 'MEDIC', target: 1, potion: 'heal' }],
+    )
+    expect(resolveNight(state).healUsed).toBe(false)
+  })
+
+  it('spends the poison when it kills', () => {
+    const state = stateWith(
+      ['KILLER', 'PLAIN', 'MEDIC', 'INSPECT'],
+      [{ kind: 'potion', roleId: 'MEDIC', target: 3, potion: 'kill' }],
+    )
+    const { players, poisonUsed } = resolveNight(state)
+    expect(players[3]!.alive).toBe(false)
+    expect(poisonUsed).toBe(true)
+  })
+
+  it('does not honour a second poison', () => {
+    const state = stateWith(
+      ['KILLER', 'PLAIN', 'MEDIC', 'INSPECT'],
+      [{ kind: 'potion', roleId: 'MEDIC', target: 3, potion: 'kill' }],
+      { poisonUsed: true },
+    )
+    expect(resolveNight(state).players[3]!.alive).toBe(true)
+  })
+})
+
+describe('who is set to die tonight', () => {
+  // What the narrator whispers to the Santera, read off the night so far.
+  it('lists the direct victims recorded so far', () => {
+    const state = stateWith(
+      ['KILLER', 'PLAIN', 'PLAIN', 'ROGUE', 'MEDIC'],
+      [
+        { kind: 'target', roleId: 'KILLER', actor: 0, target: 1 },
+        { kind: 'target', roleId: 'ROGUE', actor: 3, target: 2 },
+      ],
+    )
+    expect(doomedTonight(state).sort()).toEqual([1, 2])
+  })
+
+  it('leaves out a victim the bodyguard already shielded', () => {
+    const state = stateWith(
+      ['KILLER', 'PLAIN', 'GUARD', 'MEDIC'],
+      [
+        { kind: 'target', roleId: 'GUARD', actor: 2, target: 1 },
+        { kind: 'target', roleId: 'KILLER', actor: 0, target: 1 },
+      ],
+    )
+    expect(doomedTonight(state)).toEqual([])
+  })
+
+  it('is empty before the Family has chosen', () => {
+    expect(doomedTonight(stateWith(['KILLER', 'PLAIN', 'MEDIC'], []))).toEqual([])
+  })
+
+  it('does not count a lover who would die of heartbreak', () => {
+    // A cure cannot be poured on a consequence — only on the one attacked.
+    const base = stateWith(
+      ['KILLER', 'PLAIN', 'PLAIN', 'MEDIC'],
+      [{ kind: 'target', roleId: 'KILLER', actor: 0, target: 1 }],
+    )
+    const state: GameState = {
+      ...base,
+      players: base.players.map((p) =>
+        p.id === 1 ? { ...p, loverOf: 2 } : p.id === 2 ? { ...p, loverOf: 1 } : p,
+      ),
+    }
+    expect(doomedTonight(state)).toEqual([1])
+  })
+
+  it('changes nothing: the dry run is pure', () => {
+    const state = stateWith(
+      ['KILLER', 'PLAIN', 'MEDIC'],
+      [{ kind: 'target', roleId: 'KILLER', actor: 0, target: 1 }],
+    )
+    const before = JSON.stringify(state)
+    doomedTonight(state)
+    expect(JSON.stringify(state)).toBe(before)
+  })
+})
+
+describe('the Chameleon', () => {
+  const took = (newRole: RoleId) =>
+    resolveNight(
+      stateWith(
+        ['SWAP', 'KILLER', 'PLAIN', 'INSPECT'],
+        [{ kind: 'chooseRole', roleId: 'SWAP', newRole }],
+      ),
+    )
+
+  it('becomes the card he took', () => {
+    const { players, outcomes } = took('GUARD')
+    expect(players[0]!.roleId).toBe('GUARD')
+    expect(outcomes.find((o) => o.type === 'roleChanged')).toMatchObject({ target: 0, to: 'GUARD' })
+  })
+
+  it('tells the table which card left the centre, never who took it', () => {
+    const { outcomes } = took('GUARD')
+    const taken = outcomes.find((o) => o.type === 'cardTaken')
+    expect(taken).toMatchObject({ role: 'GUARD', public: true })
+    expect(taken).not.toHaveProperty('target')
+  })
+
+  it('gets the Veteran’s free life along with the card', () => {
+    expect(took('SURVIVE').players[0]!.wolfAttacksSurvivable).toBe(1)
+  })
+
+  it('does not announce the Associate’s side the same way', () => {
+    const { outcomes } = resolveNight(
+      stateWith(['PICK_SIDE', 'KILLER', 'PLAIN'], [{ kind: 'chooseRole', roleId: 'PICK_SIDE', newRole: 'KILLER' }]),
+    )
+    expect(outcomes.find((o) => o.type === 'cardTaken')).toBeUndefined()
   })
 })

@@ -389,3 +389,60 @@ describe('rearranging the table', () => {
     expect(swapSeats(state, 0, 9)).toBe(state)
   })
 })
+
+describe('the Godfather can decline', () => {
+  const played = (decision: NightAction) => {
+    let state = startNight(createGame(cast(['CONVERT', 'PLAIN', 'INSPECT', 'GUARD'])))
+    state = recordAction(state, { kind: 'skip', roleId: 'GUARD' })
+    state = recordAction(state, { kind: 'skip', roleId: 'INSPECT' })
+    state = recordAction(state, { kind: 'target', roleId: 'KILLER', actor: 0, target: 1 })
+    state = recordAction(state, decision)
+    return endNight(state)
+  }
+
+  it('lets the hit go ahead on a skip', () => {
+    // The step used to offer only Confirm, so the narrator had no way to
+    // record this — and every prompted night converted the victim.
+    const state = played({ kind: 'skip', roleId: 'CONVERT' })
+    expect(state.players[1]!.alive).toBe(false)
+    expect(state.infectionUsed).toBe(false)
+  })
+
+  it('is not prompted again once the conversion is spent', () => {
+    let state = played({ kind: 'confirm', roleId: 'CONVERT' })
+    expect(state.infectionUsed).toBe(true)
+    state = startNight(state)
+    expect(state.schedule).not.toContain('CONVERT')
+    expect(state.schedule).toContain('KILLER')
+  })
+})
+
+describe('the Associate picks a side', () => {
+  const firstNight = (newRole: RoleId) => {
+    let state = startNight(createGame(cast(['PICK_SIDE', 'KILLER', 'PLAIN', 'INSPECT'])))
+    expect(state.schedule[0]).toBe('PICK_SIDE')
+    state = recordAction(state, { kind: 'chooseRole', roleId: 'PICK_SIDE', newRole })
+    state = recordAction(state, { kind: 'skip', roleId: 'INSPECT' })
+    state = recordAction(state, { kind: 'skip', roleId: 'KILLER' })
+    return endNight(state)
+  }
+
+  it('joins the Family and wakes with them from then on', () => {
+    // A bare confirm was recorded before, which the resolver ignores — so the
+    // Associate never actually chose anything.
+    const state = firstNight('KILLER')
+    expect(state.players[0]!.roleId).toBe('KILLER')
+    expect(winner(state)).toBe('crew')
+  })
+
+  it('or stays with the town as a plain citizen', () => {
+    const state = firstNight('PLAIN')
+    expect(state.players[0]!.roleId).toBe('PLAIN')
+    expect(winner(state)).toBeNull()
+  })
+
+  it('keeps the choice out of the morning report', () => {
+    const state = firstNight('KILLER')
+    expect(state.log.filter((o) => o.public)).toEqual([])
+  })
+})
