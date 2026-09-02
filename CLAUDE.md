@@ -14,12 +14,22 @@ Deployed as a GitHub Pages site (`juansbg.github.io`).
 
 The project is being rebuilt. The roadmap is six sprints; **Sprints 0-3 are done.**
 
-`src/engine/` is complete and at full narrator-script parity. `src/i18n/` holds the Spanish and English string tables and the outcome renderer. 176 tests, no DOM, no strings in the engine. **Sprint 5 (PWA: service worker, manifest, offline, cutover from `/beta/` to `/`) remains.** The UI lives in `src/ui/`: one token set in `tokens.css`, screens in `src/ui/screens/`, autosave in `store.ts`.
+`src/engine/` is complete and at full narrator-script parity: every role that takes a night step is wired end to end, including the ones that used to be prompted and then ignored (see "Every night step is real" below). `src/i18n/` holds the Spanish and English string tables and the outcome renderer. 252 tests, no DOM, no strings in the engine. **Sprint 5 (PWA: service worker, manifest, offline, cutover from `/beta/` to `/`) remains.** The UI lives in `src/ui/`: one token set in `tokens.css`, screens in `src/ui/screens/`, autosave in `store.ts`.
+
+`STATE_VERSION` is 2. Version 1 saves did not track the Santera's vials; `store.ts` migrates them on load (`healUsed`/`poisonUsed` default to false) rather than dropping the game. Bump the version again only with a migration beside it.
 
 ### How the narrator's flow works now
 
 - **Setup is names only.** `screens/setup.ts` starts with a single field: type a name, Enter, repeat. The player count is how many names were typed; there is no count picker. The list is remembered in `omerta:roster` across resets — reset forgets the game, not the people — and a separate "Clear the list" asks before wiping it.
-- **Roles are dealt at random** (`engine/deal.ts`) by default; manual assignment stays as an override. The dealer only ever hands out roles the engine fully resolves — `NOT_AUTO_DEALT` lists the exceptions and a test enforces it.
+- **Roles are dealt at random** (`engine/deal.ts`) by default; manual assignment stays as an override. The dealer only ever hands out roles the engine fully resolves — `NOT_AUTO_DEALT` lists the exceptions and a test enforces it. The list is now just `SPLIT` (the script gives the Cultist no win condition, so it is a pure manipulation card and a table must choose it) and `PICK_SIDE` (counts as crew for the deal but may stay with the town, so it would unbalance whichever side it does not pick). The Chameleon (`SWAP`) is dealt at complex tables since its card picker exists.
+- **Every night step is real.** Each of these was once a prompt whose answer went nowhere; the fix for each lives in `screens/night.ts` and `engine/resolve.ts`:
+  - *The Godfather* (`CONVERT`) is asked after the Family has chosen, with the victim named and two buttons — take them in, or let the hit go ahead (`data-night-confirm` / `data-skip`). It used to offer only Confirm, so every prompted night converted. Once the one conversion is spent (`infectionUsed`) `scheduleFor` drops his step; he still wakes with the Family, there is just nothing to ask.
+  - *The Associate* (`PICK_SIDE`) records a `chooseRole` to `KILLER` or `PLAIN` on night one (`data-choose-role`). A bare `confirm` was recorded before, which the resolver ignores.
+  - *The Santera* (`MEDIC`) has one cure and one poison per game (`healUsed`, `poisonUsed` on `GameState`). The cure only unlocks on someone `doomedTonight()` says is about to die; the poison on anyone living. A cure poured on the living is not spent. When both are gone the step still appears with a note to wake her anyway, so the table learns nothing.
+  - *The Chameleon* (`SWAP`) picks from `spareCards()` in `engine/cards.ts`: every town card nobody at the table holds, minus first-night-only cards (already inert by his step) and the plain Citizen. Taking one is a `chooseRole`; the table hears which card left the centre via a public `cardTaken` outcome and never who took it. The Veteran's free life travels with its card.
+  - *The Cultist* (`SPLIT`) taps seats into the first faction, the rest form the second, and `data-split-confirm` stays locked until both have someone. The split is recorded on `Player.sect` and shown only to the Cultist; no win condition is implemented, by design.
+  - *The Renegade* (`ROGUE`) may target his own side — only `KILLER` is kept off the crew in `legalTargets`.
+- **The phone can be turned to the player mid-step.** Show in the night header renders `playerViewMarkup` (`screens/night.ts`): the same table with every role label, team colour, question flag and narrator control stripped, then only what that role already knows, decided in one place, `perspectiveFor()`. The Family sees the whole Family in one red with no "you" mark, so nothing singles out which red seat is the Godfather or the Renegade. The Godfather also sees the Family's pick. The Santera sees who is set to die and which vials she has left. The Chameleon sees the centre; the Cultist sees both factions as they form. Everyone else sees a plain table and their own seat. `circleMarkup` takes a `perspective` option for this and ignores every narrator-facing option when it is set. The leak tests in `night.test.ts` ("the player's view") check both languages — **do not weaken them**, and route any new per-role knowledge through `perspectiveFor`, never through the markup directly.
 - **The seating circle is the target picker** (`screens/circle.ts`). Seats render as `data-seat` / `data-target` / `data-lynch` depending on the question, so the existing handlers pick them up. Ineligible players are dimmed and disabled, never hidden; the crew glows red for the narrator (v2's idea). A list layout is a toggle, remembered.
 - **Outcomes are coloured cards** (`screens/timeline.ts`, `outcomeCardMarkup`): the morning report, the log, and the end-of-game history all colour each entry by the role that caused it via `i18n/outcomeAccent`. This is v1's `displayCards` rebuilt on structured outcomes. The page ground tints cold at night and warm by day (`html[data-phase]`).
 - **The dawn slideshow** (`screens/dawn.ts`) is the morning report as a performance: ▶ on the day screen shows each public outcome full screen, a death on a Vendetta ground with Midnight ink and a line from a per-cause bank in the string tables (`ui.dawn.death`, picked by night and seat so it never changes under the narrator). It is built from the same public outcomes as the report, hides the bar while open, and closes only through its own Done.
@@ -28,7 +38,7 @@ The project is being rebuilt. The roadmap is six sprints; **Sprints 0-3 are done
 ### Layout and chrome rules
 
 - **The page never scrolls.** `html/body/#app` are a fixed `100dvh` with overflow hidden; `#app` is a two-row grid of `.stage` over a persistent `.bar`. Only designated regions scroll: the morning report, the timeline sheet, the end-of-game history, the names list. The seating circle is sized from `min(width, height)` of its container so it shrinks on short phones. A change that makes `document.documentElement.scrollHeight > innerHeight` on any screen at 375×667 is a regression.
-- **One bottom bar, one menu.** Timeline is the only first-class button; everything else (language, circle/list, show a role again, end the game, restart) lives behind ⋯. Per-screen primary actions stay in the stage. **The bar is not rendered during a reveal** — a player holding the phone must not be able to reach the timeline or the menu. Do not add loose buttons to the bottom of screens.
+- **One bottom bar, one menu.** Timeline is the only first-class button; everything else (language, circle/list, show a role again, end the game, restart) lives behind ⋯. Per-screen primary actions stay in the stage. **The bar is not rendered while a player can see the screen** — during a reveal, while the phone is turned to a player (`showingPlayer`), or while a dawn slide is up — because the timeline would show them every move and the menu can end the game. Each of those is an early return in `chromeMarkup()`; they are independent and order does not matter. Do not add loose buttons to the bottom of screens.
 - **Seats can be rearranged only during setup** (`swapSeats` / `moveSeat` in `engine/state.ts`). Ids are seating positions and are referenced from the log and lovers once play starts, so both refuse after that.
 - Three actions use `window.confirm` (clear names, end the game, restart). Native dialogs flash white in a dark room; replacing them with an in-app confirm sheet is the top open polish item.
 
@@ -45,8 +55,9 @@ The project is being rebuilt. The roadmap is six sprints; **Sprints 0-3 are done
 
 `docs/design-language.html` is the same spec rendered as a page, with live components.
 
-### Two traps worth knowing
+### Traps worth knowing
 
+- `doomedTonight()` (`engine/resolve.ts`) is a dry run: it calls `resolveNight` on the pending actions so far and reads the direct victims off the outcomes. That is only safe because `resolveNight` is pure. If the resolver ever gains a side effect, the Santera's step will trigger it twice.
 - `dom.ts`'s `swap()` must always run its callback. `document.startViewTransition` rejects when the tab is hidden or a transition is in flight; an unhandled rejection there means the screen silently stops updating. It now falls back to a plain paint.
 - Node 26 ships an experimental `localStorage` global that is `undefined` without `--localstorage-file` and shadows jsdom's. Tests that touch storage install a small in-memory shim (`store.test.ts`) rather than relying on either.
 
@@ -57,6 +68,13 @@ The project is being rebuilt. The roadmap is six sprints; **Sprints 0-3 are done
 | v2 | `legacy/v2/` | **Frozen.** An abandoned 2022 jQuery rewrite that never got a night loop. Kept only for its CSS circle technique. |
 
 The full roadmap, including what each sprint delivers and why, lives at `~/.claude/plans/rustling-cooking-church.md`.
+
+## Working in this repo
+
+- **Two Claude sessions work here at once, on branches.** Feature work goes on a branch (`git worktree add` a second checkout rather than switching the branch under the other session) and is merged into `main` when both sides say they are done. Before committing, run `git worktree list` and diff the staged content *immediately* before `git commit`; a path-scoped `git add` once swept in a peer's uncommitted stylesheet rewrite. Never `git add -A`.
+- **Pushing `main` deploys the live site** (`.github/workflows/deploy.yml` triggers on `main` only). Pushing any other branch is safe.
+- `.claude/` (launch configs, worktrees) is local and untracked; do not commit it.
+- A worktree has no `node_modules` of its own: Vite resolves packages to the main checkout, so the `@fontsource` files 403 in dev there. The production build is unaffected.
 
 ## Commands
 
@@ -78,7 +96,7 @@ src/
   ui/       renders from engine state; owns all strings and animation
     tokens.css     the ONE palette — never invent a colour outside it
     store.ts       autosave to localStorage
-    screens/       setup, reveal, night, day
+    screens/       setup, reveal, night (incl. the player view), circle, timeline, dawn
 ```
 
 ### The role reveal
@@ -125,7 +143,7 @@ These are Sprint 1 work, and the reason full parity is a goal:
 
 - **Night parity** — Pirómano acts only on odd nights, Lobo albino only on even nights, Actor only the first three. v1 prompts all of them every night.
 - **Roles that are selectable but do nothing** — Infecto converting its victim into a wolf, Cupido pairing lovers, Domador de Osos' growl, Cazador's revenge shot, Ángel, Niña Pequeña.
-- **Abominable Sectario** — in the script, in neither old tree. `SEC` in `src/engine/roles.ts`.
+- **Abominable Sectario** — in the script, in neither old tree. `SPLIT` in `src/engine/roles.ts`; the split itself is recorded and shown to the Cultist, and nothing beyond what the script says is invented.
 
 ## Product goals and the decisions already made
 
