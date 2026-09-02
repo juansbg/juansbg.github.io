@@ -6,10 +6,19 @@
   box-sizing: border-box;
 }
 
+/* One viewport, never a page scroll. The narrator reads this in the dark,
+   one-handed: a screen that scrolls loses the button they are reaching for.
+   Only designated regions (the report, the log, the history, a long name
+   list) scroll, and they scroll inside their own box. */
 html,
 body {
   margin: 0;
-  min-height: 100dvh;
+  height: 100%;
+  overflow: hidden;
+}
+
+html {
+  height: 100dvh;
 }
 
 body {
@@ -23,27 +32,74 @@ body {
 }
 
 #app {
-  min-height: 100dvh;
-  padding: max(var(--space-4), env(safe-area-inset-top)) var(--space-4)
-    max(var(--space-4), env(safe-area-inset-bottom));
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  height: 100%;
+}
+
+/* The screen lives here; the bottom bar takes the row beneath. */
+.stage {
+  display: grid;
+  min-height: 0;
+  padding: max(var(--space-3), env(safe-area-inset-top)) var(--space-4) var(--space-3);
+  overflow: hidden;
 }
 
 /* ---------- Layout ---------- */
 
 .screen {
-  display: grid;
-  gap: var(--space-4);
-  align-content: start;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  width: 100%;
   max-width: 34rem;
+  min-height: 0;
   margin: 0 auto;
   animation: screen-in var(--dur-base) var(--ease-out) both;
 }
 
+/* Whatever carries .fill takes the height the rest of the screen leaves. */
+.fill {
+  flex: 1 1 0;
+  min-height: 0;
+}
+
 .screen--center {
-  align-content: center;
-  justify-items: center;
+  justify-content: center;
+  align-items: center;
+  gap: var(--space-4);
   text-align: center;
-  min-height: 80dvh;
+}
+
+/* Title row with the screen's tools on the right — undo, circle/list. */
+.screen__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: var(--touch);
+}
+
+/* A title sharing its row with tools must stay on one line in Spanish too. */
+.screen__head .title {
+  font-size: clamp(1.375rem, 6.5vw, 2.25rem);
+}
+
+.screen__tools {
+  display: flex;
+  flex: none;
+  gap: var(--space-1);
+}
+
+/* A section label: small caps, muted. One voice for "what happened",
+   "who does the town execute", "the whole game". */
+.label {
+  margin: 0;
+  color: var(--fg-muted);
+  font-size: var(--text-xs);
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 @keyframes screen-in {
@@ -77,8 +133,8 @@ body {
 
 .actions {
   display: grid;
-  gap: var(--space-3);
-  margin-top: var(--space-3);
+  flex: none;
+  gap: var(--space-2);
 }
 
 .actions--row {
@@ -136,15 +192,18 @@ body {
 }
 
 .icon-btn {
-  min-width: var(--touch);
-  min-height: var(--touch);
-  padding: 0 var(--space-3);
+  display: grid;
+  place-content: center;
+  width: var(--touch);
+  height: var(--touch);
+  padding: 0;
   border: 0;
-  border-radius: var(--radius-pill);
+  border-radius: 50%;
   background: var(--surface);
   color: var(--fg-muted);
   font: inherit;
-  font-size: var(--text-sm);
+  font-size: 1.25rem;
+  line-height: 1;
   cursor: pointer;
   transition: transform var(--dur-instant) var(--ease-out);
 }
@@ -186,17 +245,32 @@ body {
 /* The seating circle, laid out in pure CSS from --seats and --i.
    v1 computed inline transforms in JS from offsetWidth at creation time, so it
    never survived a rotation; this reflows for free. */
+/* The wrapper is a size container: it takes the height the screen leaves it
+   (.fill) and reports it to the circle as cqh, so the table shrinks on a
+   short phone instead of pushing the buttons below it off the screen. */
+.table {
+  display: grid;
+  place-items: center;
+  container-type: size;
+  flex: 1 1 0;
+  min-height: 6rem;
+}
+
 .circle {
-  /* The circle is 2·radius plus one seat diameter (5.5rem) wide, and must fit
-     inside the viewport minus #app's 1rem padding on each side. Solving that
-     for radius gives 50vw - 3.75rem; the extra margin keeps a seat off the
-     edge on the narrowest phones. */
-  --radius: min(calc(50vw - 3.9rem), 9.5rem);
+  /* The diameter is the smaller of the room's width and height, capped; the
+     floor keeps a degenerate layout from inverting the radius. */
+  --avail: max(min(100cqw, 100cqh, 24.5rem), 9rem);
+  /* Seats scale with the table, and shrink further when there are so many
+     that neighbours would overlap: chord ≈ 2r·sin(π/n). */
+  --seat: clamp(
+    2.75rem,
+    min(calc(var(--avail) * 0.22), calc(var(--avail) * 0.8 * sin(pi / var(--seats, 8)))),
+    5.25rem
+  );
+  --radius: calc((var(--avail) - var(--seat)) / 2);
   position: relative;
-  width: calc(var(--radius) * 2 + 5.5rem);
-  height: calc(var(--radius) * 2 + 5.5rem);
-  max-width: 100%;
-  margin: var(--space-4) auto;
+  width: var(--avail);
+  height: var(--avail);
 }
 
 .seat {
@@ -206,9 +280,9 @@ body {
   display: grid;
   place-content: center;
   gap: 2px;
-  width: 5.25rem;
-  height: 5.25rem;
-  margin: -2.625rem;
+  width: var(--seat);
+  height: var(--seat);
+  margin: calc(var(--seat) / -2);
   padding: var(--space-1);
   border: 2px solid var(--role, var(--fg-faint));
   border-radius: 50%;
@@ -256,20 +330,20 @@ body {
 .seat:nth-child(20) { --i: 19; }
 
 .seat__name {
-  font-size: var(--text-xs);
+  font-size: clamp(0.5625rem, calc(var(--seat) * 0.16), 0.875rem);
   font-weight: 700;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 4.5rem;
+  max-width: calc(var(--seat) - 0.75rem);
   white-space: nowrap;
 }
 
 .seat__role {
-  font-size: 0.625rem;
+  font-size: clamp(0.4375rem, calc(var(--seat) * 0.12), 0.625rem);
   color: var(--fg-muted);
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: 4.5rem;
+  max-width: calc(var(--seat) - 0.75rem);
   white-space: nowrap;
 }
 
@@ -292,11 +366,36 @@ body {
 .sheet__panel {
   display: grid;
   gap: var(--space-4);
-  padding: var(--space-5) var(--space-4)
+  max-height: calc(100dvh - max(var(--space-6), env(safe-area-inset-top)));
+  padding: var(--space-3) var(--space-4)
     max(var(--space-5), env(safe-area-inset-bottom));
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
   background: var(--surface);
+  box-shadow: var(--shadow-deep);
+  overflow-y: auto;
   animation: sheet-up var(--dur-base) var(--ease-out) both;
+}
+
+.sheet__head {
+  display: grid;
+  gap: var(--space-3);
+  justify-items: center;
+}
+
+/* The grab handle every phone sheet has; here it only says "this dismisses". */
+.sheet__handle {
+  width: 2.5rem;
+  height: 0.3rem;
+  border-radius: var(--radius-pill);
+  background: var(--fg-faint);
+}
+
+.sheet__title {
+  margin: 0;
+  justify-self: start;
+  color: var(--fg-muted);
+  font-size: var(--text-sm);
+  font-weight: 600;
 }
 
 @keyframes fade-in {
@@ -344,12 +443,6 @@ body {
 
 /* ---------- Night ---------- */
 
-.night__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-}
-
 .night__counter {
   margin: 0;
   color: var(--fg-muted);
@@ -358,7 +451,8 @@ body {
 }
 
 .card {
-  padding: var(--space-5);
+  flex: none;
+  padding: var(--space-4) var(--space-5);
   border-radius: var(--radius-lg);
   border-left: 4px solid var(--role, var(--accent));
   background: var(--surface);
@@ -428,6 +522,14 @@ body {
   gap: var(--space-2);
 }
 
+/* A list of names instead of the circle: takes the same room, scrolls. */
+.table--list {
+  display: block;
+  container-type: normal;
+  min-height: 0;
+  overflow-y: auto;
+}
+
 /* ---------- Day ---------- */
 
 .report {
@@ -438,13 +540,13 @@ body {
   list-style: none;
 }
 
-.report__line {
-  padding: var(--space-3) var(--space-4);
-  border-radius: var(--radius-md);
-  background: var(--surface);
-  font-size: var(--text-sm);
-  animation: line-in var(--dur-base) var(--ease-out) both;
-  animation-delay: calc(var(--i) * 60ms);
+/* The morning report scrolls in its own box past a few cards, so a busy
+   night never squeezes the circle below it. */
+.report--scroll {
+  flex: 0 1 auto;
+  min-height: 0;
+  max-height: 34dvh;
+  overflow-y: auto;
 }
 
 @keyframes line-in {
@@ -464,12 +566,14 @@ body {
 /* ---------- Reveal ---------- */
 
 .reveal {
-  display: grid;
+  display: flex;
+  flex-direction: column;
   gap: var(--space-5);
-  place-content: center;
-  justify-items: center;
-  min-height: 82dvh;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
   max-width: 30rem;
+  min-height: 0;
   margin: 0 auto;
   text-align: center;
 }
@@ -567,14 +671,107 @@ body {
   color: var(--accent-dim);
 }
 
-/* ---------- Chrome ---------- */
+/* ---------- The bottom bar ---------- */
 
-.chrome {
+/* One persistent bar: the timeline, and a single ⋯ for everything else. The
+   loose buttons it replaces used to pile up under each screen and push the
+   page into scrolling. */
+.bar {
   display: flex;
+  align-items: center;
+  justify-content: space-between;
   gap: var(--space-2);
-  justify-content: center;
-  margin-top: var(--space-6);
-  padding-bottom: env(safe-area-inset-bottom);
+  /* Inline padding grows past 34rem so the bar's ends line up with the
+     screen column on a tablet or desktop instead of the viewport's edges. */
+  padding: var(--space-2) max(var(--space-4), calc((100% - 34rem) / 2))
+    max(var(--space-2), env(safe-area-inset-bottom));
+  border-top: 1px solid color-mix(in oklab, var(--fg-faint) 45%, transparent);
+  background: var(--surface);
+}
+
+.bar__btn {
+  min-height: var(--touch);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--fg-faint);
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--fg-muted);
+  font: inherit;
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition:
+    transform var(--dur-instant) var(--ease-out),
+    color var(--dur-fast) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out);
+}
+
+.bar__btn:active {
+  transform: scale(0.96);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.bar__menu {
+  display: grid;
+  place-content: center;
+  width: var(--touch);
+  height: var(--touch);
+  padding: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--surface-raised);
+  color: var(--fg);
+  font: inherit;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform var(--dur-instant) var(--ease-out);
+}
+
+.bar__menu:active {
+  transform: scale(0.92);
+}
+
+/* ---------- The overflow menu ---------- */
+
+.menu {
+  display: grid;
+  gap: var(--space-1);
+}
+
+.menu__item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: var(--touch);
+  padding: var(--space-2) var(--space-4);
+  border: 0;
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--fg);
+  font: inherit;
+  font-size: var(--text-md);
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+.menu__item:active {
+  background: var(--surface-raised);
+}
+
+.menu__value {
+  flex: none;
+  color: var(--fg-muted);
+  font-size: var(--text-sm);
+  font-weight: 500;
+}
+
+.menu__item--danger {
+  color: var(--danger);
 }
 
 /* ---------- Motion ---------- */
@@ -616,11 +813,6 @@ body {
   cursor: default;
 }
 
-.night__hint {
-  margin: 0;
-  color: var(--fg-muted);
-  font-size: var(--text-sm);
-}
 
 /* ---------- Reveal: held card ---------- */
 
@@ -644,7 +836,7 @@ body {
   animation: reveal-in var(--dur-fast) var(--ease-out) both;
 }
 
-body.is-revealing .chrome {
+body.is-revealing .bar {
   display: none;
 }
 
@@ -653,21 +845,18 @@ body.is-revealing .chrome {
 /* The card sits above and the button below, in the thumb zone, so the hand
    holding the phone is never covering the role it is revealing. */
 .reveal--confirm {
-  grid-template-rows: 1fr auto;
-  gap: var(--space-5);
-  align-content: stretch;
-  min-height: 84dvh;
+  justify-content: space-between;
+  gap: var(--space-4);
 }
 
 .reveal__stage {
   display: grid;
+  flex: 1 1 0;
   place-content: center;
   justify-items: center;
+  width: 100%;
+  min-height: 0;
   text-align: center;
-}
-
-.reveal__slot:empty {
-  display: none;
 }
 
 .reveal[data-showing] .reveal__idle {
@@ -676,15 +865,9 @@ body.is-revealing .chrome {
 
 .reveal__controls {
   display: grid;
+  flex: none;
   gap: var(--space-3);
-  align-self: end;
-}
-
-.reveal__card {
-  display: grid;
-  gap: var(--space-4);
-  justify-items: center;
-  animation: reveal-in var(--dur-fast) var(--ease-out) both;
+  width: 100%;
 }
 
 /* The bar fills over --hold-ms; a release before it completes reveals
@@ -740,15 +923,18 @@ body.is-revealing .chrome {
   position: relative;
 }
 
-body.is-revealing .chrome {
-  display: none;
-}
-
 .chips {
   display: flex;
   flex-wrap: wrap;
   gap: var(--space-2);
   justify-content: center;
+}
+
+.complexity {
+  display: grid;
+  flex: none;
+  gap: var(--space-2);
+  justify-items: center;
 }
 
 .chip {
@@ -778,26 +964,15 @@ body.is-revealing .chrome {
 
 /* A compact circle rides along with the night and day screens, so the narrator
    can always see the table and who has already gone. */
+/* The game-over table: a fixed share of the height, so the history below it
+   gets the rest and scrolls. */
+.table--compact {
+  flex: none;
+  height: clamp(9rem, 34dvh, 17rem);
+}
+
 .circle--compact {
-  --radius: min(calc(38vw - 2.4rem), 6.5rem);
-  margin: var(--space-2) auto;
-}
-
-.circle--compact .seat {
-  width: 3.6rem;
-  height: 3.6rem;
-  margin: -1.8rem;
-  border-width: 2px;
-}
-
-.circle--compact .seat__name {
-  font-size: 0.625rem;
-  max-width: 3.1rem;
-}
-
-.circle--compact .seat__role {
-  font-size: 0.5rem;
-  max-width: 3.1rem;
+  --avail: max(min(100cqw, 100cqh, 17rem), 8rem);
 }
 
 .seat[disabled] {
@@ -849,22 +1024,15 @@ body.is-revealing .chrome {
   color: var(--accent);
 }
 
-.night__hint {
-  margin: 0;
-  color: var(--fg-muted);
-  font-size: var(--text-sm);
-}
-
 /* ---------- The across-the-room card ---------- */
 
 /* Read from a metre away by one person, in the dark. Everything else on the
    screen gets out of its way. */
 .screen--inspect {
-  place-content: center;
-  justify-items: center;
-  text-align: center;
-  min-height: 84dvh;
+  justify-content: center;
+  align-items: center;
   gap: var(--space-5);
+  text-align: center;
 }
 
 .inspect__who {
@@ -928,18 +1096,20 @@ body.is-revealing .chrome {
 
 /* ---------- Timeline ---------- */
 
+/* Head, scrolling log, close — the log is the only part that moves. */
 .sheet__panel--tall {
-  max-height: 82dvh;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  overflow: hidden;
 }
 
 .log {
   display: grid;
   gap: var(--space-2);
+  min-height: 0;
   margin: 0;
   padding: 0;
   list-style: none;
   overflow-y: auto;
-  max-height: 60dvh;
 }
 
 .log__row {
@@ -947,7 +1117,7 @@ body.is-revealing .chrome {
   align-items: center;
   gap: var(--space-3);
   justify-content: space-between;
-  padding: var(--space-3);
+  padding: var(--space-2) var(--space-3);
   border-radius: var(--radius-md);
   background: var(--surface-raised);
   font-size: var(--text-sm);
@@ -959,7 +1129,7 @@ body.is-revealing .chrome {
 
 .log__revert {
   flex: none;
-  min-height: 2.25rem;
+  min-height: var(--touch);
   padding: 0 var(--space-3);
   border: 1px solid var(--fg-faint);
   border-radius: var(--radius-pill);
@@ -1014,10 +1184,10 @@ body.is-revealing .chrome {
 }
 
 .btn--small {
-  min-height: 2.5rem;
+  min-height: var(--touch);
   padding: var(--space-2) var(--space-4);
   font-size: var(--text-sm);
-  justify-self: center;
+  align-self: center;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -1042,10 +1212,12 @@ body.is-revealing .chrome {
 .name-list {
   display: flex;
   flex-wrap: wrap;
+  align-content: start;
   gap: var(--space-2);
   margin: 0;
   padding: 0;
   list-style: none;
+  overflow-y: auto;
 }
 
 .name-chip {
@@ -1053,7 +1225,7 @@ body.is-revealing .chrome {
   align-items: center;
   gap: var(--space-1);
   min-height: var(--touch);
-  padding: 0 var(--space-2) 0 var(--space-4);
+  padding: 0 0 0 var(--space-4);
   border: 1px solid var(--surface-raised);
   border-radius: var(--radius-pill);
   background: var(--surface);
@@ -1063,13 +1235,14 @@ body.is-revealing .chrome {
   animation-delay: calc(var(--i) * 20ms);
 }
 
+/* The × fills the chip's full height so its target is the whole right end. */
 .name-chip__remove {
   display: grid;
   place-content: center;
-  width: 2rem;
-  height: 2rem;
+  align-self: stretch;
+  min-width: 2.75rem;
   border: 0;
-  border-radius: 50%;
+  border-radius: 0 var(--radius-pill) var(--radius-pill) 0;
   background: transparent;
   color: var(--fg-faint);
   font: inherit;
@@ -1101,6 +1274,10 @@ body.is-revealing .chrome {
   line-height: 1.35;
   animation: line-in var(--dur-base) var(--ease-out) both;
   animation-delay: calc(var(--i) * 70ms);
+}
+
+.report__line {
+  min-width: 0;
 }
 
 .report__card--quiet {
@@ -1198,10 +1375,6 @@ html[data-phase] body {
 
 /* ---------- Game over: the whole story ---------- */
 
-.screen--over {
-  justify-items: stretch;
-}
-
 .screen--over .title,
 .screen--over .winner {
   text-align: center;
@@ -1209,7 +1382,11 @@ html[data-phase] body {
 
 .history {
   display: grid;
-  gap: var(--space-5);
+  flex: 1 1 0;
+  align-content: start;
+  gap: var(--space-4);
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .history__title {

@@ -166,6 +166,15 @@ export const en: Strings = {
       finishNow: 'End the game',
       history: 'The whole game',
     },
+    menu: {
+      more: 'More',
+      language: 'Language',
+      layout: 'Pick people from',
+      circle: 'The circle',
+      list: 'A list',
+      restartConfirm: 'Start over? This forgets the current game. The names are kept.',
+      endGameConfirm: 'End the game now? You will see the summary and cannot resume play.',
+    },
     timeline: {
       title: 'Everything that happened',
       open: 'Timeline',

@@ -42,6 +42,18 @@ export const picksNeeded = (roleId: RoleId): number => {
 
 export type Layout = 'circle' | 'list'
 
+/**
+ * The circle/list switch, as an icon in the screen header. It sits beside the
+ * chooser it affects; the overflow menu carries the same switch with words.
+ */
+export const layoutToggleMarkup = (layout: Layout, locale: Locale): string => {
+  const t = strings(locale)
+  const label = layout === 'circle' ? t.ui.night.asList : t.ui.night.asCircle
+  return `<button class="icon-btn" type="button" data-layout aria-label="${esc(label)}" title="${esc(label)}">${
+    layout === 'circle' ? '☰' : '◯'
+  }</button>`
+}
+
 export const nightMarkup = (
   state: GameState,
   locale: Locale,
@@ -85,39 +97,40 @@ export const nightMarkup = (
   const needed = picksNeeded(roleId)
   const hint =
     needed > 0 && picked.length < needed
-      ? `<p class="night__hint">${esc(needed === 2 ? t.ui.night.pickTwo : t.ui.night.pickOne)}</p>`
+      ? `<p class="label">${esc(needed === 2 ? t.ui.night.pickTwo : t.ui.night.pickOne)}</p>`
       : ''
 
   // The circle is the default: tapping someone in their seat matches what the
   // narrator is looking at around the real table. Ineligible players are
   // dimmed and unclickable rather than hidden, so the table stays readable.
+  // A role that picks nobody still gets the table, read-only, so the screen
+  // keeps its shape and the narrator keeps their bearings.
   const chooser =
-    layout === 'circle'
-      ? circleMarkup(state.players, locale, {
-          pickAttr: 'target',
-          eligible,
-          selected: picked,
-          showRoles: true,
-          revealTeams: true,
-        })
-      : listMarkup(state.players, 'target', eligible, picked)
+    spec.kind === 'none'
+      ? circleMarkup(state.players, locale, { showRoles: true, revealTeams: true })
+      : layout === 'circle'
+        ? circleMarkup(state.players, locale, {
+            pickAttr: 'target',
+            eligible,
+            selected: picked,
+            showRoles: true,
+            revealTeams: true,
+          })
+        : listMarkup(state.players, 'target', eligible, picked)
 
-  const toggle = `
-    <button class="btn btn--ghost btn--small" type="button" data-layout>
-      ${esc(layout === 'circle' ? t.ui.night.asList : t.ui.night.asCircle)}
-    </button>
-  `
-
-  const targetList =
+  const action =
     spec.kind === 'none'
       ? `<button class="btn btn--primary" type="button" data-night-confirm>${esc(t.ui.common.confirm)}</button>`
-      : `${chooser}${toggle}`
+      : `${potion}<button class="btn btn--ghost" type="button" data-skip>${esc(t.ui.night.noOne)}</button>`
 
   return `
     <section class="screen screen--night" style="--role: var(--role-${roleId})">
-      <header class="night__head">
+      <header class="screen__head">
         <p class="night__counter">${esc(t.ui.night.stepCounter(state.stepIndex + 1, state.schedule.length))}</p>
-        <button class="icon-btn" type="button" data-undo aria-label="${esc(t.ui.common.undo)}">↶</button>
+        <div class="screen__tools">
+          ${layoutToggleMarkup(layout, locale)}
+          <button class="icon-btn" type="button" data-undo aria-label="${esc(t.ui.common.undo)}" title="${esc(t.ui.common.undo)}">↶</button>
+        </div>
       </header>
 
       <div class="card" data-role-card>
@@ -127,13 +140,9 @@ export const nightMarkup = (
         ${role.wakesAsGroup ? `<p class="card__aside">${esc(t.ui.night.wakeGroup)}</p>` : ''}
       </div>
 
-
-
       ${hint}
-      ${targetList}
-      ${potion}
-
-      <button class="btn btn--ghost" type="button" data-skip>${esc(t.ui.night.noOne)}</button>
+      ${chooser}
+      <div class="actions">${action}</div>
     </section>
   `
 }
@@ -165,14 +174,19 @@ export const dayMarkup = (
           .join(' · ')}</p>`
       : ''
 
+  // "Show a role again" and "End the game" live in the overflow menu: they are
+  // rare, and every button under the circle costs the circle height.
   return `
     <section class="screen screen--day">
-      <h1 class="title title--sm">${esc(t.phase.townWakes)}</h1>
+      <header class="screen__head">
+        <h1 class="title title--sm">${esc(t.phase.townWakes)}</h1>
+        <div class="screen__tools">${layoutToggleMarkup(layout, locale)}</div>
+      </header>
       ${questions}
-      <h2 class="subtitle subtitle--sm">${esc(t.ui.day.report)}</h2>
-      <ul class="report">${report}</ul>
+      <h2 class="label">${esc(t.ui.day.report)}</h2>
+      <ul class="report report--scroll">${report}</ul>
 
-      <p class="subtitle subtitle--sm">${esc(t.ui.day.whoDies)}</p>
+      <p class="label">${esc(t.ui.day.whoDies)}</p>
       ${
         layout === 'circle'
           ? circleMarkup(state.players, locale, {
@@ -180,15 +194,10 @@ export const dayMarkup = (
             })
           : listMarkup(state.players, 'lynch', living)
       }
-      <button class="btn btn--ghost btn--small" type="button" data-layout>
-        ${esc(layout === 'circle' ? t.ui.night.asList : t.ui.night.asCircle)}
-      </button>
 
-      <div class="actions actions--row">
-        <button class="btn btn--ghost" type="button" data-show-role>${esc(t.ui.reveal.showAgain)}</button>
+      <div class="actions">
         <button class="btn btn--primary" type="button" data-next-night>${esc(t.ui.day.nextNight)}</button>
       </div>
-      <button class="btn btn--ghost btn--small" type="button" data-finish>${esc(t.ui.over.finishNow)}</button>
     </section>
   `
 }

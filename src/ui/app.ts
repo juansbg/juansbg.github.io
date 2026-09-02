@@ -51,6 +51,8 @@ let armedSeat: PlayerId | null = null
 /** The player whose card is being held up for the detective to read. */
 let inspecting: PlayerId | null = null
 let showingLog = false
+/** The overflow sheet behind the ⋯ button. */
+let menuOpen = false
 let releaseHandler: (() => void) | null = null
 
 function boot(): AppState {
@@ -110,6 +112,7 @@ function render(): void {
   releaseHandler = null
 
   let body: string
+  let sheets = ''
 
   if (state.screen === 'setup') {
     body = game.players.length === 0
@@ -117,7 +120,7 @@ function render(): void {
       : rosterMarkup(game.players, state.locale, complexity, rearranging, armedSeat)
     if (editing !== null) {
       const player = game.players.find((p) => p.id === editing)
-      if (player) body += editorMarkup(player, state.locale)
+      if (player) sheets += editorMarkup(player, state.locale)
     }
   } else if (state.screen === 'reveal') {
     const order = revealOrder()
@@ -145,14 +148,19 @@ function render(): void {
       game.awaitingHunterShot !== null
         ? hunterMarkup()
         : dayMarkup(game, state.locale, state.layout)
-    if (picking) body += pickerMarkup()
+    if (picking) sheets += pickerMarkup()
   } else {
     body = overMarkup()
   }
 
-  if (showingLog) body += timelineMarkup(state.session, state.locale)
+  // Sheets are fixed overlays, so they are siblings of the stage rather than
+  // children of the screen: a screen mid-animation has a transform, which
+  // would make it the containing block and pin the sheet inside it.
+  let overlay = sheets
+  if (showingLog) overlay += timelineMarkup(state.session, state.locale)
+  if (menuOpen) overlay += menuMarkup()
 
-  root.innerHTML = `${body}${chromeMarkup()}`
+  root.innerHTML = `<main class="stage">${body}</main>${overlay}${chromeMarkup()}`
   bind()
 
   function revealDoneMarkup(): string {
@@ -185,7 +193,7 @@ function render(): void {
       <section class="screen screen--day" style="--role: var(--role-AVENGE)">
         <h1 class="title title--sm">${esc(t.roles.AVENGE.name)}</h1>
         <p class="subtitle subtitle--sm">${esc(shooter?.name ?? '')} — ${esc(t.roles.AVENGE.prompt)}</p>
-        <div class="targets">${targets}</div>
+        <div class="table table--list"><div class="targets">${targets}</div></div>
       </section>
     `
   }
@@ -198,9 +206,11 @@ function render(): void {
         <h1 class="title title--sm">${esc(t.ui.over.title)}</h1>
         ${line ? `<p class="winner">${esc(line)}</p>` : ''}
         ${circleMarkup(game.players, state.locale, { showRoles: true, revealTeams: true, compact: true })}
-        <h2 class="subtitle subtitle--sm">${esc(t.ui.over.history)}</h2>
+        <h2 class="label">${esc(t.ui.over.history)}</h2>
         ${historyMarkup(game, state.locale)}
-        <button class="btn btn--primary" type="button" data-restart>${esc(t.ui.over.playAgain)}</button>
+        <div class="actions">
+          <button class="btn btn--primary" type="button" data-restart>${esc(t.ui.over.playAgain)}</button>
+        </div>
       </section>
     `
   }
@@ -217,8 +227,11 @@ function render(): void {
 
     return `
       <div class="sheet" data-sheet>
-        <div class="sheet__panel" role="dialog" aria-modal="true">
-          <p class="subtitle subtitle--sm">${esc(t.ui.reveal.pickPlayer)}</p>
+        <div class="sheet__panel" role="dialog" aria-modal="true" aria-label="${esc(t.ui.reveal.pickPlayer)}">
+          <div class="sheet__head">
+            <span class="sheet__handle" aria-hidden="true"></span>
+            <p class="sheet__title">${esc(t.ui.reveal.pickPlayer)}</p>
+          </div>
           <div class="targets">${options}</div>
           <button class="btn btn--ghost" type="button" data-pick-cancel>${esc(t.ui.common.cancel)}</button>
         </div>
@@ -226,16 +239,57 @@ function render(): void {
     `
   }
 
+  /**
+   * The persistent bottom bar: the timeline, and a single ⋯ for everything
+   * else. It is absent while a player holds the phone — the reveal — because
+   * nothing may sit beside a held role, and because the timeline would show
+   * them every move of the game so far.
+   */
   function chromeMarkup(): string {
-    // Hidden during a reveal: nothing may sit beside a held role.
     if (document.body.classList.contains('is-revealing')) return ''
-    const other = state.locale === 'es' ? 'en' : 'es'
+    if (state.screen === 'reveal' && revealOrder()[state.revealIndex]) return ''
+    const inGame = state.screen !== 'setup'
+    const timeline = inGame
+      ? `<button class="bar__btn" type="button" data-log>${esc(t.ui.timeline.open)}</button>`
+      : '<span></span>'
     return `
-      <nav class="chrome">
-        <button class="icon-btn" type="button" data-lang>${esc(strings(other).languageName)}</button>
-        ${state.screen !== 'setup' ? `<button class="icon-btn" type="button" data-log>${esc(t.ui.timeline.open)}</button>` : ''}
-        ${state.screen !== 'setup' ? `<button class="icon-btn" type="button" data-reset aria-label="${esc(t.ui.common.restart)}">⟲</button>` : ''}
+      <nav class="bar">
+        ${timeline}
+        <button class="bar__menu" type="button" data-menu aria-haspopup="dialog"
+                aria-label="${esc(t.ui.menu.more)}" title="${esc(t.ui.menu.more)}">⋯</button>
       </nav>
+    `
+  }
+
+  /** The overflow sheet. Rows are per screen; destructive ones sit last. */
+  function menuMarkup(): string {
+    const other = state.locale === 'es' ? 'en' : 'es'
+    const inPlay = state.screen === 'night' || state.screen === 'day'
+    const restartable = state.screen !== 'setup' || game.players.length > 0
+    const row = (attr: string, label: string, value = '', danger = false): string => `
+      <button class="menu__item${danger ? ' menu__item--danger' : ''}" type="button" ${attr}>
+        <span class="menu__label">${esc(label)}</span>
+        ${value ? `<span class="menu__value">${esc(value)}</span>` : ''}
+      </button>
+    `
+    const items = [
+      row('data-lang', t.ui.menu.language, strings(other).languageName),
+      inPlay
+        ? row('data-layout', t.ui.menu.layout, state.layout === 'circle' ? t.ui.menu.circle : t.ui.menu.list)
+        : '',
+      state.screen === 'day' ? row('data-show-role', t.ui.reveal.showAgain) : '',
+      inPlay ? row('data-finish', t.ui.over.finishNow, '', true) : '',
+      restartable ? row('data-reset', t.ui.common.restart, '', true) : '',
+    ].join('')
+
+    return `
+      <div class="sheet" data-sheet>
+        <div class="sheet__panel" role="dialog" aria-modal="true" aria-label="${esc(t.ui.menu.more)}">
+          <div class="sheet__head"><span class="sheet__handle" aria-hidden="true"></span></div>
+          <div class="menu">${items}</div>
+          <button class="btn btn--ghost" type="button" data-menu-close>${esc(t.ui.common.close)}</button>
+        </div>
+      </div>
     `
   }
 }
@@ -256,10 +310,33 @@ function bind(): void {
   const game = state.session.current
 
   on(root, '[data-lang]', 'click', () => {
+    menuOpen = false
     setState({ locale: state.locale === 'es' ? 'en' : 'es' })
   })
 
+  on(root, '[data-menu]', 'click', () => {
+    menuOpen = true
+    setState({}, false)
+  })
+
+  on(root, '[data-menu-close]', 'click', () => {
+    menuOpen = false
+    setState({}, false)
+  })
+
+  // Tapping the dimmed backdrop closes whichever sheet is up. For the editor
+  // that is a cancel: nothing is saved until Save.
+  on(root, '[data-sheet]', 'click', (event, el) => {
+    if (event.target !== el) return
+    menuOpen = false
+    showingLog = false
+    picking = false
+    editing = null
+    setState({}, false)
+  })
+
   on(root, '[data-reset]', 'click', () => {
+    if (!window.confirm(strings(state.locale).ui.menu.restartConfirm)) return
     // Forget the game, keep the people: the names come back on the next screen.
     clear()
     names = loadRoster()
@@ -267,6 +344,7 @@ function bind(): void {
     singleTarget = null
     inspecting = null
     showingLog = false
+    menuOpen = false
     picked = []
     state = boot()
     setState({ session: newSession(createGame([])), screen: 'setup', revealIndex: 0 })
@@ -374,6 +452,7 @@ function bind(): void {
   })
 
   on(root, '[data-layout]', 'click', () => {
+    menuOpen = false
     setState({ layout: state.layout === 'circle' ? 'list' : 'circle' })
   })
 
@@ -608,6 +687,7 @@ function bind(): void {
 
   // ---- Revisit a role ----
   on(root, '[data-show-role]', 'click', () => {
+    menuOpen = false
     picking = true
     setState({}, false)
   })
@@ -635,6 +715,8 @@ function bind(): void {
 
   // End early and see the whole game — v1's flag button.
   on(root, '[data-finish]', 'click', () => {
+    if (!window.confirm(strings(state.locale).ui.menu.endGameConfirm)) return
+    menuOpen = false
     buzz()
     setState({ screen: 'over' })
   })

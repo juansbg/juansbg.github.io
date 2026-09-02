@@ -143,6 +143,18 @@ export interface Strings {
       finishNow: string
       history: string
     }
+    /** The overflow sheet behind the ⋯ button in the bottom bar. */
+    menu: {
+      /** Accessible name of the ⋯ button. */
+      more: string
+      language: string
+      /** Label of the circle/list row; the value is `circle` or `list`. */
+      layout: string
+      circle: string
+      list: string
+      restartConfirm: string
+      endGameConfirm: string
+    }
     timeline: {
       title: string
       open: string

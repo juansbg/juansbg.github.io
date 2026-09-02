@@ -79,7 +79,10 @@ export const circleMarkup = (
     })
     .join('')
 
-  return `<div class="circle${compact ? ' circle--compact' : ''}" style="--seats: ${players.length}">${seats}</div>`
+  // The wrapper is a size container: the circle measures the room it has been
+  // given (width *and* height) and shrinks to fit, so the whole table stays on
+  // one phone screen instead of pushing the buttons below it off the bottom.
+  return `<div class="table${compact ? ' table--compact' : ''}"><div class="circle${compact ? ' circle--compact' : ''}" style="--seats: ${players.length}">${seats}</div></div>`
 }
 
 /** A plain list of the same choices, for narrators who prefer names to seats. */
@@ -99,7 +102,7 @@ export const listMarkup = (
     )
     .join('')
 
-  return `<div class="targets">${options}</div>`
+  return `<div class="table table--list"><div class="targets">${options}</div></div>`
 }
 
 /** Who currently holds a role — what the narrator actually needs to know. */

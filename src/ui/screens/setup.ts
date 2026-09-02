@@ -45,7 +45,7 @@ export const namesMarkup = (names: readonly string[], locale: Locale): string =>
       </form>
       <p class="field__hint">${esc(t.ui.setup.addHint)}</p>
 
-      <ul class="name-list">${chips}</ul>
+      <ul class="name-list fill">${chips}</ul>
 
       <div class="actions">
         <button class="btn btn--primary" type="button" data-names-done ${enough ? '' : 'disabled'}>
@@ -85,9 +85,17 @@ export const rosterMarkup = (
     )
     .join('')
 
+  // One header row: the title and the seat-rearranging toggle share it, so
+  // the circle below gets every pixel it can. Complexity sits with the deal
+  // button it belongs to.
   return `
     <section class="screen screen--roster">
-      <h1 class="title title--sm">${esc(t.ui.setup.players)}</h1>
+      <header class="screen__head">
+        <h1 class="title title--sm">${esc(t.ui.setup.players)}</h1>
+        <button class="btn btn--ghost btn--small" type="button" data-rearrange ${rearranging ? 'data-on' : ''}>
+          ${esc(rearranging ? t.ui.setup.rearrangeDone : t.ui.setup.rearrange)}
+        </button>
+      </header>
       <p class="subtitle subtitle--sm">${esc(rearranging ? t.ui.setup.rearrangeHint : t.ui.setup.tapToEdit)}</p>
       ${circleMarkup(players, locale, {
         pickAttr: rearranging ? 'swap' : 'seat',
@@ -96,12 +104,11 @@ export const rosterMarkup = (
         showRoles: assigned,
         revealTeams: assigned,
       })}
-      <button class="btn btn--ghost btn--small" type="button" data-rearrange ${rearranging ? 'data-on' : ''}>
-        ${esc(rearranging ? t.ui.setup.rearrangeDone : t.ui.setup.rearrange)}
-      </button>
 
-      <p class="field__label">${esc(t.ui.setup.complexity)}</p>
-      <div class="chips">${levels}</div>
+      <div class="complexity" role="group" aria-label="${esc(t.ui.setup.complexity)}">
+        <p class="label">${esc(t.ui.setup.complexity)}</p>
+        <div class="chips">${levels}</div>
+      </div>
 
       <div class="actions">
         <button class="btn ${assigned ? 'btn--ghost' : 'btn--primary'}" type="button"

@@ -119,8 +119,11 @@ export const timelineMarkup = (session: Session, locale: Locale): string => {
 
   return `
     <div class="sheet" data-sheet>
-      <div class="sheet__panel sheet__panel--tall" role="dialog" aria-modal="true">
-        <p class="subtitle subtitle--sm">${esc(t.ui.timeline.title)}</p>
+      <div class="sheet__panel sheet__panel--tall" role="dialog" aria-modal="true" aria-label="${esc(t.ui.timeline.title)}">
+        <div class="sheet__head">
+          <span class="sheet__handle" aria-hidden="true"></span>
+          <p class="sheet__title">${esc(t.ui.timeline.title)}</p>
+        </div>
         <ul class="log">${rows}</ul>
         <button class="btn btn--ghost" type="button" data-log-close>${esc(t.ui.common.close)}</button>
       </div>

@@ -24,6 +24,13 @@ The project is being rebuilt. The roadmap is six sprints; **Sprints 0-3 are done
 - **Outcomes are coloured cards** (`screens/timeline.ts`, `outcomeCardMarkup`): the morning report, the log, and the end-of-game history all colour each entry by the role that caused it via `i18n/outcomeAccent`. This is v1's `displayCards` rebuilt on structured outcomes. The page ground tints cold at night and warm by day (`html[data-phase]`).
 - **History is persisted**, capped at `HISTORY_LIMIT` moves (`store.ts`), so the log and every "rewind to here" survive a reload. Setup edits are kept for rewinding but hidden from the log (`kind: 'setup'`).
 
+### Layout and chrome rules
+
+- **The page never scrolls.** `html/body/#app` are a fixed `100dvh` with overflow hidden; `#app` is a two-row grid of `.stage` over a persistent `.bar`. Only designated regions scroll: the morning report, the timeline sheet, the end-of-game history, the names list. The seating circle is sized from `min(width, height)` of its container so it shrinks on short phones. A change that makes `document.documentElement.scrollHeight > innerHeight` on any screen at 375×667 is a regression.
+- **One bottom bar, one menu.** Timeline is the only first-class button; everything else (language, circle/list, show a role again, end the game, restart) lives behind ⋯. Per-screen primary actions stay in the stage. **The bar is not rendered during a reveal** — a player holding the phone must not be able to reach the timeline or the menu. Do not add loose buttons to the bottom of screens.
+- **Seats can be rearranged only during setup** (`swapSeats` / `moveSeat` in `engine/state.ts`). Ids are seating positions and are referenced from the log and lovers once play starts, so both refuse after that.
+- Three actions use `window.confirm` (clear names, end the game, restart). Native dialogs flash white in a dark room; replacing them with an in-app confirm sheet is the top open polish item.
+
 ### Two traps worth knowing
 
 - `dom.ts`'s `swap()` must always run its callback. `document.startViewTransition` rejects when the tab is hidden or a transition is in flight; an unhandled rejection there means the screen silently stops updating. It now falls back to a plain paint.

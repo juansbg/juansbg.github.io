@@ -166,6 +166,15 @@ export const es: Strings = {
       finishNow: 'Terminar la partida',
       history: 'Toda la partida',
     },
+    menu: {
+      more: 'Más',
+      language: 'Idioma',
+      layout: 'Elegir a la gente en',
+      circle: 'El círculo',
+      list: 'Una lista',
+      restartConfirm: '¿Empezar de nuevo? Se olvida esta partida; los nombres se guardan.',
+      endGameConfirm: '¿Terminar la partida ya? Verás el resumen y no podrás seguir jugando.',
+    },
     timeline: {
       title: 'Todo lo que ha pasado',
       open: 'Cronología',
