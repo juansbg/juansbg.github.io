@@ -254,6 +254,7 @@ export const en: Strings = {
       list: 'A list',
       restartConfirm: 'Start over? This forgets the current game. The names are kept.',
       endGameConfirm: 'End the game now? You will see the summary and cannot resume play.',
+      install: 'Install the app',
     },
     timeline: {
       title: 'Everything that happened',

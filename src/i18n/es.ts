@@ -254,6 +254,7 @@ export const es: Strings = {
       list: 'Una lista',
       restartConfirm: '¿Empezar de nuevo? Se olvida esta partida; los nombres se guardan.',
       endGameConfirm: '¿Terminar la partida ya? Verás el resumen y no podrás seguir jugando.',
+      install: 'Instalar la app',
     },
     timeline: {
       title: 'Todo lo que ha pasado',

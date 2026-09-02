@@ -70,6 +70,29 @@ let dawnAfterShot = false
 /** The overflow sheet behind the ⋯ button. */
 let menuOpen = false
 /**
+ * A destructive action waiting for a second tap. Native `window.confirm`
+ * flashes a white system dialog, which in a dark room is a torch in the
+ * face; this is the same question asked on our own sheet.
+ */
+type Pending = 'restart' | 'clearNames' | 'finish'
+let confirming: Pending | null = null
+/** The browser's deferred install prompt, when it has offered one. */
+let installPrompt: InstallPromptEvent | null = null
+
+interface InstallPromptEvent extends Event {
+  prompt(): Promise<void>
+}
+
+window.addEventListener('beforeinstallprompt', (event) => {
+  event.preventDefault()
+  installPrompt = event as InstallPromptEvent
+})
+window.addEventListener('appinstalled', () => {
+  installPrompt = null
+  menuOpen = false
+  setState({}, false)
+})
+/**
  * The questions round: players who flagged a question during the reveal get
  * their role explained privately, one at a time, before night one — and any
  * time from the day screen. `asking` is the card on screen; the queue is who
@@ -218,6 +241,7 @@ function render(entering = false): void {
   let overlay = sheets
   if (showingLog) overlay += timelineMarkup(state.session, state.locale)
   if (menuOpen) overlay += menuMarkup()
+  if (confirming !== null) overlay += confirmMarkup(confirming)
 
   root.innerHTML = `<main class="stage"${entering ? ' data-enter' : ''}>${body}</main>${overlay}${chromeMarkup()}`
   bind()
@@ -326,6 +350,30 @@ function render(entering = false): void {
     `
   }
 
+  /**
+   * One question, two answers. The destructive one carries the same label
+   * as the row that opened it, so the narrator confirms the thing they tapped.
+   */
+  function confirmMarkup(pending: Pending): string {
+    const copy = {
+      restart: { question: t.ui.menu.restartConfirm, action: t.ui.common.restart },
+      clearNames: { question: t.ui.setup.clearConfirm, action: t.ui.setup.clearNames },
+      finish: { question: t.ui.menu.endGameConfirm, action: t.ui.over.finishNow },
+    }[pending]
+    return `
+      <div class="sheet" data-sheet>
+        <div class="sheet__panel confirm" role="alertdialog" aria-modal="true" aria-labelledby="confirm-question">
+          <div class="sheet__head"><span class="sheet__handle" aria-hidden="true"></span></div>
+          <p class="confirm__question" id="confirm-question">${esc(copy.question)}</p>
+          <div class="confirm__actions">
+            <button class="btn btn--ghost" type="button" data-confirm-cancel>${esc(t.ui.common.cancel)}</button>
+            <button class="btn btn--danger" type="button" data-confirm-ok>${esc(copy.action)}</button>
+          </div>
+        </div>
+      </div>
+    `
+  }
+
   /** The overflow sheet. Rows are per screen; destructive ones sit last. */
   function menuMarkup(): string {
     const other = state.locale === 'es' ? 'en' : 'es'
@@ -351,6 +399,7 @@ function render(entering = false): void {
            </div>`
         : '',
       state.screen === 'day' ? row('data-show-role', t.ui.reveal.showAgain) : '',
+      installPrompt ? row('data-install', t.ui.menu.install) : '',
       inPlay ? row('data-finish', t.ui.over.finishNow, '', true) : '',
       restartable ? row('data-reset', t.ui.common.restart, '', true) : '',
     ].join('')
@@ -405,11 +454,41 @@ function bind(): void {
     showingLog = false
     picking = false
     editing = null
+    confirming = null
     setState({}, false)
   })
 
-  on(root, '[data-reset]', 'click', () => {
-    if (!window.confirm(strings(state.locale).ui.menu.restartConfirm)) return
+  on(root, '[data-install]', 'click', () => {
+    menuOpen = false
+    setState({}, false)
+    void installPrompt?.prompt()
+  })
+
+  // Destructive rows ask first, on our own sheet, then run below.
+  on(root, '[data-reset]', 'click', () => ask('restart'))
+  on(root, '[data-clear-names]', 'click', () => ask('clearNames'))
+  on(root, '[data-finish]', 'click', () => ask('finish'))
+
+  on(root, '[data-confirm-cancel]', 'click', () => {
+    confirming = null
+    setState({}, false)
+  })
+
+  on(root, '[data-confirm-ok]', 'click', () => {
+    const pending = confirming
+    confirming = null
+    if (pending === 'restart') reset()
+    else if (pending === 'clearNames') clearNames()
+    else if (pending === 'finish') finish()
+  })
+
+  function ask(pending: Pending): void {
+    menuOpen = false
+    confirming = pending
+    setState({}, false)
+  }
+
+  function reset(): void {
     // Forget the game, keep the people: the names come back on the next screen.
     clear()
     names = loadRoster()
@@ -422,7 +501,21 @@ function bind(): void {
     picked = []
     state = boot()
     setState({ session: newSession(createGame([])), screen: 'setup', revealIndex: 0 })
-  })
+  }
+
+  function clearNames(): void {
+    // The remembered list is the one thing a reset keeps, so wiping it is
+    // deliberate and asked first.
+    names = []
+    clearRoster()
+    setState({}, false)
+  }
+
+  // End early and see the whole game — v1's flag button.
+  function finish(): void {
+    buzz()
+    setState({ screen: 'over' })
+  }
 
   // ---- Setup ----
   // ---- Names ----
@@ -442,15 +535,6 @@ function bind(): void {
   on(root, '[data-remove-name]', 'click', (_e, el) => {
     names = names.filter((_, i) => i !== Number(el.dataset.removeName))
     saveRoster(names)
-    setState({}, false)
-  })
-
-  on(root, '[data-clear-names]', 'click', () => {
-    // The remembered list is the one thing a reset keeps, so wiping it is
-    // deliberate and asks first.
-    if (!window.confirm(strings(state.locale).ui.setup.clearConfirm)) return
-    names = []
-    clearRoster()
     setState({}, false)
   })
 
@@ -943,13 +1027,6 @@ function bind(): void {
     setState({ session: newSession(createGame([])), screen: 'setup', revealIndex: 0 })
   })
 
-  // End early and see the whole game — v1's flag button.
-  on(root, '[data-finish]', 'click', () => {
-    if (!window.confirm(strings(state.locale).ui.menu.endGameConfirm)) return
-    menuOpen = false
-    buzz()
-    setState({ screen: 'over' })
-  })
 }
 
 /** Writes the role card in beside the live button — no re-render. */

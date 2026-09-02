@@ -2087,3 +2087,21 @@ html[data-dawn] body {
 .btn[data-spent] {
   border-style: dashed;
 }
+
+/* ---------- Confirm sheet ----------
+   The one question the app asks twice. It is read, not scanned, so the
+   question is body type; the answers are the same buttons as everywhere. */
+
+.confirm__question {
+  margin: 0;
+  color: var(--fg);
+  font-family: var(--font-body);
+  font-size: var(--text-md);
+  line-height: 1.4;
+}
+
+.confirm__actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}

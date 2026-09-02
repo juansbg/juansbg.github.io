@@ -227,6 +227,8 @@ export interface Strings {
       list: string
       restartConfirm: string
       endGameConfirm: string
+      /** Shown only while the browser is offering to install the app. */
+      install: string
     }
     timeline: {
       title: string

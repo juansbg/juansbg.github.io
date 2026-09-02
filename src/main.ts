@@ -9,3 +9,8 @@ import '@fontsource/ibm-plex-mono/latin-500.css'
 
 import './ui/styles.css'
 import './ui/app'
+
+// Take the shell offline. A new build replaces the old one on the next
+// launch; the game itself lives in localStorage and survives either way.
+import { registerSW } from 'virtual:pwa-register'
+registerSW({ immediate: true })

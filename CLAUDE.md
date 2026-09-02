@@ -12,9 +12,9 @@ Deployed as a GitHub Pages site (`juansbg.github.io`).
 
 ## Current state: a v3 rewrite is underway
 
-The project is being rebuilt. The roadmap is six sprints; **Sprints 0-3 are done.**
+The project is being rebuilt. The roadmap is six sprints; **Sprints 0-4 are done and Sprint 5 is built, short of the cutover.**
 
-`src/engine/` is complete and at full narrator-script parity: every role that takes a night step is wired end to end, including the ones that used to be prompted and then ignored (see "Every night step is real" below). `src/i18n/` holds the Spanish and English string tables and the outcome renderer. 252 tests, no DOM, no strings in the engine. **Sprint 5 (PWA: service worker, manifest, offline, cutover from `/beta/` to `/`) remains.** The UI lives in `src/ui/`: one token set in `tokens.css`, screens in `src/ui/screens/`, autosave in `store.ts`.
+`src/engine/` is complete and at full narrator-script parity: every role that takes a night step is wired end to end, including the ones that used to be prompted and then ignored (see "Every night step is real" below). `src/i18n/` holds the Spanish and English string tables and the outcome renderer. 265 tests, no DOM, no strings in the engine. **Of Sprint 5 only the cutover from `/beta/` to `/` remains** — the app installs and runs offline today, under `/beta/` (see "The app is a PWA" below). The UI lives in `src/ui/`: one token set in `tokens.css`, screens in `src/ui/screens/`, autosave in `store.ts`.
 
 `STATE_VERSION` is 2. Version 1 saves did not track the Santera's vials; `store.ts` migrates them on load (`healUsed`/`poisonUsed` default to false) rather than dropping the game. Bump the version again only with a migration beside it.
 
@@ -42,7 +42,15 @@ The project is being rebuilt. The roadmap is six sprints; **Sprints 0-3 are done
 - **One bottom bar, one menu.** Timeline is the only first-class button; everything else (language, circle/list, show a role again, end the game, restart) lives behind ⋯. Per-screen primary actions stay in the stage. **The bar is not rendered while a player can see the screen** — during a reveal, while the phone is turned to a player (`showingPlayer`), or while a dawn slide is up — because the timeline would show them every move and the menu can end the game. Each of those is an early return in `chromeMarkup()`; they are independent and order does not matter. Do not add loose buttons to the bottom of screens.
 - **Entrances play once.** `screen-in`, `seat-in`, `card-in` and `line-in` only run when the stage carries `data-enter`, which `render(true)` sets for an animated `setState` (a step, a screen, a move). `setState({}, false)` repaints the same scene without them, so a pick, the menu or a toggle never bounces the table into place again. A new entrance keyframe on stage content goes into the `.stage:not([data-enter])` list in `styles.css`; sheets and dawn slides are deliberately not in it.
 - **Seats can be rearranged only during setup** (`swapSeats` / `moveSeat` in `engine/state.ts`). Ids are seating positions and are referenced from the log and lovers once play starts, so both refuse after that.
-- Three actions use `window.confirm` (clear names, end the game, restart). Native dialogs flash white in a dark room; replacing them with an in-app confirm sheet is the top open polish item.
+- **Destructive actions ask on our own sheet.** Clear names, end the game and restart open `confirmMarkup()` (`app.ts`, the `confirming` flag): the question in body type, Cancel, and a Vendetta button carrying the same label as the row that was tapped. They used to be `window.confirm`, which flashes a white system dialog in a dark room. Add a fourth destructive action by extending `Pending`, not by calling `window.confirm`.
+
+### The app is a PWA
+
+- `vite-plugin-pwa` (`vite.config.ts`) generates `sw.js` and `manifest.webmanifest` at build time and injects the manifest link; `src/main.ts` registers the worker. Everything the build emits is precached (`globPatterns` includes fonts and icons), so a complete game runs with no network. `registerType: 'autoUpdate'` means a new deploy takes over silently and reloads the page: the game is in `localStorage`, so nothing is lost, but the local flags (`showingPlayer`, `picked`, the reveal phase) reset to the narrator's side, which is the safe side.
+- The worker's scope is the Vite `base`, `/beta/`, so v1 at the site root is untouched. The cutover is a `base` change plus the deploy workflow's assembly step; the manifest `start_url`/`scope`/`id` in `vite.config.ts` must move with it.
+- Icons are `public/icon-*.png`, rasterised from `favicon.svg` with `rsvg-convert`; the maskable one is the same fedora on a padded viewBox so it survives the platform's mask. Regenerate all three if the sigil changes.
+- An install row appears in ⋯ only while the browser has fired `beforeinstallprompt` (Android/desktop Chrome). iOS has no such event; there the user adds to the home screen from Safari's share sheet, and `apple-touch-icon.png` is what it shows.
+- **Verifying offline:** the in-app browser pane refuses to fetch service-worker scripts, so it cannot prove this. Build, `npx vite preview`, and drive headless Chrome over the DevTools protocol instead: register, wait for `activated`, `Network.emulateNetworkConditions {offline: true}`, navigate, and assert `#app .stage` rendered and the fonts loaded. `src/vite-env.d.ts` carries the plugin's types for `virtual:pwa-register`.
 
 ### Design language
 
@@ -99,6 +107,7 @@ src/
     tokens.css     the ONE palette — never invent a colour outside it
     store.ts       autosave to localStorage
     screens/       setup, reveal, night (incl. the player view), circle, timeline, dawn
+  vite-env.d.ts   Vite and PWA plugin ambient types
 ```
 
 ### The role reveal
