@@ -26,7 +26,7 @@ theatre so colour doesn't have to.
 
 ## Palette
 
-Four colours. Everything else is mixed from them with `color-mix()`. Nothing
+Five colours. Everything else is mixed from them with `color-mix()`. Nothing
 gets invented outside this set, however "neutral".
 
 | Name | Hex | Job |
@@ -35,6 +35,14 @@ gets invented outside this set, however "neutral".
 | **Midnight** | `#000029` | The ground. Every night screen sits on this. Never pure black. |
 | **Ash** | `#D8D4C0` | Secondary ink, hairlines, the town's colour, anything muted. |
 | **Ledger** | `#F7F6F2` | Primary ink at night. The one bright surface by day. |
+| **Neon** | `#54F4FF` | The role glyphs, and nothing else. A sign lit in a dark street. |
+
+**Neon has one job.** It is the ink of a role's sigil (`--glyph`) on a dark
+ground: a seat tile, the night card, a hollow mark. It is not a side, not a
+state, not text, not a surface and not a button. On paper the same sigil is
+Midnight ink, because Neon on Ledger is invisible (1.2:1). It never sits on
+Vendetta (3:1) and never inside a filled mark, whose ink is already set by
+the side. `--glyph-dim` is the only derived state, for the dead.
 
 ### Derived scale (see `tokens.css` for the exact mixes)
 
@@ -48,6 +56,7 @@ gets invented outside this set, however "neutral".
 - **Lines**: `--hairline` (22% Ash), `--hairline-strong` (48% Ash).
 - **Vendetta states**: `--lethal`, `--lethal-dim`, `--lethal-glow`. The only
   colour with states.
+- **Glyph ink**: `--glyph` (Neon) and `--glyph-dim` (45% Neon on Midnight).
 
 ### Who gets which colour
 
@@ -60,6 +69,9 @@ gets invented outside this set, however "neutral".
   Never removed, never hidden.
 - **The narrator's hand is Ledger.** Selected, focused, primary: all invert
   to Ledger-on-Midnight. No third colour for "you are here".
+- **The role is Neon.** Its sigil, drawn in straight lines, in `--glyph` on
+  a dark ground. Colour still says the side (the fill, the glow); the
+  sigil says who. Neon on its own never means a side.
 
 ### Contrast, measured
 
@@ -72,6 +84,9 @@ gets invented outside this set, however "neutral".
 | Midnight on Vendetta | 5.2:1 | body text OK |
 | Ledger on Vendetta | 3.6:1 | display size only |
 | Vendetta on Ash or Ledger | 2.7:1 | **never for text** |
+| Neon on Midnight | 15.3:1 | glyphs, any size |
+| Neon on Vendetta | 3.0:1 | **never**; a sigil on red is Midnight |
+| Neon on Ash or Ledger | 1.1–1.2:1 | **invisible**; a sigil on paper is Midnight |
 
 The two that bite: **text on a red button is Midnight, not white**, and
 **red on paper is a rule or a strike-through, never small text.**
@@ -191,4 +206,5 @@ screen; leave Midnight ground visible around cards.
 
 **Don't:** any `border-radius` above 0, pills included; gradients, blur,
 glass, or glow on anything but the crew; icons where a Bebas word fits; a
-fifth colour; a hue per role; white text on red; small red text on paper.
+sixth colour; a hue per role; Neon as text, as a button, as a surface or as
+a side; white text on red; small red text on paper.

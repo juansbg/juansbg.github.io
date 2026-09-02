@@ -1,0 +1,279 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Omertà Sigils</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+  :root {
+    --vendetta: #FF0F0F;
+    --midnight: #000029;
+    --ash: #D8D4C0;
+    --ledger: #F7F6F2;
+    --neon: #54F4FF;
+    --surface: color-mix(in oklab, var(--midnight) 91%, var(--ledger));
+    --surface-2: color-mix(in oklab, var(--midnight) 84%, var(--ledger));
+    --hair: color-mix(in oklab, var(--ash) 22%, transparent);
+    --hair-2: color-mix(in oklab, var(--ash) 48%, transparent);
+    --muted: color-mix(in oklab, var(--ash) 62%, var(--midnight));
+    --glyph: var(--neon);
+    --glyph-dim: color-mix(in oklab, var(--neon) 45%, var(--midnight));
+    --display: "Bebas Neue", Oswald, Impact, "Arial Narrow", sans-serif;
+    --body: "IBM Plex Sans", "Helvetica Neue", Arial, sans-serif;
+    --mono: "IBM Plex Mono", "SF Mono", Menlo, monospace;
+  }
+  /* One world: the app's own night. Painted explicitly so it holds on any host ground. */
+  body { margin: 0; background: var(--midnight); color: var(--ledger); font-family: var(--body); font-size: 15px; line-height: 1.5; }
+  .wrap { max-width: 72rem; margin: 0 auto; padding: 2.5rem clamp(1rem, 4vw, 2.5rem) 4rem; }
+  .eyebrow { font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.12em; text-transform: uppercase; color: var(--muted); }
+  h1 { font-family: var(--display); font-weight: 400; font-size: clamp(3rem, 9vw, 6rem); line-height: 0.9; letter-spacing: 0.02em; margin: 0.5rem 0 1rem; text-wrap: balance; }
+  h1 span { color: var(--neon); }
+  h2 { font-family: var(--display); font-weight: 400; font-size: clamp(1.75rem, 4vw, 2.5rem); line-height: 0.95; letter-spacing: 0.02em; margin: 0 0 0.25rem; }
+  .lede { max-width: 62ch; color: var(--ash); }
+  .lede p { margin: 0 0 0.75rem; }
+  code { font-family: var(--mono); font-size: 0.85em; color: var(--ash); }
+  .rules { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(15rem, 100%), 1fr)); gap: 1px; background: var(--hair); border: 1px solid var(--hair); margin: 2rem 0 3rem; }
+  .rules > div { background: var(--midnight); padding: 1rem 1.1rem; }
+  .rules b { display: block; font-family: var(--display); font-weight: 400; font-size: 1.4rem; letter-spacing: 0.03em; margin-bottom: 0.2rem; }
+  .rules p { margin: 0; color: var(--ash); font-size: 0.9rem; }
+
+  .sec { margin-top: 3.5rem; }
+  .sec-head { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; flex-wrap: wrap; margin-bottom: 1.25rem; }
+
+  .sheet { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(15.5rem, 100%), 1fr)); gap: 1px; background: var(--hair); border: 1px solid var(--hair); }
+  .card { background: var(--surface); padding: 1rem; display: grid; grid-template-rows: auto auto 1fr auto; gap: 0.75rem; position: relative; }
+  .card::before, .card::after { content: ""; position: absolute; width: 10px; height: 10px; border: 1px solid var(--hair-2); }
+  .card::before { top: -1px; left: -1px; border-width: 1px 0 0 1px; }
+  .card::after { bottom: -1px; right: -1px; border-width: 0 1px 1px 0; }
+  .card .id { display: flex; justify-content: space-between; align-items: center; }
+  .card .id .side { font-family: var(--mono); font-size: 0.65rem; letter-spacing: 0.1em; text-transform: uppercase; padding: 0.15rem 0.4rem; border: 1px solid var(--hair-2); color: var(--ash); }
+  .card .id .side[data-side="crew"] { background: var(--vendetta); border-color: var(--vendetta); color: var(--midnight); }
+  .card .id .side[data-side="occult"] { border-style: dashed; }
+  .hero-glyph { display: grid; place-items: center; height: 7rem; background: var(--midnight); border: 1px solid var(--hair); color: var(--glyph); }
+  .hero-glyph svg { width: 4rem; height: 4rem; }
+  .names { min-height: 0; }
+  .names .en { font-family: var(--display); font-size: 1.75rem; line-height: 0.95; letter-spacing: 0.03em; }
+  .names .es { color: var(--ash); font-size: 0.95rem; }
+  .names .why { color: var(--muted); font-size: 0.82rem; margin-top: 0.35rem; }
+  .sizes { display: grid; grid-template-columns: repeat(5, 1fr); gap: 1px; background: var(--hair); border: 1px solid var(--hair); }
+  .sizes > div { display: grid; place-items: center; aspect-ratio: 1; }
+  .sizes svg { width: 1.5rem; height: 1.5rem; }
+  .on-night { background: var(--midnight); color: var(--glyph); }
+  .on-surface { background: var(--surface-2); color: var(--glyph); }
+  .on-paper { background: var(--ledger); color: var(--midnight); }
+  .in-crew { background: var(--vendetta); color: var(--midnight); }
+  .in-town { background: var(--ash); color: var(--midnight); }
+  .card[data-side="occult"] .in-town { background: transparent; color: var(--glyph); box-shadow: inset 0 0 0 1px var(--ash); }
+  .card[data-side="crew"] .in-town { display: none; }
+  .card:not([data-side="crew"]) .in-crew { display: none; }
+  .legend { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(10rem, 100%), 1fr)); gap: 0.5rem 1.5rem; margin: 0.75rem 0 0; padding: 0; list-style: none; color: var(--muted); font-size: 0.8rem; }
+  .legend b { color: var(--ash); font-weight: 500; }
+
+  svg { display: block; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: square; stroke-linejoin: miter; }
+
+  /* Seat mocks at the app's real sizes. */
+  .table { display: flex; flex-wrap: wrap; gap: 1.5rem; align-items: flex-end; }
+  .seat { display: grid; place-content: center; gap: 2px; width: var(--s); height: var(--s); padding: 2px; border: 1px solid var(--hair-2); background: var(--surface); color: var(--ledger); position: relative; text-align: center; }
+  .seat .n { position: absolute; top: 2px; left: 4px; font-family: var(--mono); font-size: clamp(0.5rem, calc(var(--s) * 0.12), 0.625rem); color: var(--muted); }
+  .seat .g { color: var(--glyph); margin: 0 auto; }
+  .seat .g svg { width: calc(var(--s) * 0.3); height: calc(var(--s) * 0.3); }
+  .seat .name { font-family: var(--display); font-size: clamp(0.75rem, calc(var(--s) * 0.22), 1.125rem); letter-spacing: 0.03em; line-height: 1; padding-top: 2px; }
+  .seat .role { font-family: var(--mono); font-size: clamp(0.4375rem, calc(var(--s) * 0.11), 0.6rem); color: var(--muted); letter-spacing: 0.04em; text-transform: uppercase; }
+  .seat[data-crew] { border-color: var(--vendetta); box-shadow: 0 0 16px color-mix(in oklab, var(--vendetta) 38%, transparent); }
+  .seat[data-dead] { opacity: 0.55; }
+  .seat[data-dead] .g { color: var(--glyph-dim); }
+  .seat[data-dead]::after { content: ""; position: absolute; left: 10%; right: 10%; top: 50%; border-top: 2px solid color-mix(in oklab, var(--vendetta) 55%, var(--midnight)); transform: rotate(-12deg); }
+  .seat[data-selected] { background: var(--ledger); color: var(--midnight); border-color: var(--ledger); }
+  .seat[data-selected] .g { color: var(--midnight); }
+  .seat[data-selected] .role, .seat[data-selected] .n { color: color-mix(in oklab, var(--midnight) 62%, var(--ledger)); }
+  .mock-note { color: var(--muted); font-size: 0.85rem; max-width: 60ch; margin: 1rem 0 0; }
+
+  .nightcard { max-width: 30rem; border-top: 2px solid var(--ash); background: var(--surface); padding: 1rem 1.1rem 1.25rem; display: grid; grid-template-columns: auto 1fr; gap: 0.25rem 1rem; align-items: start; position: relative; margin-top: 1.5rem; }
+  .nightcard[data-side="crew"] { border-top-color: var(--vendetta); }
+  .nightcard .g { color: var(--glyph); grid-row: 1 / span 3; padding-top: 0.2rem; }
+  .nightcard .g svg { width: 3rem; height: 3rem; }
+  .nightcard .t { font-family: var(--display); font-size: 2.25rem; line-height: 0.9; letter-spacing: 0.03em; }
+  .nightcard .w { font-weight: 600; }
+  .nightcard .p { color: var(--ash); }
+
+  .paper { max-width: 30rem; background: var(--ledger); color: var(--midnight); padding: 1.25rem 1.25rem 1.5rem; margin-top: 1.5rem; display: grid; grid-template-columns: auto 1fr; gap: 0.25rem 1rem; align-items: start; border-top: 2px solid var(--midnight); }
+  .paper .g { grid-row: 1 / span 3; color: var(--midnight); padding-top: 0.2rem; }
+  .paper .g svg { width: 3rem; height: 3rem; }
+  .paper .t { font-family: var(--display); font-size: 2.25rem; line-height: 0.9; letter-spacing: 0.03em; }
+  .paper .s { font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.12em; text-transform: uppercase; color: color-mix(in oklab, var(--midnight) 62%, var(--ledger)); }
+  .paper .b { color: color-mix(in oklab, var(--midnight) 85%, var(--ledger)); }
+
+  .fb { margin-top: 3rem; border: 1px solid var(--hair); padding: 1.25rem 1.5rem; max-width: 62ch; color: var(--ash); }
+  .fb ol { margin: 0.5rem 0 0; padding-left: 1.2rem; }
+  .fb li { margin: 0.3rem 0; }
+  footer { margin-top: 4rem; display: flex; justify-content: space-between; gap: 1rem; flex-wrap: wrap; border-top: 1px solid var(--hair); padding-top: 1rem; }
+  @media (prefers-reduced-motion: no-preference) { .card { transition: background-color 150ms; } }
+</style>
+</head>
+<body>
+
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="KILLER" viewBox="0 0 24 24"><path d="M2 16 H22 M7 16 V8 H17 V16 M7 12 H17"/></symbol>
+  <symbol id="CONVERT" viewBox="0 0 24 24"><path d="M3 20 H21 V9 L16.5 13 L12 5 L7.5 13 L3 9 Z"/></symbol>
+  <symbol id="ROGUE" viewBox="0 0 24 24"><path d="M3 21 L15 9 M12 6 L18 12 M15 9 L20 4"/></symbol>
+  <symbol id="PICK_SIDE" viewBox="0 0 24 24"><path d="M12 21 V12 L5 5 M12 12 L19 5"/></symbol>
+  <symbol id="PLAIN" viewBox="0 0 24 24"><path d="M4 11 L12 3 L20 11 V21 H4 Z M10 21 V15 H14 V21"/></symbol>
+  <symbol id="INSPECT" viewBox="0 0 24 24"><path d="M2 12 L12 5 L22 12 L12 19 Z M10 10 H14 V14 H10 Z"/></symbol>
+  <symbol id="GUARD" viewBox="0 0 24 24"><path d="M12 3 L20 6 V12 L12 21 L4 12 V6 Z"/></symbol>
+  <symbol id="MEDIC" viewBox="0 0 24 24"><path d="M9 3 H15 M10 3 V8 L6 14 V21 H18 V14 L14 8 V3 M6 16 H18"/></symbol>
+  <symbol id="SURVIVE" viewBox="0 0 24 24"><path d="M5 8 L12 13 L19 8 M5 14 L12 19 L19 14"/></symbol>
+  <symbol id="SILENCE" viewBox="0 0 24 24"><path d="M12 3 L16 9 L14 12 L18 16 L12 21 L6 16 L10 12 L8 9 Z"/></symbol>
+  <symbol id="EXTRA_VOTE" viewBox="0 0 24 24"><path d="M4 4 H20 V20 H4 Z M12 8 V16 M8 12 H16"/></symbol>
+  <symbol id="PAIR" viewBox="0 0 24 24"><path d="M3 8 H13 V18 H3 Z M11 6 H21 V16 H11 Z"/></symbol>
+  <symbol id="PROTEGE" viewBox="0 0 24 24"><path d="M3 12 L12 4 L21 12 H3 M12 12 V21 M12 21 H8 V18"/></symbol>
+  <symbol id="SENSE" viewBox="0 0 24 24"><path d="M6 7 H9 V10 H6 Z M11 4 H14 V7 H11 Z M16 7 H19 V10 H16 Z M8 13 H17 V20 H8 Z"/></symbol>
+  <symbol id="AVENGE" viewBox="0 0 24 24"><path d="M3 7 H21 V12 H10 V18 H5 V12 H3 Z M14 12 V15"/></symbol>
+  <symbol id="MARTYR" viewBox="0 0 24 24"><path d="M3 3 H21 V21 H3 Z M8 8 H16 V16 H8 Z M11 11 H13 V13 H11 Z"/></symbol>
+  <symbol id="SWAP" viewBox="0 0 24 24"><path d="M4 8 H17 M14 5 L17 8 L14 11 M20 16 H7 M10 13 L7 16 L10 19"/></symbol>
+  <symbol id="PEEK" viewBox="0 0 24 24"><path d="M9 4 H15 V9 L18 20 H6 L9 9 Z"/></symbol>
+  <symbol id="SPLIT" viewBox="0 0 24 24"><path d="M12 3 L17.6 20.2 L3 9.56 L21 9.56 L6.4 20.2 Z"/></symbol>
+</svg>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">Exhibit C · role sigils · draft 1 · 2 September 2026</div>
+    <h1>Omertà <span>Sigils</span></h1>
+    <div class="lede">
+      <p>Nineteen roles, one colour. Each sigil is drawn on a 24-unit grid with straight lines only: horizontals, verticals and 45° diagonals, square caps, mitred joins, a 1.5-unit stroke. No curves, because nothing else in the language has one. The ink is Neon on any dark ground and Midnight on paper. The side is still said by the fill and the glow, never by the sigil.</p>
+      <p>This is a sheet to judge against, not a finished set. Every card shows the mark at hero size, then at the five sizes and grounds it would actually live on in the app.</p>
+    </div>
+    <div class="rules">
+      <div><b>Straight lines</b><p>A 24-unit grid. Right angles and 45° only. Square line caps, mitre joins. Stroke 1.5.</p></div>
+      <div><b>Neon on dark</b><p>Seats, the night card, hollow marks. 15.3:1 on Midnight, so it reads at 20px.</p></div>
+      <div><b>Midnight on paper</b><p>The held role card and the report. Neon on Ledger is 1.2:1 and vanishes.</p></div>
+      <div><b>Never inside a fill</b><p>A filled crew or town mark keeps its own ink. Neon on Vendetta is 3:1.</p></div>
+    </div>
+  </header>
+
+  <section class="sec">
+    <div class="sec-head">
+      <h2>The sheet</h2>
+      <span class="eyebrow">hero · night · surface · paper · inside a mark</span>
+    </div>
+    <div class="sheet" id="sheet"></div>
+    <ul class="legend">
+      <li><b>1 Night</b> — Neon on Midnight, 24px</li>
+      <li><b>2 Surface</b> — Neon on the card ground</li>
+      <li><b>3 Paper</b> — Midnight on Ledger</li>
+      <li><b>4 Mark</b> — inside the side's own fill (crew red, town Ash, occult hollow)</li>
+    </ul>
+  </section>
+
+  <section class="sec">
+    <div class="sec-head">
+      <h2>On a seat</h2>
+      <span class="eyebrow">72px · 56px · 44px tiles, the sizes a phone actually gets</span>
+    </div>
+    <div class="table" id="seats"></div>
+    <p class="mock-note">The sigil sits above the name and takes the role label's place when the tile is small. On a selected seat it inverts to Midnight with everything else. On a dead seat it dims with the tile.</p>
+  </section>
+
+  <section class="sec">
+    <div class="sec-head">
+      <h2>On the night card and on paper</h2>
+      <span class="eyebrow">the two places it goes large</span>
+    </div>
+    <div class="nightcard" data-side="town">
+      <div class="g"><svg><use href="#INSPECT"/></svg></div>
+      <div class="t">The Detective</div>
+      <div class="w">Elena</div>
+      <div class="p">Points at someone — show them that card.</div>
+    </div>
+    <div class="nightcard" data-side="crew">
+      <div class="g"><svg><use href="#KILLER"/></svg></div>
+      <div class="t">The Family</div>
+      <div class="w">Ana · Fede</div>
+      <div class="p">They choose their victim.</div>
+    </div>
+    <div class="paper">
+      <div class="g"><svg><use href="#MEDIC"/></svg></div>
+      <div class="t">The Santera</div>
+      <div class="s">You are with the town</div>
+      <div class="b">You have two potions, each good for one use only: one saves whoever is about to die that night, the other kills anyone you choose.</div>
+    </div>
+    <p class="mock-note">The held role card stays Ledger for every role and shows the sigil in Midnight. It names the role, which the card already does in words, so it leaks nothing the card did not already say.</p>
+  </section>
+
+  <div class="fb">
+    <b>What to look at</b>
+    <ol>
+      <li>Does each one read at the 24px size without the name beside it? That is the test the seat has to pass.</li>
+      <li>Which ones are weakest as drawings? First candidates: the Renegade's dagger, the Orphan's umbrella, the Witness's keyhole.</li>
+      <li>Is Neon the right weight next to Ledger names on a tile, or does it want the 45% dim everywhere but the night card?</li>
+      <li>Should the two occult roles carry their sigil hollow-in-a-square, as their marks do, or bare like everyone else?</li>
+    </ol>
+  </div>
+
+  <footer>
+    <span class="eyebrow">Omertà · sigils · draft 1</span>
+    <span class="eyebrow">Neon #54F4FF · 24 grid · stroke 1.5</span>
+  </footer>
+</div>
+
+<script>
+  const ROLES = [
+    ['KILLER', 'The Family', 'La Familia', 'crew', 'A fedora. The brim is the table they sit round.'],
+    ['CONVERT', 'The Godfather', 'El Padrino', 'crew', 'A crown. The one who decides.'],
+    ['ROGUE', 'The Renegade', 'El Renegado', 'crew', 'A dagger. His own blade, his own victim.'],
+    ['PICK_SIDE', 'The Associate', 'El Socio', 'town', 'A fork in the road. One night to choose.'],
+    ['PLAIN', 'The Citizen', 'El Ciudadano', 'town', 'A house with a door. Nothing to hide.'],
+    ['INSPECT', 'The Detective', 'El Detective', 'town', 'An eye. Sees one card a night.'],
+    ['GUARD', 'The Bodyguard', 'El Guardaespaldas', 'town', 'A shield. Stands in front of someone.'],
+    ['MEDIC', 'The Santera', 'La Santera', 'occult', 'A vial, half full. Cure or poison.'],
+    ['SURVIVE', 'The Veteran', 'El Veterano', 'town', 'Two chevrons. Has taken a hit before.'],
+    ['SILENCE', 'The Arsonist', 'El Pirómano', 'town', 'A flame. Burns a house down.'],
+    ['EXTRA_VOTE', 'The Snitch', 'El Soplón', 'town', 'A ballot with a plus. One more vote.'],
+    ['PAIR', 'The Binding', 'El Amarre', 'town', 'Two links. Where one goes the other follows.'],
+    ['PROTEGE', 'The Orphan', 'El Huérfano', 'town', 'An umbrella. Under someone’s protection.'],
+    ['SENSE', 'The Bloodhound', 'El Sabueso', 'town', 'A paw. Smells the crew beside him.'],
+    ['AVENGE', 'The Gunman', 'El Pistolero', 'town', 'A pistol. One last shot.'],
+    ['MARTYR', 'The Martyr', 'El Mártir', 'town', 'A target. Painted on his own back.'],
+    ['SWAP', 'The Chameleon', 'El Camaleón', 'town', 'Two arrows. Trades one card for another.'],
+    ['PEEK', 'The Witness', 'El Testigo', 'town', 'A keyhole. Looks when he should not.'],
+    ['SPLIT', 'The Cultist', 'El Sectario', 'occult', 'A pentagram. The occult streak, drawn straight.'],
+  ];
+  const svg = (id) => `<svg aria-hidden="true"><use href="#${id}"/></svg>`;
+  document.getElementById('sheet').innerHTML = ROLES.map(([id, en, es, side, why]) => `
+    <div class="card" data-side="${side}">
+      <div class="id"><span class="eyebrow">${id}</span><span class="side" data-side="${side}">${side}</span></div>
+      <div class="hero-glyph">${svg(id)}</div>
+      <div class="names"><div class="en">${en}</div><div class="es">${es}</div><div class="why">${why}</div></div>
+      <div class="sizes">
+        <div class="on-night">${svg(id)}</div>
+        <div class="on-surface">${svg(id)}</div>
+        <div class="on-paper">${svg(id)}</div>
+        <div class="in-crew">${svg(id)}</div>
+        <div class="in-town">${svg(id)}</div>
+      </div>
+    </div>`).join('');
+
+  const seat = (s, n, id, name, role, attrs = '') => `
+    <div class="seat" style="--s:${s}px" ${attrs}>
+      <span class="n">${String(n).padStart(2, '0')}</span>
+      <span class="g">${svg(id)}</span>
+      <span class="name">${name}</span>
+      ${s > 50 ? `<span class="role">${role}</span>` : ''}
+    </div>`;
+  document.getElementById('seats').innerHTML = [
+    seat(72, 1, 'KILLER', 'Ana', 'The Family', 'data-crew'),
+    seat(72, 2, 'GUARD', 'Dani', 'The Bodyguard'),
+    seat(72, 3, 'MEDIC', 'Caro', 'The Santera', 'data-selected'),
+    seat(72, 4, 'PLAIN', 'Beto', 'The Citizen', 'data-dead'),
+    seat(56, 5, 'INSPECT', 'Elena', 'The Detective'),
+    seat(56, 6, 'SILENCE', 'Fede', 'The Arsonist'),
+    seat(56, 7, 'SENSE', 'Gabi', 'The Bloodhound', 'data-dead'),
+    seat(44, 8, 'AVENGE', 'Hugo', 'The Gunman'),
+    seat(44, 9, 'PAIR', 'Iris', 'The Binding'),
+    seat(44, 10, 'SPLIT', 'Juan', 'The Cultist'),
+    seat(44, 11, 'SWAP', 'Kike', 'The Chameleon', 'data-selected'),
+  ].join('');
+</script>
+
+</body>
+</html>

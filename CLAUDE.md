@@ -46,7 +46,7 @@ The project is being rebuilt. The roadmap is six sprints; **Sprints 0-3 are done
 
 **`docs/DESIGN.md` is the authority for anything visual.** Read it before touching `src/ui/`. The short version:
 
-- **Four colours, named, and nothing else.** Vendetta `#FF0F0F` (blood, the crew, anything lethal), Midnight `#000029` (the ground), Ash `#D8D4C0` (secondary ink, hairlines, the town), Ledger `#F7F6F2` (primary ink; the one bright surface, used for the morning report and the held role card). Every other value in `tokens.css` is a `color-mix()` of these. Never add a fifth, however neutral it looks.
+- **Five colours, named, and nothing else.** Vendetta `#FF0F0F` (blood, the crew, anything lethal), Midnight `#000029` (the ground), Ash `#D8D4C0` (secondary ink, hairlines, the town), Ledger `#F7F6F2` (primary ink; the one bright surface, used for the morning report and the held role card), Neon `#54F4FF` (the role glyphs on dark grounds, and nothing else: never text, a button, a surface or a side; Midnight on paper). Every other value in `tokens.css` is a `color-mix()` of these. Never add a sixth, however neutral it looks.
 - **Three faces, self-hosted.** Bebas Neue for anything that is a label (titles, buttons, seat names, the marks), IBM Plex Sans for anything read aloud, IBM Plex Mono for numbers. They come from `@fontsource` packages imported in `src/main.ts`, never a CDN.
 - **Radius is zero everywhere.** The `--radius-*` tokens resolve to `0`. Depth is a hairline and a surface step, not a shadow.
 - **Colour is keyed by side, not by role.** Markup carries `data-accent="crew|town|occult|system"` from `src/ui/accent.ts`; a two-letter `.mark` carries the role's identity. There are no per-role hues.

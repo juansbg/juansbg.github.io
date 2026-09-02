@@ -4,12 +4,13 @@
  * invent a colour, a typeface or a radius. The two legacy trees carried
  * different colour tables for the same roles; this replaces both.
  *
- * Four colours, and everything else mixed from them with color-mix():
+ * Five colours, and everything else mixed from them with color-mix():
  *
  *   Vendetta  #FF0F0F  blood, the crew, anything lethal. A verb, never decoration.
  *   Midnight  #000029  the ground.
  *   Ash       #D8D4C0  secondary ink, hairlines, the town.
  *   Ledger    #F7F6F2  primary ink at night; the one bright surface by day.
+ *   Neon      #54F4FF  the role glyphs, on dark grounds, and nothing else.
  *
  * Dark-first and deliberately dim: the narrator uses this one-handed, in a
  * dark room, while reading aloud. Nothing here should ever flash white. */
@@ -17,11 +18,18 @@
 :root {
   color-scheme: dark;
 
-  /* The four. */
+  /* The five. */
   --vendetta: #ff0f0f;
   --midnight: #000029;
   --ash: #d8d4c0;
   --ledger: #f7f6f2;
+  --neon: #54f4ff;
+
+  /* Glyphs: the one job Neon has. A role's sigil on a dark ground. On paper
+     the sigil is Midnight ink (Neon on Ledger is 1.2:1, invisible), and it
+     never sits on Vendetta (3:1) or inside a filled mark. Never text. */
+  --glyph: var(--neon);
+  --glyph-dim: color-mix(in oklab, var(--neon) 45%, var(--midnight));
 
   /* Surfaces — Midnight, lifted with a little Ledger. */
   --bg: var(--midnight);

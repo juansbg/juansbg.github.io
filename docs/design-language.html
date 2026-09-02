@@ -20,6 +20,7 @@
     --vendetta: #FF0F0F;
     --midnight: #000029;
     --ash:      #D8D4C0;
+    --neon:     #54F4FF;
     --ledger:   #F7F6F2;
 
     /* Ground and surfaces: Midnight, lifted with a little Ledger. */
@@ -118,7 +119,7 @@
 
   .strip {
     display: grid;
-    grid-template-columns: 1.6fr 2.2fr 1.3fr 1fr;
+    grid-template-columns: 1.6fr 2.2fr 1.3fr 1fr 1.3fr;
     margin-top: 2.5rem;
     border: 1px solid var(--hairline-strong);
   }
@@ -136,6 +137,7 @@
   .strip .c-midnight { background: var(--midnight); color: var(--ledger); }
   .strip .c-ash      { background: var(--ash); color: var(--midnight); }
   .strip .c-ledger   { background: var(--ledger); color: var(--midnight); }
+  .strip .c-neon     { background: var(--neon); color: var(--midnight); }
   @media (max-width: 720px) {
     .strip { grid-template-columns: 1fr 1fr; }
     .strip > div { min-height: 10rem; }
@@ -358,15 +360,15 @@
   <div class="wrap">
     <div class="hero-top">
       <div class="eyebrow"><b>Design language</b> &nbsp;·&nbsp; v3 · September 2026</div>
-      <div class="eyebrow">Four colours · Three faces · No corners</div>
+      <div class="eyebrow">Five colours · Three faces · No corners</div>
     </div>
     <h1>Omer<span>tà</span></h1>
     <div class="hero-lede">
       <p>A case file the narrator holds in the dark. Every screen is a page from the dossier: hard edges, hairline rules, one red for anything that draws blood, and type that does the theatre so the colour doesn't have to.</p>
-      <p>The four colours below are the whole palette. Everything else on this page, and everything in the app, is mixed from them with <code>color-mix()</code>. Nothing gets invented outside this set.</p>
+      <p>The five colours below are the whole palette. Everything else on this page, and everything in the app, is mixed from them with <code>color-mix()</code>. Nothing gets invented outside this set. The fifth, Neon, has exactly one job: the ink of a role's sigil on a dark ground.</p>
     </div>
 
-    <div class="strip" aria-label="The four colours">
+    <div class="strip" aria-label="The five colours">
       <div class="c-vendetta">
         <div><div class="name">Vendetta</div><div class="use">The red. Blood, the crew, the button that kills. A verb, never a decoration.</div></div>
         <div class="hex">#FF0F0F</div>
@@ -382,6 +384,10 @@
       <div class="c-ledger">
         <div><div class="name">Ledger</div><div class="use">The paper the books are kept on. Primary ink at night; the one bright surface by day.</div></div>
         <div class="hex">#F7F6F2</div>
+      </div>
+      <div class="c-neon">
+        <div><div class="name">Neon</div><div class="use">A sign lit in a dark street. The role sigils, on dark grounds, and nothing else. Midnight on paper.</div></div>
+        <div class="hex">#54F4FF</div>
       </div>
     </div>
   </div>
@@ -403,7 +409,7 @@
   <!-- ─────────────────────────── PALETTE ─────────────────────────── -->
   <section id="palette">
     <div class="sec-head"><div class="eyebrow">Exhibit B</div><h2>Palette</h2></div>
-    <p class="lead">Four base colours, each with a job. The derived scale below is how they stretch to cover surfaces, ink, lines and states without a fifth colour ever appearing.</p>
+    <p class="lead">Five base colours, each with a job. The derived scale below is how they stretch to cover surfaces, ink, lines and states without a sixth colour ever appearing. Neon is kept out of the scale on purpose: it is glyph ink (<code>--glyph</code>), never text, a button, a surface or a side, and on paper the same sigil is Midnight.</p>
 
     <div class="sub">
       <h3>Surfaces <small>from Midnight</small></h3>
@@ -458,6 +464,8 @@
             <tr><td><span class="chip" style="background:var(--vendetta)"></span>Vendetta on Midnight</td><td class="mono">5.2 : 1</td><td class="pass">Body text OK</td></tr>
             <tr><td><span class="chip" style="background:var(--midnight)"></span>Midnight on Vendetta</td><td class="mono">5.2 : 1</td><td class="pass">Body text OK</td></tr>
             <tr><td><span class="chip" style="background:var(--ledger)"></span>Ledger on Vendetta</td><td class="mono">3.6 : 1</td><td class="large">Display size only</td></tr>
+            <tr><td><span class="chip" style="background:var(--neon)"></span>Neon on Midnight</td><td class="mono">15.3 : 1</td><td class="pass">Glyphs, any size</td></tr>
+            <tr><td><span class="chip" style="background:var(--neon)"></span>Neon on Vendetta, Ash or Ledger</td><td class="mono">3.0 / 1.1 / 1.2 : 1</td><td class="fail">Never: a sigil on red or on paper is Midnight</td></tr>
             <tr><td><span class="chip" style="background:var(--vendetta)"></span>Vendetta on Ash</td><td class="mono">2.7 : 1</td><td class="fail">Never for text</td></tr>
           </tbody>
         </table></div>
@@ -706,11 +714,14 @@ N3  02:16  blocked</div>
 <span class="k">:root</span> {
   color-scheme: dark;
 
-  <span class="c">/* The four. Every other colour is mixed from these. */</span>
+  <span class="c">/* The five. Every other colour is mixed from these. */</span>
   <span class="r">--vendetta</span>: #FF0F0F;   <span class="c">/* blood, the crew, anything lethal */</span>
   <span class="r">--midnight</span>: #000029;   <span class="c">/* the ground */</span>
   <span class="r">--ash</span>:      #D8D4C0;   <span class="c">/* secondary ink, hairlines, the town */</span>
   <span class="r">--ledger</span>:   #F7F6F2;   <span class="c">/* primary ink; the one bright surface */</span>
+  <span class="r">--neon</span>:     #54F4FF;   <span class="c">/* the role sigils on dark grounds; nothing else */</span>
+  <span class="r">--glyph</span>:    var(--neon);
+  <span class="r">--glyph-dim</span>: color-mix(in oklab, var(--neon) 45%, var(--midnight));
 
   <span class="c">/* Surfaces */</span>
   --bg:             var(--midnight);
@@ -804,7 +815,7 @@ N3  02:16  blocked</div>
 
   <footer>
     <span class="eyebrow">Omertà · design language · for the narrator, not the players</span>
-    <span class="eyebrow">Vendetta · Midnight · Ash · Ledger</span>
+    <span class="eyebrow">Vendetta · Midnight · Ash · Ledger · Neon</span>
   </footer>
 </main>
 
