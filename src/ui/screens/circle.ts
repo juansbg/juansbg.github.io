@@ -2,6 +2,7 @@ import { ROLES } from '../../engine/roles'
 import type { Player, PlayerId } from '../../engine/types'
 import { strings, type Locale } from '../../i18n'
 import { accentOf } from '../accent'
+import { sigilMarkup } from '../sigils'
 import { esc } from '../dom'
 
 /**
@@ -109,6 +110,7 @@ export const circleMarkup = (
                 ${self ? 'data-self' : ''}
                 ${doom ? 'data-doomed' : ''}>
           <span class="seat__n" aria-hidden="true">${String(p.id + 1).padStart(2, '0')}</span>
+          ${showRoles && !hidden ? `<span class="seat__sigil">${sigilMarkup(p.roleId)}</span>` : ''}
           <span class="seat__name">${named ? esc(p.name) : '—'}</span>
           ${showRoles && !hidden ? `<span class="seat__role">${esc(t.roles[p.roleId].name)}</span>` : ''}
           ${self ? `<span class="seat__you">${esc(t.ui.view.you)}</span>` : ''}

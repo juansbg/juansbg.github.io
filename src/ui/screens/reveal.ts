@@ -2,6 +2,7 @@ import { ROLES } from '../../engine/roles'
 import type { Player } from '../../engine/types'
 import { strings, type Locale } from '../../i18n'
 import { buzz, esc } from '../dom'
+import { sigilMarkup } from '../sigils'
 
 /**
  * Pass-the-phone role reveal.
@@ -116,6 +117,7 @@ export const roleCardMarkup = (player: Player, locale: Locale): string => {
     <div class="reveal__card">
       <p class="reveal__owner">${esc(player.name)}</p>
       <p class="reveal__label">${esc(t.ui.reveal.yourRole)}</p>
+      <span class="reveal__sigil">${sigilMarkup(player.roleId)}</span>
       <h2 class="reveal__role">${esc(roleStrings.name)}</h2>
       <p class="reveal__team" data-team="${role.team}">${esc(team)}</p>
       <p class="reveal__prompt">${esc(roleStrings.brief)}</p>

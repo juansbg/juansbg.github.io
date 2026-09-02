@@ -1,6 +1,7 @@
 import type { GameState, Outcome, Player } from '../../engine/types'
 import { outcomeAccent, renderOutcome, strings, type Locale } from '../../i18n'
-import { monogram, outcomeAccentOf, type Accent } from '../accent'
+import { outcomeAccentOf, type Accent } from '../accent'
+import { sigilMarkup } from '../sigils'
 import { esc } from '../dom'
 
 /**
@@ -25,7 +26,7 @@ export interface Slide {
   name: string | null
   /** The sentence. On a death it comes from the bank; otherwise the report line. */
   line: string
-  /** The two-letter mark of the cause, or the town's scales. */
+  /** The mark's content: the sigil of the cause, or the town's scales. Markup, not text. */
   mark: string
   accent: Accent
   kind: Outcome['type'] | 'quiet'
@@ -45,7 +46,7 @@ const nameOf = (players: readonly Player[], id: number): string =>
 const slideOf = (outcome: Outcome, players: readonly Player[], locale: Locale): Slide | null => {
   const t = strings(locale)
   const source = outcomeAccent(outcome)
-  const mark = source === 'town' ? '⚖' : monogram(t.roles[source].name)
+  const mark = source === 'town' ? '⚖' : sigilMarkup(source)
   const accent = outcomeAccentOf(outcome)
 
   if (outcome.type === 'death') {

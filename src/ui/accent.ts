@@ -8,7 +8,7 @@ import { outcomeAccent } from '../i18n'
  * The palette is four colours (docs/DESIGN.md), so roles are not coloured
  * individually. Every coloured thing — a seat, a report line, a log row —
  * carries one of these accents as `data-accent`, and tokens.css maps it to
- * the team colour. A two-letter mark (`monogram`) carries the role's identity.
+ * the team colour. The role's sigil (`sigils.ts`) carries its identity.
  *
  * This is a presentation concern, so it lives in the UI: the engine knows
  * teams, not accents.
@@ -30,13 +30,3 @@ export const outcomeAccentOf = (outcome: Outcome): Accent => {
   const source = outcomeAccent(outcome)
   return source === 'town' ? 'town' : accentOf(source)
 }
-
-const ARTICLE = /^(the|el|la|los|las)\s+/i
-
-/**
- * Two letters that stand for a role, derived from its display name so they
- * follow the language: "The Family" → FA, "La Familia" → FA, "El Sabueso" → SA.
- * Collisions are tolerable — the mark scans, the sentence identifies.
- */
-export const monogram = (roleName: string): string =>
-  roleName.replace(ARTICLE, '').trim().slice(0, 2).toUpperCase()

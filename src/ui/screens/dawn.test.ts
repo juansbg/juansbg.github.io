@@ -61,7 +61,7 @@ describe('the dawn slides', () => {
     expect(slide.name).toBe('Beto')
     expect(slide.line).toContain('Beto')
     expect(slide.accent).toBe('crew')
-    expect(slide.mark).toBe('FA')
+    expect(slide.mark).toContain('data-sigil="KILLER"')
   })
 
   it('keeps the detective’s look out, like the report does', () => {

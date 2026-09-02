@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { ROLE_IDS, ROLES } from '../engine/roles'
-import { accentOf, monogram, outcomeAccentOf } from './accent'
-import { strings } from '../i18n'
+import { accentOf, outcomeAccentOf } from './accent'
 
 describe('accentOf', () => {
   it('maps every role to its team, or to occult', () => {
@@ -32,19 +31,3 @@ describe('outcomeAccentOf', () => {
   })
 })
 
-describe('monogram', () => {
-  it('drops the article and keeps two letters, in either language', () => {
-    expect(monogram('The Family')).toBe('FA')
-    expect(monogram('La Familia')).toBe('FA')
-    expect(monogram('El Sabueso')).toBe('SA')
-    expect(monogram('The Bloodhound')).toBe('BL')
-  })
-
-  it('produces two characters for every role name in both languages', () => {
-    for (const locale of ['es', 'en'] as const) {
-      for (const id of ROLE_IDS) {
-        expect(monogram(strings(locale).roles[id].name)).toHaveLength(2)
-      }
-    }
-  })
-})

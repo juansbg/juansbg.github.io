@@ -65,10 +65,10 @@ describe('report lines carry the side of their cause', () => {
 
   const card = (outcome: Outcome) => outcomeCardMarkup(outcome, players, 'en') ?? ''
 
-  it('marks a killing as the crew, with the killers’ monogram', () => {
+  it('marks a killing as the crew, with the killers’ sigil', () => {
     const html = card({ type: 'death', night: 1, target: 1, cause: 'killers', public: true })
     expect(html).toContain('data-accent="crew"')
-    expect(html).toContain('class="mark" aria-hidden="true">FA<')
+    expect(html).toContain('data-sigil="KILLER"')
     expect(html).toContain('data-kind="death"')
   })
 
@@ -134,8 +134,8 @@ describe('the log', () => {
     })
     const html = timelineMarkup(session, 'en')
     expect(html).toContain('data-accent="town"')
-    // The mark carries the role: "The Bodyguard" → BO.
-    expect(html).toContain('class="mark" aria-hidden="true">BO<')
+    // The mark carries the role's sigil.
+    expect(html).toContain('data-sigil="GUARD"')
     expect(html).not.toContain('--role')
   })
 

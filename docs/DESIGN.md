@@ -142,10 +142,17 @@ Rules:
   either side. Tiles are sized from the chord between neighbours so upright
   squares never overlap (`--seat` in `styles.css` shows the algebra), down
   to a 2rem floor; past that the list layout is the answer.
-- **The mark.** `.mark` is a 2rem square with a two-letter monogram in Bebas.
-  Fill and ink come from `data-accent` (`crew` / `town` / `occult` /
-  `system`), set from `src/ui/accent.ts`. Colour says whose side; type says
-  who.
+- **The mark.** `.mark` is a 2rem square holding the role's sigil. Fill and
+  ink come from `data-accent` (`crew` / `town` / `occult` / `system`), set
+  from `src/ui/accent.ts`; the sigil is drawn in that ink. Colour says whose
+  side; the sigil says who. Marks with no role (a lynching, a night
+  boundary) keep a text glyph.
+- **The sigils.** One per role in `src/ui/sigils.ts`, straight lines on a
+  24-unit grid, judged on `docs/sigils.html`. They appear on the seat above
+  the name (narrator views only), top-right of the night card, above the
+  role name on the held card, the inspect card and the question card, and
+  inside every mark. Neon on dark, Midnight on paper, the mark's ink inside
+  a mark. The Family's fedora is the favicon.
 - **Ledger lines.** The timeline (`.log__row`) is night · mark · sentence ·
   revert, with a hairline under each row and no background.
 - **Newsprint.** `.report` is Ledger paper with Midnight ink; a killing's

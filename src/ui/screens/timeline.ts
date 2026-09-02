@@ -1,7 +1,8 @@
 import type { Session, TimelineEntry } from '../../engine/state'
 import type { GameState, Outcome, Player, PlayerId } from '../../engine/types'
 import { outcomeAccent, renderOutcome, strings, type Locale } from '../../i18n'
-import { accentOf, monogram, outcomeAccentOf, type Accent } from '../accent'
+import { accentOf, outcomeAccentOf, type Accent } from '../accent'
+import { sigilMarkup } from '../sigils'
 import { esc } from '../dom'
 
 /**
@@ -11,11 +12,11 @@ import { esc } from '../dom'
  * the silent steps most of all, so every recorded move appears here — not just
  * the public outcomes the morning report reads aloud.
  *
- * Every row is a ledger line: the night, a two-letter mark in the colour of
- * the side that made the move, the sentence, and the way back. v1 coloured
- * its report cards per role and it was the most readable thing about it;
- * with a four-colour palette the mark's letters carry the role and its
- * colour carries the side (docs/DESIGN.md).
+ * Every row is a ledger line: the night, a mark in the colour of the side
+ * that made the move carrying the role's sigil, the sentence, and the way
+ * back. v1 coloured its report cards per role and it was the most readable
+ * thing about it; here the mark's colour carries the side and the sigil
+ * carries the role (docs/DESIGN.md).
  */
 
 const nameOf = (players: readonly Player[], id: PlayerId | undefined): string =>
@@ -105,7 +106,7 @@ export const timelineMarkup = (session: Session, locale: Locale): string => {
     .reverse()
     .map(({ entry, i }) => {
       const divider = entry.kind === 'nightStart' || entry.kind === 'nightEnd'
-      const mark = entry.roleId ? monogram(t.roles[entry.roleId].name) : entryGlyph(entry)
+      const mark = entry.roleId ? sigilMarkup(entry.roleId) : entryGlyph(entry)
       return `
         <li class="log__row${divider ? ' log__row--divider' : ''}${
           entry.action?.kind === 'skip' ? ' log__row--quiet' : ''
@@ -149,7 +150,7 @@ const emphasise = (line: string, subject: string | undefined): string => {
 /**
  * One public outcome as a line of newsprint — the unit of the morning report
  * and of the end-of-game history. Direct descendant of v1's `displayCards`:
- * the mark carries the side that caused it, the letters the role.
+ * the mark's colour carries the side that caused it, its sigil the role.
  */
 export const outcomeCardMarkup = (
   outcome: Outcome,
@@ -159,9 +160,8 @@ export const outcomeCardMarkup = (
 ): string | null => {
   const line = renderOutcome(outcome, players, locale)
   if (line === null) return null
-  const t = strings(locale)
   const source = outcomeAccent(outcome)
-  const mark = source === 'town' ? '⚖' : monogram(t.roles[source].name)
+  const mark = source === 'town' ? '⚖' : sigilMarkup(source)
 
   const subject =
     'target' in outcome ? players.find((p) => p.id === outcome.target)?.name : undefined

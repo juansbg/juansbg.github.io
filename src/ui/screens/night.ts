@@ -5,6 +5,7 @@ import { currentStep } from '../../engine/state'
 import type { GameState, Player, PlayerId } from '../../engine/types'
 import { strings, type Locale } from '../../i18n'
 import { accentOf } from '../accent'
+import { sigilMarkup } from '../sigils'
 import { esc } from '../dom'
 import { circleMarkup, holdersOf, listMarkup, type Perspective } from './circle'
 import { outcomeCardMarkup } from './timeline'
@@ -212,7 +213,8 @@ export const nightMarkup = (
         </div>
       </header>
 
-      <div class="card" data-role-card>
+      <div class="card card--role" data-role-card>
+        <span class="card__sigil">${sigilMarkup(roleId)}</span>
         <h2 class="card__title">${esc(roleStrings.name)}</h2>
         ${who}
         <p class="card__body">${esc(roleStrings.prompt)}</p>
@@ -406,6 +408,7 @@ export const inspectionMarkup = (
   return `
     <section class="screen screen--inspect" data-inspect>
       <p class="inspect__who">${esc(subject.name)}</p>
+      <span class="inspect__sigil">${sigilMarkup(subject.roleId)}</span>
       <h1 class="inspect__role">${esc(t.roles[subject.roleId].name)}</h1>
       <p class="inspect__team" data-team="${role.team}">
         ${esc(role.team === 'crew' ? t.ui.reveal.sideCrew : t.ui.reveal.sideTown)}
@@ -441,6 +444,7 @@ export const questionCardMarkup = (
     <section class="screen screen--inspect screen--ask" data-ask-card>
       ${progress}
       <p class="inspect__who">${esc(subject.name)}</p>
+      <span class="inspect__sigil">${sigilMarkup(subject.roleId)}</span>
       <h1 class="inspect__role inspect__role--ask">${esc(r.name)}</h1>
       <p class="inspect__team" data-team="${role.team}">
         ${esc(role.team === 'crew' ? t.ui.reveal.teamCrew : t.ui.reveal.teamTown)}

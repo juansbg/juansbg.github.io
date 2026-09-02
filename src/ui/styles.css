@@ -322,6 +322,26 @@ body {
   line-height: 1;
 }
 
+/* Role sigils (src/ui/sigils.ts): straight lines on a 24 grid, drawn in
+   currentColor so the wrapper chooses the ink. Inside a mark that is the
+   mark's own ink; on a dark ground it is Neon (--glyph); on paper, Midnight. */
+.sigil {
+  display: block;
+  width: 100%;
+  height: 100%;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linecap: square;
+  stroke-linejoin: miter;
+}
+
+.mark .sigil {
+  width: 1.125rem;
+  height: 1.125rem;
+  margin-top: -2px;
+}
+
 /* ---------- File cards ---------- */
 
 /* Register marks: L-shaped ticks in opposite corners. The one ornament, and
@@ -511,6 +531,26 @@ body {
   letter-spacing: 0;
 }
 
+.seat__sigil {
+  display: block;
+  width: calc(var(--seat) * 0.3);
+  height: calc(var(--seat) * 0.3);
+  margin: 0 auto;
+  color: var(--glyph);
+}
+
+.seat[data-selected] .seat__sigil {
+  color: var(--midnight);
+}
+
+.seat[data-dead] .seat__sigil {
+  color: var(--glyph-dim);
+}
+
+.seat[data-ineligible] .seat__sigil {
+  opacity: 0.5;
+}
+
 .seat__name {
   font-size: clamp(0.75rem, calc(var(--seat) * 0.22), 1.125rem);
   line-height: 1;
@@ -687,6 +727,20 @@ body {
   font-size: var(--text-lg);
   line-height: 0.95;
   color: var(--fg);
+}
+
+/* The role's sigil sits in the card's top-right corner, in Neon. */
+.card--role .card__title {
+  padding-right: 3.5rem;
+}
+
+.card__sigil {
+  position: absolute;
+  top: var(--space-4);
+  right: var(--space-5);
+  width: 2.5rem;
+  height: 2.5rem;
+  color: var(--glyph);
 }
 
 .card__body {
@@ -916,6 +970,13 @@ body {
   font-size: var(--text-xs);
   text-transform: uppercase;
   letter-spacing: var(--track-label);
+}
+
+.reveal__sigil {
+  display: block;
+  width: 2.75rem;
+  height: 2.75rem;
+  color: var(--on-paper);
 }
 
 .reveal__role {
@@ -1335,6 +1396,13 @@ body.is-revealing .bar {
   font-size: var(--text-md);
 }
 
+.inspect__sigil {
+  display: block;
+  width: 3.5rem;
+  height: 3.5rem;
+  color: var(--glyph);
+}
+
 .inspect__role {
   margin: 0;
   font-size: clamp(2.5rem, 15vw, 6rem);
@@ -1633,6 +1701,11 @@ html[data-dawn] body {
   width: 3rem;
   height: 3rem;
   font-size: 1.4rem;
+}
+
+.dawn__mark .sigil {
+  width: 1.75rem;
+  height: 1.75rem;
 }
 
 .dawn__name {
