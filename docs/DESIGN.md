@@ -165,8 +165,9 @@ Rules:
   text. A colour-coded card would tell the table the side before the reader.
   The same rule applies to the across-the-room inspect card.
 - **The dawn slideshow.** `.screen--dawn` (`src/ui/screens/dawn.ts`) shows
-  the night's public outcomes one full screen at a time, from the ▶ on the
-  day screen. A death sets `data-lethal`: the whole ground goes Vendetta and
+  the night's public outcomes one full screen at a time. It starts by itself
+  when the night ends and replays from the ▶ on the day screen. A death sets
+  `data-lethal`: the whole ground goes Vendetta and
   every ink goes Midnight. It is the danger button at cinema size and **the
   only time Vendetta is a surface**. The mark inverts (Midnight block,
   Vendetta letters), primary becomes a Midnight block with Ledger, ghost a
@@ -174,13 +175,21 @@ Rules:
   is Bebas at the display maximum; the sentence under it comes from a bank
   in the string tables (`ui.dawn.death`) picked by night and seat, never at
   random. Calm slides stay on the day ground. The bar is not rendered while
-  a slide is up, for the same reason as the reveal: the day screen behind it
-  shows every role.
+  a slide is up, for the same reason as the reveal: the timeline would show
+  the town every move. The day table behind it is plain by default — names,
+  the dead, the flagged — and the Roles toggle brings the narrator's board
+  back.
 
 ## Motion
 
 Film cuts, not app fades. A page is turned, not dissolved. Nothing bounces
 (`--ease-spring` was removed).
+
+Entrances play once. `screen-in`, `seat-in`, `card-in` and `line-in` run
+when a scene arrives (`.stage[data-enter]`) and never on a repaint of the
+same scene: a pick, the menu, a toggle rebuild the same DOM and must not
+bounce the table into place again. Screen to screen, the page itself only
+fades; the screen inside it is what slides.
 
 | Token | Use |
 |---|---|

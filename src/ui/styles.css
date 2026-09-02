@@ -152,6 +152,13 @@ body {
   font-size: clamp(1.5rem, 7vw, 2.5rem);
 }
 
+/* The day head carries three tools (Roles, replay, undo): at 7vw the Spanish
+   title measures 181px against the 166px left on a 375px phone. 5.5vw is
+   142px. */
+.screen--day .screen__head .title {
+  font-size: clamp(1.25rem, 5.5vw, 2.5rem);
+}
+
 .screen__tools {
   display: flex;
   flex: none;
@@ -174,6 +181,20 @@ body {
     opacity: 0;
     transform: translateY(8px);
   }
+}
+
+/* Entrances play when a scene arrives (`data-enter`, set by app.ts for a
+   step, a screen, a move). Every other render rebuilds the same DOM — a pick,
+   the menu, a toggle — and must not replay them: the table would bounce into
+   place on every tap. Sheets and the dawn slides are not in this list; they
+   are new things each time. */
+.stage:not([data-enter]) :is(.screen, .seat, .card, .report__card, .name-chip) {
+  animation-name: none;
+}
+
+/* The crew glow is the second animation on a crew seat; keep it looping. */
+.stage:not([data-enter]) .seat[data-crew] {
+  animation-name: none, seat-glow-crew;
 }
 
 .title {
@@ -512,10 +533,12 @@ body {
   }
 }
 
+/* Opacity only. A tile sits at a fractional position on the ring, and a
+   scale that ends there re-rasterises the text as each tile lands — a run of
+   small pops at the very end of the stagger. A fade lands nowhere. */
 @keyframes seat-in {
   from {
     opacity: 0;
-    scale: 0.8;
   }
 }
 
@@ -1151,8 +1174,11 @@ body {
   animation: fade-out var(--dur-fast) var(--ease-out) both;
 }
 
+/* The new page only fades: the screen inside it already slides in, and a
+   second slide on the snapshot doubled the movement and left a step when the
+   snapshot came off. */
 ::view-transition-new(root) {
-  animation: screen-in var(--dur-base) var(--ease-out) both;
+  animation: fade-in var(--dur-fast) var(--ease-out) both;
 }
 
 @keyframes fade-out {

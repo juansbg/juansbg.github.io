@@ -62,6 +62,11 @@ let peeking = false
 let showingLog = false
 /** The dawn slideshow: which slide is up, or null when the report is a list. */
 let dawn: number | null = null
+/**
+ * The night ended on the Avenger's death: the slideshow waits for the shot,
+ * so the town hears the whole morning at once.
+ */
+let dawnAfterShot = false
 /** The overflow sheet behind the ⋯ button. */
 let menuOpen = false
 /**
@@ -109,8 +114,8 @@ function boot(): AppState {
 const setState = (patch: Partial<AppState>, animate = true): void => {
   state = { ...state, ...patch }
   save(state)
-  if (animate) swap(render)
-  else render()
+  if (animate) swap(() => render(true))
+  else render(false)
 }
 
 const mutate = (
@@ -128,7 +133,13 @@ const mutate = (
 // Render
 // ---------------------------------------------------------------------------
 
-function render(): void {
+/**
+ * `entering` marks a scene arriving — a step, a screen, a move — and lets the
+ * entrance animations play. A repaint of the same scene (a pick, the menu,
+ * a toggle) rebuilds the same DOM, and without the mark every seat would
+ * bounce into place again on every tap.
+ */
+function render(entering = false): void {
   const game = state.session.current
   const t = strings(state.locale)
   document.documentElement.lang = state.locale
@@ -195,7 +206,7 @@ function render(): void {
         ? hunterMarkup()
         : dawn !== null
           ? dawnMarkup(slides, dawn, game.night, state.locale)
-          : dayMarkup(game, state.locale, state.layout)
+          : dayMarkup(game, state.locale, state.layout, peeking)
     if (picking) sheets += pickerMarkup()
   } else {
     body = overMarkup()
@@ -208,7 +219,7 @@ function render(): void {
   if (showingLog) overlay += timelineMarkup(state.session, state.locale)
   if (menuOpen) overlay += menuMarkup()
 
-  root.innerHTML = `<main class="stage">${body}</main>${overlay}${chromeMarkup()}`
+  root.innerHTML = `<main class="stage"${entering ? ' data-enter' : ''}>${body}</main>${overlay}${chromeMarkup()}`
   bind()
 
   function revealDoneMarkup(): string {
@@ -833,8 +844,16 @@ function bind(): void {
 
   on(root, '[data-resolve]', 'click', () => {
     mutate(endNight, { night: game.night, kind: 'nightEnd' })
-    if (winner(state.session.current) !== null) setState({ screen: 'over' })
-    else setState({ screen: 'day' })
+    const morning = state.session.current
+    if (winner(morning) !== null) {
+      setState({ screen: 'over' })
+      return
+    }
+    // The morning is read to the town from the slideshow, so it starts by
+    // itself. If the Avenger died, the shot comes first and the show after.
+    dawnAfterShot = morning.awaitingHunterShot !== null
+    dawn = dawnAfterShot ? null : 0
+    setState({ screen: 'day' })
   })
 
   // ---- Day ----
@@ -852,7 +871,11 @@ function bind(): void {
       night: game.night, kind: 'hunterShot', target: Number(el.dataset.shoot),
     })
     if (winner(state.session.current) !== null) setState({ screen: 'over' })
-    else setState({})
+    else {
+      if (dawnAfterShot) dawn = 0
+      dawnAfterShot = false
+      setState({})
+    }
   })
 
   // ---- Dawn slideshow ----

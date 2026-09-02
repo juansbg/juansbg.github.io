@@ -213,6 +213,28 @@ describe('day screen controls', () => {
     const flagged = { ...state, players: state.players.map((p) => (p.id === 1 ? { ...p, hasQuestion: true } : p)) }
     expect(dayMarkup(flagged, 'en')).toContain('data-ask="1"')
   })
+
+  // After the slideshow the phone may be facing the town: the table shows
+  // names and who is dead, never a role or the crew's red.
+  it.each(['en', 'es'] as const)('hides roles by default so the town can see the table (%s)', (locale) => {
+    const state = { ...atRole(['KILLER', 'PLAIN', 'INSPECT'], 'KILLER'), phase: 'day' as const }
+    const html = dayMarkup(state, locale)
+    const t = strings(locale)
+    expect(html).toContain('data-peek')
+    expect(html).toContain(t.ui.night.showRoles)
+    expect(html).not.toContain('data-sigil')
+    expect(html).not.toContain('data-crew')
+    expect(html).not.toContain('seat__role')
+    for (const p of state.players) expect(html).toContain(p.name)
+  })
+
+  it('brings roles and the crew glow back for the narrator with peek', () => {
+    const state = { ...atRole(['KILLER', 'PLAIN', 'INSPECT'], 'KILLER'), phase: 'day' as const }
+    const html = dayMarkup(state, 'en', 'circle', true)
+    expect(html).toContain(strings('en').ui.night.hideRoles)
+    expect(html).toContain('data-sigil="KILLER"')
+    expect(html).toContain('data-crew')
+  })
 })
 
 /** The same night, with the Family's pick already recorded. */

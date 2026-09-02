@@ -352,6 +352,7 @@ export const dayMarkup = (
   state: GameState,
   locale: Locale,
   layout: Layout = 'circle',
+  peek = false,
 ): string => {
   const t = strings(locale)
   // Coloured cards, one per public outcome, in the colour of the role that
@@ -377,11 +378,16 @@ export const dayMarkup = (
 
   // "Show a role again" and "End the game" live in the overflow menu: they are
   // rare, and every button under the circle costs the circle height.
+  //
+  // The table is plain by default — names, who is dead, who has a question —
+  // so the town can look at it after the slideshow. Roles and the crew glow
+  // come back with the same toggle the night uses, for the narrator only.
   return `
     <section class="screen screen--day">
       <header class="screen__head">
         <h1 class="title title--sm">${esc(t.phase.townWakes)}</h1>
         <div class="screen__tools">
+          <button class="icon-btn icon-btn--word" type="button" data-peek aria-pressed="${peek}">${esc(peek ? t.ui.night.hideRoles : t.ui.night.showRoles)}</button>
           <button class="icon-btn" type="button" data-dawn-play aria-label="${esc(t.ui.dawn.play)}" title="${esc(t.ui.dawn.play)}">▶</button>
           <button class="icon-btn" type="button" data-undo aria-label="${esc(t.ui.common.undo)}" title="${esc(t.ui.common.undo)}">↶</button>
         </div>
@@ -394,7 +400,7 @@ export const dayMarkup = (
       ${
         layout === 'circle'
           ? circleMarkup(state.players, locale, {
-              pickAttr: 'lynch', eligible: living, showRoles: true, revealTeams: true,
+              pickAttr: 'lynch', eligible: living, showRoles: peek, revealTeams: peek,
             })
           : listMarkup(state.players, 'lynch', living)
       }
