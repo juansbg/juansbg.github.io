@@ -137,6 +137,8 @@ export const en: Strings = {
       pickTwo: 'Choose two',
       endNight: 'End the night',
       wakeGroup: 'Wake them together.',
+      asCircle: 'Show the circle',
+      asList: 'Show a list',
     },
     day: {
       report: 'What happened in the night',

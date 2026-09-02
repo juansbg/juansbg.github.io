@@ -2,6 +2,7 @@ import { newSession, type Session } from '../engine/state'
 import type { GameState } from '../engine/types'
 import { STATE_VERSION } from '../engine/types'
 import type { Locale } from '../i18n'
+import type { Layout } from './screens/night'
 
 /** Which screen the app is on. Derived from phase, except for the reveal. */
 export type Screen = 'setup' | 'reveal' | 'night' | 'day' | 'over'
@@ -16,6 +17,8 @@ export interface AppState {
   revealMode: 'onboarding' | 'single'
   /** Where to return after a single-player reveal. */
   revealReturnTo: Screen
+  /** Circle or list for choosing people — the narrator's preference. */
+  layout: Layout
 }
 
 const KEY = 'omerta:v1'
@@ -26,6 +29,7 @@ interface Saved {
   locale: Locale
   screen: Screen
   revealIndex: number
+  layout?: Layout
 }
 
 /**
@@ -46,6 +50,7 @@ export const save = (state: AppState): void => {
       locale: state.locale,
       screen: state.screen,
       revealIndex: state.revealIndex,
+      layout: state.layout,
     }
     localStorage.setItem(KEY, JSON.stringify(payload))
   } catch {
@@ -53,7 +58,9 @@ export const save = (state: AppState): void => {
   }
 }
 
-export const load = (): Pick<AppState, 'session' | 'locale' | 'screen' | 'revealIndex'> | null => {
+export const load = ():
+  | Pick<AppState, 'session' | 'locale' | 'screen' | 'revealIndex' | 'layout'>
+  | null => {
   try {
     const raw = localStorage.getItem(KEY)
     if (raw === null) return null
@@ -68,6 +75,8 @@ export const load = (): Pick<AppState, 'session' | 'locale' | 'screen' | 'reveal
       locale: parsed.locale,
       screen: parsed.screen,
       revealIndex: parsed.revealIndex ?? 0,
+      // Older saves predate the toggle; the circle is the default.
+      layout: parsed.layout ?? 'circle',
     }
   } catch {
     return null

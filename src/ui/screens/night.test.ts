@@ -56,8 +56,15 @@ describe('the potion step', () => {
     expect(html.match(/data-potion="kill"[^>]*/)?.[0]).not.toContain('disabled')
   })
 
-  it('marks the chosen player so the narrator can see the target', () => {
+  it('marks the chosen player in the circle', () => {
     const html = nightMarkup(state, 'en', [2])
+    // Seat 2 is chosen; seat 1 is offered but not chosen.
+    expect(html).toMatch(/data-target="2"[\s\S]*?data-selected/)
+    expect(html).toMatch(/data-target="1"/)
+  })
+
+  it('marks the chosen player in the list too', () => {
+    const html = nightMarkup(state, 'en', [2], 'list')
     expect(html).toMatch(/data-target="2"\s+data-picked/)
     expect(html).not.toMatch(/data-target="1"\s+data-picked/)
   })
@@ -79,7 +86,7 @@ describe('the Binding step', () => {
   it('keeps prompting after only one is chosen', () => {
     const html = nightMarkup(state, 'en', [1])
     expect(html).toContain(strings('en').ui.night.pickTwo)
-    expect(html).toMatch(/data-target="1"\s+data-picked/)
+    expect(html).toMatch(/data-target="1"[\s\S]*?data-selected/)
   })
 
   it('stops prompting once two are chosen', () => {
@@ -115,5 +122,49 @@ describe('legal targets', () => {
       players: state.players.map((p) => (p.id === 2 ? { ...p, alive: false } : p)),
     }
     expect(legalTargets(state, 'INSPECT').map((p) => p.id)).not.toContain(2)
+  })
+})
+
+describe('choosing from the circle', () => {
+  const state = atRole(['KILLER', 'CONVERT', 'PLAIN', 'INSPECT', 'GUARD'], 'KILLER')
+
+  it('defaults to the circle, not a list', () => {
+    const html = nightMarkup(state, 'en', [])
+    expect(html).toContain('class="circle')
+    expect(html).not.toContain('class="targets"')
+  })
+
+  it('offers only legal targets, and dims the rest in place', () => {
+    // The killers cannot eat their own, but their seats must still show —
+    // the table layout is the point of the circle.
+    const html = nightMarkup(state, 'en', [])
+    expect(html).toMatch(/data-target="2"/)
+    expect(html).not.toMatch(/data-target="1"/)
+    expect(html).toContain('data-ineligible')
+  })
+
+  it('keeps every player on screen in either layout', () => {
+    for (const layout of ['circle', 'list'] as const) {
+      const html = nightMarkup(state, 'en', [], layout)
+      // The circle shows all five seats; the list shows only the choosable.
+      const seats = (html.match(/class="seat"/g) ?? []).length
+      const rows = (html.match(/class="target"/g) ?? []).length
+      expect(layout === 'circle' ? seats : rows).toBeGreaterThan(0)
+    }
+  })
+
+  it('offers a way back to the other layout', () => {
+    expect(nightMarkup(state, 'en', [])).toContain('data-layout')
+    expect(nightMarkup(state, 'en', [], 'list')).toContain('data-layout')
+  })
+
+  it('never offers a dead player', () => {
+    const withDead = {
+      ...state,
+      players: state.players.map((p) => (p.id === 2 ? { ...p, alive: false } : p)),
+    }
+    const html = nightMarkup(withDead, 'en', [])
+    expect(html).not.toMatch(/data-target="2"/)
+    expect(html).toContain('data-dead')
   })
 })

@@ -137,6 +137,8 @@ export const es: Strings = {
       pickTwo: 'Elige a dos',
       endNight: 'Terminar la noche',
       wakeGroup: 'Que despierten juntos.',
+      asCircle: 'Ver en círculo',
+      asList: 'Ver en lista',
     },
     day: {
       report: 'Lo que ha pasado esta noche',

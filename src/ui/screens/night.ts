@@ -3,7 +3,7 @@ import { currentStep } from '../../engine/state'
 import type { GameState, Player, PlayerId } from '../../engine/types'
 import { morningReport, strings, type Locale } from '../../i18n'
 import { esc } from '../dom'
-import { circleMarkup, holdersOf } from './circle'
+import { circleMarkup, holdersOf, listMarkup } from './circle'
 
 /** Who this role may target tonight, after its own constraints. */
 export const legalTargets = (state: GameState, roleId: RoleId): Player[] => {
@@ -39,10 +39,13 @@ export const picksNeeded = (roleId: RoleId): number => {
   }
 }
 
+export type Layout = 'circle' | 'list'
+
 export const nightMarkup = (
   state: GameState,
   locale: Locale,
   picked: readonly PlayerId[] = [],
+  layout: Layout = 'circle',
 ): string => {
   const t = strings(locale)
   const roleId = currentStep(state)
@@ -53,14 +56,7 @@ export const nightMarkup = (
   const targets = legalTargets(state, roleId)
   const spec = role.target
 
-  const options = targets
-    .map(
-      (p) =>
-        `<button class="target" type="button" data-target="${p.id}"${
-          picked.includes(p.id) ? ' data-picked' : ''
-        }>${esc(p.name)}</button>`,
-    )
-    .join('')
+  const eligible = targets.map((p) => p.id)
 
   // The potion is spent on a specific player, so the vial buttons stay locked
   // until one is chosen. Previously they fired against whoever happened to be
@@ -91,10 +87,28 @@ export const nightMarkup = (
       ? `<p class="night__hint">${esc(needed === 2 ? t.ui.night.pickTwo : t.ui.night.pickOne)}</p>`
       : ''
 
+  // The circle is the default: tapping someone in their seat matches what the
+  // narrator is looking at around the real table. Ineligible players are
+  // dimmed and unclickable rather than hidden, so the table stays readable.
+  const chooser =
+    layout === 'circle'
+      ? circleMarkup(state.players, locale, {
+          pickAttr: 'target',
+          eligible,
+          selected: picked,
+        })
+      : listMarkup(state.players, 'target', eligible, picked)
+
+  const toggle = `
+    <button class="btn btn--ghost btn--small" type="button" data-layout>
+      ${esc(layout === 'circle' ? t.ui.night.asList : t.ui.night.asCircle)}
+    </button>
+  `
+
   const targetList =
     spec.kind === 'none'
       ? `<button class="btn btn--primary" type="button" data-night-confirm>${esc(t.ui.common.confirm)}</button>`
-      : `<div class="targets">${options}</div>`
+      : `${chooser}${toggle}`
 
   return `
     <section class="screen screen--night" style="--role: var(--role-${roleId})">
@@ -110,7 +124,7 @@ export const nightMarkup = (
         ${role.wakesAsGroup ? `<p class="card__aside">${esc(t.ui.night.wakeGroup)}</p>` : ''}
       </div>
 
-      ${circleMarkup(state.players, locale, { selected: picked, compact: true })}
+
 
       ${hint}
       ${targetList}
@@ -121,7 +135,11 @@ export const nightMarkup = (
   `
 }
 
-export const dayMarkup = (state: GameState, locale: Locale): string => {
+export const dayMarkup = (
+  state: GameState,
+  locale: Locale,
+  layout: Layout = 'circle',
+): string => {
   const t = strings(locale)
   const lines = morningReport(state, state.night, locale)
 
@@ -129,17 +147,7 @@ export const dayMarkup = (state: GameState, locale: Locale): string => {
     .map((line, i) => `<li class="report__line" style="--i: ${i}">${esc(line)}</li>`)
     .join('')
 
-  const living = state.players.filter((p) => p.alive)
-  const candidates = living
-    .map((p) => {
-      const silenced = p.silencedOnDay === state.day
-      return `
-        <button class="target" type="button" data-lynch="${p.id}" ${silenced ? 'data-silenced' : ''}>
-          ${esc(p.name)}${silenced ? ' 🤐' : ''}
-        </button>
-      `
-    })
-    .join('')
+  const living = state.players.filter((p) => p.alive).map((p) => p.id)
 
   const flagged = state.players.filter((p) => p.alive && p.hasQuestion)
   const questions =
@@ -152,13 +160,19 @@ export const dayMarkup = (state: GameState, locale: Locale): string => {
   return `
     <section class="screen screen--day">
       <h1 class="title title--sm">${esc(t.phase.townWakes)}</h1>
-      ${circleMarkup(state.players, locale, { compact: true, showRoles: true })}
       ${questions}
       <h2 class="subtitle subtitle--sm">${esc(t.ui.day.report)}</h2>
       <ul class="report">${report}</ul>
 
       <p class="subtitle subtitle--sm">${esc(t.ui.day.whoDies)}</p>
-      <div class="targets">${candidates}</div>
+      ${
+        layout === 'circle'
+          ? circleMarkup(state.players, locale, { pickAttr: 'lynch', eligible: living })
+          : listMarkup(state.players, 'lynch', living)
+      }
+      <button class="btn btn--ghost btn--small" type="button" data-layout>
+        ${esc(layout === 'circle' ? t.ui.night.asList : t.ui.night.asCircle)}
+      </button>
 
       <div class="actions actions--row">
         <button class="btn btn--ghost" type="button" data-show-role>${esc(t.ui.reveal.showAgain)}</button>

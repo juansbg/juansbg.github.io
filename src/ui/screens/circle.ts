@@ -6,10 +6,11 @@ import { esc } from '../dom'
 /**
  * The seating circle.
  *
- * Player ids are seating positions, so this is the true table layout — which
+ * Player ids are seating positions, so this is the real table layout — which
  * is also what the Bloodhound's adjacency rule reads. It stays on screen for
- * the whole game rather than only during setup: the narrator needs to see who
- * is sitting where, and who has already died, at every step.
+ * the whole game and is the primary way the narrator picks targets: tapping
+ * the person in their seat matches what the narrator is looking at around the
+ * actual table far better than reading a list of names.
  *
  * Laid out entirely from --seats and --i so it reflows on rotation. v1
  * computed inline transforms in JS from offsetWidth at creation time and did
@@ -17,13 +18,20 @@ import { esc } from '../dom'
  */
 
 export interface CircleOptions {
-  /** Attach data-seat and make seats tappable. */
-  interactive?: boolean
-  /** Highlighted, e.g. the players chosen at the current night step. */
+  /**
+   * Data attribute the seats carry, e.g. 'target' renders data-target="3" and
+   * so reuses whatever handler already exists for that action. Omit for a
+   * read-only circle.
+   */
+  pickAttr?: string
+  /**
+   * Who may be chosen right now. Everyone else is dimmed and disabled, so an
+   * illegal target cannot be tapped by mistake. Omit to allow everyone living.
+   */
+  eligible?: readonly PlayerId[]
+  /** Already chosen at this step. */
   selected?: readonly PlayerId[]
-  /** Show each player's role under their name. */
   showRoles?: boolean
-  /** Dim to a compact size beside other content. */
   compact?: boolean
 }
 
@@ -33,21 +41,27 @@ export const circleMarkup = (
   options: CircleOptions = {},
 ): string => {
   const t = strings(locale)
-  const { interactive = false, selected = [], showRoles = false, compact = false } = options
+  const { pickAttr, eligible, selected = [], showRoles = false, compact = false } = options
 
   const seats = players
     .map((p) => {
       const named = p.name.trim() !== ''
       const role = ROLES[p.roleId]
+      const canPick =
+        pickAttr !== undefined && (eligible === undefined ? p.alive : eligible.includes(p.id))
+
       return `
         <button class="seat" type="button"
-                ${interactive ? `data-seat="${p.id}"` : 'disabled aria-hidden="true"'}
+                ${canPick ? `data-${pickAttr}="${p.id}"` : 'disabled'}
+                ${canPick ? '' : 'aria-hidden="true"'}
                 style="--role: var(--role-${p.roleId})"
                 data-named="${named}"
                 data-team="${role.team}"
                 ${p.alive ? '' : 'data-dead'}
+                ${pickAttr !== undefined && !canPick && p.alive ? 'data-ineligible' : ''}
+                ${canPick ? 'data-pickable' : ''}
                 ${selected.includes(p.id) ? 'data-selected' : ''}
-                ${p.hasQuestion ? 'data-question' : ''}>
+                ${p.hasQuestion ? 'data-question-flag' : ''}>
           <span class="seat__name">${named ? esc(p.name) : '—'}</span>
           ${showRoles ? `<span class="seat__role">${esc(t.roles[p.roleId].name)}</span>` : ''}
           ${p.hasQuestion ? '<span class="seat__flag" aria-hidden="true">?</span>' : ''}
@@ -57,6 +71,26 @@ export const circleMarkup = (
     .join('')
 
   return `<div class="circle${compact ? ' circle--compact' : ''}" style="--seats: ${players.length}">${seats}</div>`
+}
+
+/** A plain list of the same choices, for narrators who prefer names to seats. */
+export const listMarkup = (
+  players: readonly Player[],
+  pickAttr: string,
+  eligible: readonly PlayerId[],
+  selected: readonly PlayerId[] = [],
+): string => {
+  const options = players
+    .filter((p) => eligible.includes(p.id))
+    .map(
+      (p) =>
+        `<button class="target" type="button" data-${pickAttr}="${p.id}"${
+          selected.includes(p.id) ? ' data-picked' : ''
+        }>${esc(p.name)}</button>`,
+    )
+    .join('')
+
+  return `<div class="targets">${options}</div>`
 }
 
 /** Who currently holds a role — what the narrator actually needs to know. */

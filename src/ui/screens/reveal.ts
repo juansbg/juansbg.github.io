@@ -84,6 +84,10 @@ export const revealMarkup = (props: RevealProps): string => {
           <span class="reveal__fill" data-fill aria-hidden="true"></span>
           <span class="reveal__hold-label" data-hold-label>${esc(t.ui.reveal.holdToReveal)}</span>
         </button>
+        <button class="reveal__question" type="button" data-question
+                ${player.hasQuestion ? 'data-on' : ''}>
+          ${esc(player.hasQuestion ? t.ui.reveal.questionMarked : t.ui.reveal.hasQuestion)}
+        </button>
         <div class="actions actions--row">
           <button class="btn btn--ghost" type="button" data-back>${esc(t.ui.common.back)}</button>
           <button class="btn btn--primary" type="button" data-reveal-next>
@@ -109,10 +113,6 @@ export const roleCardMarkup = (player: Player, locale: Locale): string => {
       <h2 class="reveal__role">${esc(roleStrings.name)}</h2>
       <p class="reveal__team" data-team="${role.team}">${esc(team)}</p>
       <p class="reveal__prompt">${esc(roleStrings.brief)}</p>
-      <button class="reveal__question" type="button" data-question
-              ${player.hasQuestion ? 'data-on' : ''}>
-        ${esc(player.hasQuestion ? t.ui.reveal.questionMarked : t.ui.reveal.hasQuestion)}
-      </button>
     </div>
   `
 }

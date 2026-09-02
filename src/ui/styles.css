@@ -974,3 +974,55 @@ body.is-revealing .chrome {
   border-color: var(--accent);
   color: var(--accent);
 }
+
+/* ---------- Circle as the target picker ---------- */
+
+/* Tapping someone in their seat matches what the narrator is looking at
+   around the real table. Illegal targets stay visible — the table layout is
+   the point — but are dimmed and unclickable so they cannot be hit by
+   mistake. */
+.seat[data-pickable] {
+  box-shadow: 0 0 0 0 color-mix(in oklab, var(--role, var(--accent)) 55%, transparent);
+  animation: seat-in var(--dur-slow) var(--ease-spring) both,
+    seat-glow 2.6s var(--ease-in-out) infinite;
+  animation-delay: calc(var(--i) * 24ms), calc(var(--i) * 60ms);
+}
+
+@keyframes seat-glow {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklab, var(--role, var(--accent)) 45%, transparent); }
+  50% { box-shadow: 0 0 10px 2px color-mix(in oklab, var(--role, var(--accent)) 30%, transparent); }
+}
+
+.seat[data-pickable]:active {
+  scale: 0.94;
+}
+
+.seat[data-ineligible] {
+  opacity: 0.28;
+  filter: grayscale(1);
+  animation: seat-in var(--dur-slow) var(--ease-spring) both;
+}
+
+.seat[data-ineligible] .seat__name,
+.seat[data-ineligible] .seat__role {
+  color: var(--fg-faint);
+}
+
+/* The dead are dim regardless, and never pickable. */
+.seat[data-dead] {
+  animation: seat-in var(--dur-slow) var(--ease-spring) both;
+}
+
+.btn--small {
+  min-height: 2.5rem;
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-sm);
+  justify-self: center;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .seat[data-pickable] {
+    animation: none;
+    box-shadow: 0 0 0 2px color-mix(in oklab, var(--role, var(--accent)) 40%, transparent);
+  }
+}

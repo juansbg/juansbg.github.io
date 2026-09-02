@@ -55,7 +55,7 @@ export const rosterMarkup = (
     <section class="screen screen--roster">
       <h1 class="title title--sm">${esc(t.ui.setup.players)}</h1>
       <p class="subtitle subtitle--sm">${esc(t.ui.setup.tapToEdit)}</p>
-      ${circleMarkup(players, locale, { interactive: true, showRoles: assigned })}
+      ${circleMarkup(players, locale, { pickAttr: 'seat', eligible: players.map((p) => p.id), showRoles: assigned })}
 
       <p class="field__label">${esc(t.ui.setup.complexity)}</p>
       <div class="chips">${levels}</div>

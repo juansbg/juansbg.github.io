@@ -58,6 +58,7 @@ function boot(): AppState {
       revealIndex: saved.revealIndex,
       revealMode: 'onboarding',
       revealReturnTo: 'night',
+      layout: saved.layout,
     }
   }
 
@@ -68,6 +69,7 @@ function boot(): AppState {
     revealIndex: 0,
     revealMode: 'onboarding',
     revealReturnTo: 'night',
+    layout: 'circle',
   }
 }
 
@@ -127,9 +129,12 @@ function render(): void {
       ? inspectionMarkup(subject, state.locale)
       : isNightComplete(game)
         ? nightDoneMarkup()
-        : nightMarkup(game, state.locale, picked)
+        : nightMarkup(game, state.locale, picked, state.layout)
   } else if (state.screen === 'day') {
-    body = game.awaitingHunterShot !== null ? hunterMarkup() : dayMarkup(game, state.locale)
+    body =
+      game.awaitingHunterShot !== null
+        ? hunterMarkup()
+        : dayMarkup(game, state.locale, state.layout)
     if (picking) body += pickerMarkup()
   } else {
     body = overMarkup()
@@ -277,9 +282,17 @@ function bind(): void {
     }))
   })
 
+  // Seats open the editor only during setup. In play the same circle renders
+  // its seats as data-target / data-lynch buttons instead, so the existing
+  // handlers pick them up and the narrator taps people where they are sitting.
   on(root, '[data-seat]', 'click', (_e, el) => {
+    if (state.screen !== 'setup') return
     editing = Number(el.dataset.seat)
     setState({}, false)
+  })
+
+  on(root, '[data-layout]', 'click', () => {
+    setState({ layout: state.layout === 'circle' ? 'list' : 'circle' })
   })
 
   on(root, '[data-cancel]', 'click', () => {
@@ -330,6 +343,21 @@ function bind(): void {
 
   // Nobody can ask about their role out loud without giving something away,
   // so they flag it here and the narrator checks privately before night one.
+  // Nobody can ask about their role out loud without giving something away, so
+  // they flag it privately here. It sits with the persistent controls rather
+  // than on the card, because the card is only up while a finger is held down
+  // and no one can hold and tap at the same time.
+  on(root, '[data-question]', 'click', () => {
+    const player = revealOrder()[state.revealIndex]
+    if (!player) return
+    const id = player.id
+    buzz()
+    mutate((s) => ({
+      ...s,
+      players: s.players.map((p) => (p.id === id ? { ...p, hasQuestion: !p.hasQuestion } : p)),
+    }))
+  })
+
   on(root, '[data-reveal-back]', 'click', () => {
     if (state.revealIndex === 0) return
     revealPhase = 'handoff'
@@ -522,43 +550,6 @@ function bind(): void {
   })
 }
 
-/**
- * Lets a player privately flag that they did not understand their role.
- *
- * Nobody can ask out loud without giving something away, so the narrator gets
- * a list to check quietly before the first night.
- *
- * Deliberately does NOT re-render: this button sits on the card that is only
- * on screen while a finger is down, and repainting would unmount the held
- * button and end the gesture — the same trap the reveal itself hit.
- */
-function bindQuestion(id: PlayerId): void {
-  const button = root.querySelector<HTMLElement>('[data-question]')
-  if (!button) return
-
-  button.addEventListener('click', (event) => {
-    event.stopPropagation()
-    buzz()
-
-    state = {
-      ...state,
-      session: advance(state.session, (s) => ({
-        ...s,
-        players: s.players.map((p) =>
-          p.id === id ? { ...p, hasQuestion: !p.hasQuestion } : p,
-        ),
-      })),
-    }
-    save(state)
-
-    const now = state.session.current.players.find((p) => p.id === id)?.hasQuestion ?? false
-    button.toggleAttribute('data-on', now)
-    button.textContent = now
-      ? strings(state.locale).ui.reveal.questionMarked
-      : strings(state.locale).ui.reveal.hasQuestion
-  })
-}
-
 /** Writes the role card in beside the live button — no re-render. */
 function showRole(): void {
   const player = revealOrder()[state.revealIndex]
@@ -566,9 +557,6 @@ function showRole(): void {
   if (!player || !slot) return
 
   slot.innerHTML = roleCardMarkup(player, state.locale)
-  // The card is injected after bind() has already run, so its own controls
-  // are wired here rather than there.
-  bindQuestion(player.id)
   root.querySelector<HTMLElement>('[data-reveal-root]')?.setAttribute('data-showing', '')
   // Nothing may sit beside a visible role.
   document.body.classList.add('is-revealing')

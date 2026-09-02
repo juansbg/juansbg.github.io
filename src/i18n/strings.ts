@@ -113,6 +113,8 @@ export interface Strings {
       pickTwo: string
       endNight: string
       wakeGroup: string
+      asCircle: string
+      asList: string
     }
     day: {
       report: string
