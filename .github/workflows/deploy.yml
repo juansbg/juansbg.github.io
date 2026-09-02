@@ -32,21 +32,16 @@ jobs:
           npm run typecheck
           npm run test
 
-      - name: Build v3
+      - name: Build
         run: npm run build
 
-      # The site root must keep serving the existing v1 app until the Sprint 5
-      # cutover, so the artifact is assembled from two sources:
-      #   dist/        <- legacy/v1 (live site, unchanged)
-      #   dist/beta/   <- v3 (built above by vite, already in place)
-      #   dist/legacy/v2/ <- the abandoned 2022 rewrite, kept reachable
-      - name: Assemble site
+      # v3 is the whole site. /beta/ carries only the redirect and the worker
+      # that retires the beta's; the legacy trees stay in the repo, not on the site.
+      - name: Check the artifact
         run: |
-          cp -R legacy/v1/. dist/
-          mkdir -p dist/legacy/v2
-          cp -R legacy/v2/. dist/legacy/v2/
-          test -f dist/index.html || { echo "v1 index.html missing from site root"; exit 1; }
-          test -f dist/beta/index.html || { echo "v3 index.html missing from /beta/"; exit 1; }
+          test -f dist/index.html || { echo "index.html missing from site root"; exit 1; }
+          test -f dist/sw.js || { echo "service worker missing"; exit 1; }
+          test -f dist/beta/index.html || { echo "beta redirect missing"; exit 1; }
 
       - uses: actions/upload-pages-artifact@v3
         with:

@@ -1,24 +1,24 @@
 import { defineConfig } from 'vitest/config'
 import { VitePWA } from 'vite-plugin-pwa'
 
-// v3 is served from /beta/ until the Sprint 5 cutover, so that the existing
-// v1 site keeps working at the site root while this is built. The deploy
-// workflow assembles both into one artifact; see .github/workflows/deploy.yml.
+// v3 is the site. It lived at /beta/ while v1 held the root; public/beta/
+// now carries a redirect and a service worker that retires the old one, so
+// a phone that installed the beta lands on the real thing.
 export default defineConfig({
-  base: '/beta/',
+  base: '/',
   plugins: [
     // The app must launch and run a whole game with no network: everything
     // the build emits is precached, and a new deploy takes over on the next
-    // launch by itself. The scope is the base, so v1 at the root is untouched.
+    // launch by itself.
     VitePWA({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       manifest: {
         name: 'Omertà',
         short_name: 'Omertà',
-        id: '/beta/',
-        start_url: '/beta/',
-        scope: '/beta/',
+        id: '/',
+        start_url: '/',
+        scope: '/',
         display: 'standalone',
         orientation: 'portrait',
         background_color: '#000029',
@@ -31,12 +31,13 @@ export default defineConfig({
       },
       workbox: {
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
+        // The beta's own files are not this app's shell; they retire it.
+        globIgnores: ['beta/**'],
+        navigateFallbackDenylist: [/^\/beta\//],
       },
     }),
   ],
   build: {
-    outDir: 'dist/beta',
-    emptyOutDir: true,
     target: 'es2022',
   },
   test: {
