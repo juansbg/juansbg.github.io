@@ -88,6 +88,11 @@ export interface Strings {
       standard: string
       complex: string
       editRoles: string
+      rearrange: string
+      rearrangeHint: string
+      rearrangeDone: string
+      moveLeft: string
+      moveRight: string
     }
     reveal: {
       /** Shown while the phone is being handed over — no role information. */

@@ -13,6 +13,8 @@ import {
   startNight,
   undo,
   revertTo,
+  swapSeats,
+  moveSeat,
   winner,
   type PlayerSetup,
   type TimelineEntry,
@@ -43,6 +45,9 @@ let picked: PlayerId[] = []
 let complexity: Complexity = 'standard'
 /** Names on the entry screen. Seeded from the last game's roster. */
 let names: string[] = loadRoster()
+/** Rearrange mode on the roster: the first tapped seat waits for its partner. */
+let rearranging = false
+let armedSeat: PlayerId | null = null
 /** The player whose card is being held up for the detective to read. */
 let inspecting: PlayerId | null = null
 let showingLog = false
@@ -109,7 +114,7 @@ function render(): void {
   if (state.screen === 'setup') {
     body = game.players.length === 0
       ? namesMarkup(names, state.locale)
-      : rosterMarkup(game.players, state.locale, complexity)
+      : rosterMarkup(game.players, state.locale, complexity, rearranging, armedSeat)
     if (editing !== null) {
       const player = game.players.find((p) => p.id === editing)
       if (player) body += editorMarkup(player, state.locale)
@@ -330,6 +335,42 @@ function bind(): void {
     if (state.screen !== 'setup') return
     editing = Number(el.dataset.seat)
     setState({}, false)
+  })
+
+  // Seating. Tap one person, then the one to swap with; ◀ ▶ in the editor
+  // nudge a single seat. Only during setup — ids are seating positions and are
+  // referenced everywhere once play starts.
+  on(root, '[data-rearrange]', 'click', () => {
+    rearranging = !rearranging
+    armedSeat = null
+    setState({}, false)
+  })
+
+  on(root, '[data-swap]', 'click', (_e, el) => {
+    const id = Number(el.dataset.swap)
+    if (armedSeat === null || armedSeat === id) {
+      armedSeat = armedSeat === id ? null : id
+      setState({}, false)
+      return
+    }
+    const a = armedSeat
+    armedSeat = null
+    buzz()
+    mutate((s) => swapSeats(s, a, id))
+  })
+
+  on(root, '[data-nudge]', 'click', (_e, el) => {
+    const id = editing
+    if (id === null) return
+    const direction = el.dataset.nudge === '1' ? 1 : -1
+    buzz()
+    // moveSeat renumbers ids to seating positions, so the moved player's new
+    // id is simply their new position. The editor follows them there. Never
+    // match by name — two players may share one.
+    const n = game.players.length
+    const from = game.players.findIndex((p) => p.id === id)
+    editing = from === -1 ? null : (from + direction + n) % n
+    mutate((s) => moveSeat(s, id, direction))
   })
 
   on(root, '[data-layout]', 'click', () => {

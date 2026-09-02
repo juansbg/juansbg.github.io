@@ -62,6 +62,8 @@ export const rosterMarkup = (
   players: readonly Player[],
   locale: Locale,
   complexity: Complexity = 'standard',
+  rearranging = false,
+  armed: number | null = null,
 ): string => {
   const t = strings(locale)
   const named = players.every((p) => p.name.trim() !== '')
@@ -86,8 +88,17 @@ export const rosterMarkup = (
   return `
     <section class="screen screen--roster">
       <h1 class="title title--sm">${esc(t.ui.setup.players)}</h1>
-      <p class="subtitle subtitle--sm">${esc(t.ui.setup.tapToEdit)}</p>
-      ${circleMarkup(players, locale, { pickAttr: 'seat', eligible: players.map((p) => p.id), showRoles: assigned, revealTeams: assigned })}
+      <p class="subtitle subtitle--sm">${esc(rearranging ? t.ui.setup.rearrangeHint : t.ui.setup.tapToEdit)}</p>
+      ${circleMarkup(players, locale, {
+        pickAttr: rearranging ? 'swap' : 'seat',
+        eligible: players.map((p) => p.id),
+        selected: armed === null ? [] : [armed],
+        showRoles: assigned,
+        revealTeams: assigned,
+      })}
+      <button class="btn btn--ghost btn--small" type="button" data-rearrange ${rearranging ? 'data-on' : ''}>
+        ${esc(rearranging ? t.ui.setup.rearrangeDone : t.ui.setup.rearrange)}
+      </button>
 
       <p class="field__label">${esc(t.ui.setup.complexity)}</p>
       <div class="chips">${levels}</div>
@@ -129,6 +140,10 @@ export const editorMarkup = (player: Player, locale: Locale): string => {
           <select class="field__input" data-role>${options}</select>
         </label>
         <p class="field__hint">${esc(t.roles[player.roleId].prompt)}</p>
+        <div class="actions actions--row">
+          <button class="btn btn--ghost btn--small" type="button" data-nudge="-1">${esc(t.ui.setup.moveLeft)}</button>
+          <button class="btn btn--ghost btn--small" type="button" data-nudge="1">${esc(t.ui.setup.moveRight)}</button>
+        </div>
         <div class="actions actions--row">
           <button class="btn btn--ghost" type="button" data-cancel>${esc(t.ui.common.cancel)}</button>
           <button class="btn btn--primary" type="button" data-save>${esc(t.ui.setup.save)}</button>

@@ -114,6 +114,11 @@ export const es: Strings = {
       standard: 'Normal',
       complex: 'Avanzada',
       editRoles: 'Ver y ajustar papeles',
+      rearrange: 'Recolocar asientos',
+      rearrangeHint: 'Toca a dos personas para intercambiarlas',
+      rearrangeDone: 'Asientos listos',
+      moveLeft: '◀ Mover',
+      moveRight: 'Mover ▶',
     },
     reveal: {
       passTo: (name) => `Pásale el móvil a ${name}`,
@@ -163,7 +168,7 @@ export const es: Strings = {
     },
     timeline: {
       title: 'Todo lo que ha pasado',
-      open: 'Ver el registro',
+      open: 'Cronología',
       revertHere: 'Volver aquí',
       nightStart: (n) => `Noche ${n}`,
       nightEnd: (n) => `Amanece tras la noche ${n}`,

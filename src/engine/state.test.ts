@@ -13,6 +13,8 @@ import {
   startNight,
   undo,
   revertTo,
+  swapSeats,
+  moveSeat,
   winner,
   type PlayerSetup,
 } from './state'
@@ -353,5 +355,37 @@ describe('the timeline', () => {
     let session = newSession(createGame(cast(['KILLER', 'PLAIN'])))
     session = advance(session, (s) => ({ ...s }))
     expect(session.timeline[0]!.kind).toBe('setup')
+  })
+})
+
+describe('rearranging the table', () => {
+  it('swaps two seats and renumbers so ids stay seating positions', () => {
+    const state = createGame(cast(['KILLER', 'INSPECT', 'GUARD', 'PLAIN'], ['Ana', 'Beto', 'Caro', 'Dani']))
+    const next = swapSeats(state, 0, 3)
+    expect(next.players.map((p) => p.name)).toEqual(['Dani', 'Beto', 'Caro', 'Ana'])
+    expect(next.players.map((p) => p.id)).toEqual([0, 1, 2, 3])
+    // The role travels with the person, not the seat.
+    expect(next.players[0]!.roleId).toBe('PLAIN')
+  })
+
+  it('nudges a seat round the circle, wrapping at the ends', () => {
+    const state = createGame(cast(['KILLER', 'INSPECT', 'GUARD'], ['Ana', 'Beto', 'Caro']))
+    expect(moveSeat(state, 0, 1).players.map((p) => p.name)).toEqual(['Beto', 'Ana', 'Caro'])
+    expect(moveSeat(state, 0, -1).players.map((p) => p.name)).toEqual(['Beto', 'Caro', 'Ana'])
+    expect(moveSeat(state, 2, 1).players.map((p) => p.name)).toEqual(['Caro', 'Ana', 'Beto'])
+  })
+
+  it('refuses once the game has started', () => {
+    // Ids are referenced from the log and lovers by then; renumbering would
+    // corrupt them. The Bloodhound's adjacency also depends on a fixed table.
+    const state = startNight(createGame(cast(['KILLER', 'INSPECT', 'GUARD'])))
+    expect(swapSeats(state, 0, 1)).toBe(state)
+    expect(moveSeat(state, 0, 1)).toBe(state)
+  })
+
+  it('ignores a swap with itself or an unknown seat', () => {
+    const state = createGame(cast(['KILLER', 'INSPECT']))
+    expect(swapSeats(state, 0, 0)).toBe(state)
+    expect(swapSeats(state, 0, 9)).toBe(state)
   })
 })

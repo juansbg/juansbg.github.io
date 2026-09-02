@@ -261,3 +261,43 @@ export const revertTo = (session: Session, index: number): Session => {
     timeline: session.timeline.slice(0, index),
   }
 }
+
+// ---------------------------------------------------------------------------
+// Seating
+// ---------------------------------------------------------------------------
+
+/**
+ * Player ids are seating positions, so rearranging the table means renumbering.
+ *
+ * Only legal during setup: once the game starts, ids are referenced from the
+ * log, pending actions and lovers, and renumbering would corrupt all of them.
+ * Before that nothing points at an id, so reassigning 0..n-1 is safe.
+ */
+const reseat = (state: GameState, order: readonly Player[]): GameState => {
+  if (state.phase !== 'setup') return state
+  return { ...state, players: order.map((p, i) => ({ ...p, id: i })) }
+}
+
+/** Swaps two seats. The narrator taps one player, then the other. */
+export const swapSeats = (state: GameState, a: PlayerId, b: PlayerId): GameState => {
+  const order = [...state.players]
+  const ia = order.findIndex((p) => p.id === a)
+  const ib = order.findIndex((p) => p.id === b)
+  if (ia === -1 || ib === -1 || ia === ib) return state
+  const pa = order[ia] as Player
+  const pb = order[ib] as Player
+  order[ia] = pb
+  order[ib] = pa
+  return reseat(state, order)
+}
+
+/** Nudges one seat clockwise (+1) or anticlockwise (-1), wrapping around. */
+export const moveSeat = (state: GameState, id: PlayerId, direction: 1 | -1): GameState => {
+  const order = [...state.players]
+  const from = order.findIndex((p) => p.id === id)
+  if (from === -1 || order.length < 2) return state
+  const to = (from + direction + order.length) % order.length
+  const [moved] = order.splice(from, 1)
+  order.splice(to, 0, moved as Player)
+  return reseat(state, order)
+}

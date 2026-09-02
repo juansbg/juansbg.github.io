@@ -1220,3 +1220,16 @@ html[data-phase] body {
   letter-spacing: 0.12em;
   text-transform: uppercase;
 }
+
+/* ---------- Rearranging seats ---------- */
+
+.btn--ghost[data-on] {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* The first seat tapped in rearrange mode, waiting for its partner. */
+.seat[data-swap][data-selected] {
+  border-style: dashed;
+  scale: 1.1;
+}

@@ -114,6 +114,11 @@ export const en: Strings = {
       standard: 'Standard',
       complex: 'Advanced',
       editRoles: 'View and adjust roles',
+      rearrange: 'Rearrange seats',
+      rearrangeHint: 'Tap two people to swap them',
+      rearrangeDone: 'Seats done',
+      moveLeft: '◀ Move',
+      moveRight: 'Move ▶',
     },
     reveal: {
       passTo: (name) => `Pass the phone to ${name}`,
@@ -163,7 +168,7 @@ export const en: Strings = {
     },
     timeline: {
       title: 'Everything that happened',
-      open: 'Open the log',
+      open: 'Timeline',
       revertHere: 'Rewind to here',
       nightStart: (n) => `Night ${n}`,
       nightEnd: (n) => `Morning after night ${n}`,
