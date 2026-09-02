@@ -122,7 +122,11 @@ Rules:
 - **Seats.** `.seat` is a square tile with the seat number top-left in mono.
   `[data-crew]` glows (narrator only). `[data-selected]` inverts to Ledger.
   `[data-dead]` goes faint with a strike. `[data-ineligible]` is dashed and
-  dimmed, still there.
+  dimmed, still there. The table is mirror-symmetric: seat 1 sits at the
+  top for an odd count, and an even count straddles the top half a step
+  either side. Tiles are sized from the chord between neighbours so upright
+  squares never overlap (`--seat` in `styles.css` shows the algebra), down
+  to a 2rem floor; past that the list layout is the answer.
 - **The mark.** `.mark` is a 2rem square with a two-letter monogram in Bebas.
   Fill and ink come from `data-accent` (`crew` / `town` / `occult` /
   `system`), set from `src/ui/accent.ts`. Colour says whose side; type says

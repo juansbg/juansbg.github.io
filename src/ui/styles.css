@@ -398,17 +398,26 @@ body {
   /* The diameter is the smaller of the room's width and height, capped; the
      floor keeps a degenerate layout from inverting the radius. */
   --avail: max(min(100cqw, 100cqh, 24.5rem), 9rem);
-  /* Seats sit inside the chord between neighbours (chord ≈ 2r·sin(π/n)) up
-     to just under a third of the table, so four players get four big tiles
-     rather than four dots on an empty ring, and twenty still fit. The
-     factors are tighter than they were for round seats: squares meet at
-     their corners, where circles only kissed. */
+  /* Seat size, solved so that neighbouring squares never overlap.
+
+     Neighbours sit a chord apart: c = 2r·sin(π/n) with r = (avail − s)/2.
+     Two upright squares of side s clear each other when their centres are
+     at least s apart along one axis; in the worst case the chord runs at
+     45°, where that takes a distance of s·√2. Setting (avail − s)·sin(π/n)
+     = s·√2 and solving gives s = avail · sin(π/n) / (√2 + sin(π/n)). The
+     0.31 cap keeps four players as four big tiles rather than a filled
+     ring. The floor is the smallest tile a name still fits in; below it the
+     list layout is the answer, not a smaller square. */
+  --gap: sin(pi / var(--seats, 8));
   --seat: clamp(
-    2.75rem,
-    min(calc(var(--avail) * 0.31), calc(var(--avail) * 0.72 * sin(pi / var(--seats, 8)))),
+    2rem,
+    min(calc(var(--avail) * 0.31), calc(var(--avail) * var(--gap) / (sqrt(2) + var(--gap)))),
     7rem
   );
   --radius: calc((var(--avail) - var(--seat)) / 2);
+  /* Seat 1 sits at the top for an odd table; an even table straddles the
+     top, half a step either side, so both halves of the room mirror. */
+  --offset: calc((1 - mod(var(--seats, 8), 2)) / 2);
   position: relative;
   width: var(--avail);
   height: var(--avail);
@@ -426,16 +435,18 @@ body {
   width: var(--seat);
   height: var(--seat);
   margin: calc(var(--seat) / -2);
-  padding: var(--space-1);
+  /* Thin padding: on a phone the name needs every pixel of the tile. */
+  padding: 2px;
   border: 1px solid var(--hairline-strong);
   border-radius: 0;
   background: var(--surface);
   color: var(--fg);
   font: inherit;
   cursor: pointer;
-  transform: rotate(calc(var(--i) * 1turn / var(--seats)))
-    translate(var(--radius))
-    rotate(calc(var(--i) * -1turn / var(--seats)));
+  --angle: calc((var(--i) + var(--offset)) * 1turn / var(--seats) - 0.25turn);
+  transform: rotate(var(--angle)) translate(var(--radius)) rotate(calc(-1 * var(--angle)));
+  /* The tile is its own container, so what it shows can depend on its size. */
+  container-type: size;
   transition:
     border-color var(--dur-base) var(--ease-out),
     background-color var(--dur-fast) var(--ease-out),
@@ -444,6 +455,22 @@ body {
     opacity var(--dur-base) var(--ease-out);
   animation: seat-in var(--dur-base) var(--ease-out) both;
   animation-delay: calc(var(--i) * 24ms);
+}
+
+/* A small tile keeps the name and drops the rest. A twelve-seat table on a
+   phone is about 2.75rem a tile: the role would be "THE C…" and the number
+   would sit on the name. The query measures the tile's content box, which
+   is the tile less 6px of border and padding. */
+@container (max-width: 2.75rem) {
+  .seat__role {
+    display: none;
+  }
+}
+
+@container (max-width: 2.25rem) {
+  .seat__n {
+    display: none;
+  }
 }
 
 @keyframes seat-in {
@@ -490,7 +517,7 @@ body {
   padding-top: 2px;
   overflow: hidden;
   text-overflow: ellipsis;
-  max-width: calc(var(--seat) - 0.75rem);
+  max-width: calc(var(--seat) - 6px); /* the content box: border and padding */
   white-space: nowrap;
 }
 
