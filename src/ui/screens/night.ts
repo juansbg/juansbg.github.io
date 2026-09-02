@@ -7,7 +7,7 @@ import { strings, type Locale } from '../../i18n'
 import { accentOf } from '../accent'
 import { sigilMarkup } from '../sigils'
 import { esc } from '../dom'
-import { circleMarkup, holdersOf, listMarkup, type Perspective } from './circle'
+import { circleMarkup, holdersOf, listMarkup, type CircleOptions, type Perspective } from './circle'
 import { outcomeCardMarkup } from './timeline'
 
 /** Who this role may target tonight, after its own constraints. */
@@ -61,6 +61,7 @@ export const nightMarkup = (
   locale: Locale,
   picked: readonly PlayerId[] = [],
   layout: Layout = 'circle',
+  peek = false,
 ): string => {
   const t = strings(locale)
   const roleId = currentStep(state)
@@ -74,6 +75,18 @@ export const nightMarkup = (
   const eligible = targets.map((p) => p.id)
   const doomed = roleId === 'MEDIC' ? doomedTonight(state) : []
   const victim = familyVictim(state)
+
+  // The table as the acting player may see it, and that is the default: the
+  // narrator can turn the phone at any moment without a tap. The seats stay
+  // tappable for the narrator. Peek brings the roles and colours back for
+  // this one step, for a narrator who has lost track of who is who.
+  const view = perspectiveFor(state, roleId, picked)
+  const table = (opts: CircleOptions = {}): string =>
+    circleMarkup(
+      state.players,
+      locale,
+      peek ? { showRoles: true, revealTeams: true, doomed, ...opts } : { perspective: view, ...opts },
+    )
 
   // The narrator has to know who to wake, not just which role. v1 never said.
   const holders = holdersOf(state.players, roleId)
@@ -101,11 +114,7 @@ export const nightMarkup = (
     // narrator could not record "he lets the hit go ahead" — every night he
     // was prompted, the victim was converted.
     situation = victim ? t.ui.night.convertOffer(victim.name) : t.ui.night.convertNoVictim
-    chooser = circleMarkup(state.players, locale, {
-      showRoles: true,
-      revealTeams: true,
-      selected: victim ? [victim.id] : [],
-    })
+    chooser = table({ selected: victim ? [victim.id] : [] })
     action = victim
       ? `<div class="actions actions--row">
            <button class="btn btn--ghost" type="button" data-night-confirm>${esc(t.ui.night.convert)}</button>
@@ -115,7 +124,7 @@ export const nightMarkup = (
   } else if (roleId === 'PICK_SIDE') {
     // Confirm used to record a bare `confirm`, which the resolver ignores, so
     // the Associate never actually picked a side. The choice is a role change.
-    chooser = circleMarkup(state.players, locale, { showRoles: true, revealTeams: true })
+    chooser = table()
     action = `<div class="actions actions--row">
         <button class="btn btn--ghost" type="button" data-choose-role="KILLER">${esc(t.ui.night.joinCrew)}</button>
         <button class="btn btn--ghost" type="button" data-choose-role="PLAIN">${esc(t.ui.night.stayTown)}</button>
@@ -127,7 +136,7 @@ export const nightMarkup = (
     if (spare.length === 0) situation = t.ui.night.noSpareCards
     chooser =
       spare.length === 0
-        ? circleMarkup(state.players, locale, { showRoles: true, revealTeams: true })
+        ? table()
         : `<p class="label">${esc(t.ui.night.spareCards)}</p>
            <div class="table table--list"><div class="targets">${spare
              .map((id) => `<button class="target" type="button" data-choose-role="${id}">${esc(t.roles[id].name)}</button>`)
@@ -140,9 +149,7 @@ export const nightMarkup = (
     const ready = picked.length > 0 && picked.length < living.length
     chooser =
       layout === 'circle'
-        ? circleMarkup(state.players, locale, {
-            pickAttr: 'target', eligible: living, selected: picked, showRoles: true, revealTeams: true,
-          })
+        ? table({ pickAttr: 'target', eligible: living, selected: picked })
         : listMarkup(state.players, 'target', living, picked)
     action = `<div class="actions actions--row">
         <button class="btn btn--ghost" type="button" data-skip>${esc(t.ui.night.noOne)}</button>
@@ -170,9 +177,7 @@ export const nightMarkup = (
     if (bothSpent) situation = t.ui.night.bothSpent
     chooser =
       layout === 'circle'
-        ? circleMarkup(state.players, locale, {
-            pickAttr: 'target', eligible, selected: picked, showRoles: true, revealTeams: true, doomed,
-          })
+        ? table({ pickAttr: 'target', eligible, selected: picked })
         : listMarkup(state.players, 'target', eligible, picked)
     action = `
       ${
@@ -187,7 +192,7 @@ export const nightMarkup = (
   } else if (spec.kind === 'none') {
     // A role that picks nobody still gets the table, read-only, so the screen
     // keeps its shape and the narrator keeps their bearings.
-    chooser = circleMarkup(state.players, locale, { showRoles: true, revealTeams: true })
+    chooser = table()
     action = `<div class="actions"><button class="btn btn--primary" type="button" data-night-confirm>${esc(t.ui.common.confirm)}</button></div>`
   } else {
     // The circle is the default: tapping someone in their seat matches what
@@ -196,9 +201,7 @@ export const nightMarkup = (
     // readable.
     chooser =
       layout === 'circle'
-        ? circleMarkup(state.players, locale, {
-            pickAttr: 'target', eligible, selected: picked, showRoles: true, revealTeams: true,
-          })
+        ? table({ pickAttr: 'target', eligible, selected: picked })
         : listMarkup(state.players, 'target', eligible, picked)
     action = `<div class="actions"><button class="btn btn--ghost" type="button" data-skip>${esc(t.ui.night.noOne)}</button></div>`
   }
@@ -208,6 +211,7 @@ export const nightMarkup = (
       <header class="screen__head">
         <p class="night__counter">${esc(t.ui.night.stepCounter(state.stepIndex + 1, state.schedule.length))}</p>
         <div class="screen__tools">
+          <button class="icon-btn icon-btn--word" type="button" data-peek aria-pressed="${peek}">${esc(peek ? t.ui.night.hideRoles : t.ui.night.showRoles)}</button>
           <button class="icon-btn icon-btn--word" type="button" data-show-player>${esc(t.ui.night.showPlayer)}</button>
           <button class="icon-btn" type="button" data-undo aria-label="${esc(t.ui.common.undo)}" title="${esc(t.ui.common.undo)}">↶</button>
         </div>
@@ -244,7 +248,9 @@ export const perspectiveFor = (
   roleId: RoleId,
   picked: readonly PlayerId[] = [],
 ): Perspective => {
-  const crewViewer = ROLES[roleId].team === 'crew'
+  // The Associate counts as crew for the deal but has not joined anyone yet
+  // on his one step; he is shown the Family only once he is one of them.
+  const crewViewer = ROLES[roleId].team === 'crew' && roleId !== 'PICK_SIDE'
   const living = state.players.filter((p) => p.alive)
   const victim = familyVictim(state)
 

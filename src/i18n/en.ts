@@ -169,6 +169,8 @@ export const en: Strings = {
       spent: 'Spent',
       bothSpent: 'Both vials are spent. Wake her anyway, so the table learns nothing.',
       showPlayer: 'Show',
+      showRoles: 'Roles',
+      hideRoles: 'Hide',
       spareCards: 'Cards left in the centre',
       noSpareCards: 'No cards are left in the centre.',
       keepCard: 'Keeps the card',

@@ -59,9 +59,11 @@ export interface CircleOptions {
   /** Who is set to die tonight, for the Santera's step. */
   doomed?: readonly PlayerId[]
   /**
-   * Render for a player's eyes rather than the narrator's: no roles, no team
-   * colour, no question flags, no accent on any seat. Only what the
-   * perspective lists is marked. Everything above that would leak is ignored.
+   * Render for a player's eyes rather than the narrator's: no roles, no
+   * sigils, no team colour, no question flags, no accent on any seat. Only
+   * what the perspective lists is marked. The seats stay tappable — the
+   * narrator records the pick while the player looks on — but nothing a
+   * seat says may come from outside the perspective.
    */
   perspective?: Perspective
 }
@@ -92,9 +94,7 @@ export const circleMarkup = (
       const named = p.name.trim() !== ''
       const role = ROLES[p.roleId]
       const canPick =
-        !hidden &&
-        pickAttr !== undefined &&
-        (eligible === undefined ? p.alive : eligible.includes(p.id))
+        pickAttr !== undefined && (eligible === undefined ? p.alive : eligible.includes(p.id))
       const crew = hidden
         ? perspective.crew.includes(p.id)
         : revealTeams && role.team === 'crew' && p.alive
@@ -109,7 +109,7 @@ export const circleMarkup = (
                 data-named="${named}"
                 ${hidden ? '' : `data-team="${role.team}"`}
                 ${p.alive ? '' : 'data-dead'}
-                ${pickAttr !== undefined && !canPick && p.alive && !hidden ? 'data-ineligible' : ''}
+                ${pickAttr !== undefined && !canPick && p.alive ? 'data-ineligible' : ''}
                 ${canPick ? 'data-pickable' : ''}
                 ${selected.includes(p.id) ? 'data-selected' : ''}
                 ${!hidden && p.hasQuestion ? 'data-question-flag' : ''}

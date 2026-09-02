@@ -169,6 +169,8 @@ export const es: Strings = {
       spent: 'Gastado',
       bothSpent: 'Las dos pócimas están gastadas. Despiértala igualmente, para que la mesa no note nada.',
       showPlayer: 'Mostrar',
+      showRoles: 'Papeles',
+      hideRoles: 'Ocultar',
       spareCards: 'Cartas que quedan en el centro',
       noSpareCards: 'No queda ninguna carta en el centro.',
       keepCard: 'Se queda su carta',

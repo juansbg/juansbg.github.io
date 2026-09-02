@@ -154,6 +154,9 @@ export interface Strings {
       bothSpent: string
       /** Turns the phone to the player at this step. */
       showPlayer: string
+      /** The narrator's peek at roles and colours on a night step, and its undo. */
+      showRoles: string
+      hideRoles: string
       /** The Chameleon's step: the cards left in the centre. */
       spareCards: string
       noSpareCards: string

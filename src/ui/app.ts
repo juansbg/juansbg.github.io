@@ -57,6 +57,8 @@ let inspecting: PlayerId | null = null
  * persisted: a reload comes back on the narrator's side of the screen.
  */
 let showingPlayer = false
+/** The narrator has asked to see roles and colours on this night step. */
+let peeking = false
 let showingLog = false
 /** The dawn slideshow: which slide is up, or null when the report is a list. */
 let dawn: number | null = null
@@ -115,8 +117,10 @@ const mutate = (
   change: Parameters<typeof advance>[1],
   entry?: TimelineEntry,
 ): void => {
-  // Any move belongs to the narrator, so the phone comes back to them.
+  // Any move belongs to the narrator, so the phone comes back to them — and
+  // the next step starts safe to turn around again.
   showingPlayer = false
+  peeking = false
   setState({ session: advance(state.session, change, entry) })
 }
 
@@ -184,7 +188,7 @@ function render(): void {
         ? nightDoneMarkup()
         : showingPlayer
           ? playerViewMarkup(game, state.locale, picked)
-          : nightMarkup(game, state.locale, picked, state.layout)
+          : nightMarkup(game, state.locale, picked, state.layout, peeking)
   } else if (state.screen === 'day') {
     body =
       game.awaitingHunterShot !== null
@@ -763,6 +767,12 @@ function bind(): void {
     setState({})
   })
 
+  // The narrator's board, for this step only.
+  on(root, '[data-peek]', 'click', () => {
+    peeking = !peeking
+    setState({}, false)
+  })
+
   // The Associate picks a side on the first night; the pick is a role change
   // the resolver applies at dawn. Anything but a real role id is ignored.
   on(root, '[data-choose-role]', 'click', (_e, el) => {
@@ -797,6 +807,7 @@ function bind(): void {
     showingLog = false
     inspecting = null
     showingPlayer = false
+    peeking = false
     picked = []
     const session = revertTo(state.session, index)
     buzz()
@@ -815,6 +826,7 @@ function bind(): void {
     if (!canUndo(state.session)) return
     picked = []
     showingPlayer = false
+    peeking = false
     buzz()
     setState({ session: undo(state.session) })
   })

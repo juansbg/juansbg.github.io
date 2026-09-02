@@ -231,7 +231,7 @@ describe('the Godfather’s step', () => {
     expect(html).toContain(strings('en').ui.night.convertOffer('P2'))
     expect(html).toContain('data-night-confirm')
     expect(html).toContain('data-skip')
-    expect(html).toMatch(/data-accent="town"[^>]*data-selected/)
+    expect(html).toMatch(/data-accent="system"[^>]*data-selected/)
   })
 
   it('has nothing to convert when the Family chose no one', () => {
@@ -426,5 +426,53 @@ describe('the Renegade’s targets', () => {
     expect(rogue).not.toContain(0)
     // The Family itself still never eats its own.
     expect(legalTargets(state, 'KILLER').map((p) => p.id)).toEqual([3])
+  })
+})
+
+describe('the night table is safe to turn around', () => {
+  const roles: RoleId[] = ['MEDIC', 'KILLER', 'PLAIN', 'INSPECT', 'CONVERT', 'GUARD']
+  const crewCount = (html: string) => (html.match(/data-crew/g) ?? []).length
+
+  it('hides roles, sigils and colours by default, and stays tappable', () => {
+    // The step itself is what the narrator turns to the player; it must not
+    // need a tap first. The narrator still records the pick on it.
+    for (const locale of LOCALES) {
+      const html = nightMarkup(atRole(roles, 'GUARD'), locale)
+      expect(html).not.toContain('seat__role')
+      expect(html).not.toContain('seat__sigil')
+      expect(html).not.toContain('data-team')
+      expect(crewCount(html)).toBe(0)
+      expect(html).toMatch(/data-target="2"/)
+      expect((html.match(/data-self/g) ?? []).length).toBe(1)
+    }
+  })
+
+  it('still shows the Family the Family, and dims the seats they may not pick', () => {
+    const html = nightMarkup(atRole(roles, 'KILLER'), 'en')
+    expect(crewCount(html)).toBe(2)
+    expect(html).toContain('data-ineligible')
+    expect(html).not.toContain('seat__role')
+  })
+
+  it('shows the Santera who is set to die without anyone’s role', () => {
+    const html = nightMarkup(afterHit(atRole(roles, 'MEDIC'), 2), 'en')
+    expect(html).toMatch(/data-target="2"[^>]*data-doomed/)
+    expect(html).not.toContain('seat__role')
+  })
+
+  it('shows the Associate nobody until he has joined', () => {
+    const html = nightMarkup(atRole(['PICK_SIDE', 'KILLER', 'PLAIN', 'INSPECT'], 'PICK_SIDE'), 'en')
+    expect(crewCount(html)).toBe(0)
+    expect((html.match(/data-self/g) ?? []).length).toBe(1)
+  })
+
+  it('brings the narrator’s board back on peek, for this step only', () => {
+    const state = atRole(roles, 'GUARD')
+    const html = nightMarkup(state, 'en', [], 'circle', true)
+    expect(html).toContain('seat__role')
+    expect(html).toContain('data-team')
+    expect(crewCount(html)).toBe(2)
+    expect(html).toContain(strings('en').ui.night.hideRoles)
+    expect(nightMarkup(state, 'en')).toContain(strings('en').ui.night.showRoles)
   })
 })
