@@ -167,6 +167,41 @@ export const es: Strings = {
       nextNight: 'Cae la noche',
       silencedToday: (name) => `${name} no puede hablar ni votar hoy`,
     },
+    dawn: {
+      play: 'Leer la noche',
+      death: {
+        killers: [
+          (name) => `Han encontrado a ${name} al amanecer. La Familia pasó por su casa.`,
+          (name) => `${name} no ha visto amanecer. La Familia manda recuerdos.`,
+          (name) => `De ${name} solo queda la silla vacía. Fue la Familia.`,
+        ],
+        rogue: [
+          (name) => `${name} también ha caído. Alguien en la Familia va por libre.`,
+          (name) => `Otra baja: ${name}. No todo el mundo sigue órdenes.`,
+          (name) => `Un segundo disparo, esta vez para ${name}. Nadie lo había acordado.`,
+        ],
+        poison: [
+          (name) => `${name} bebió de la copa equivocada. La Santera eligió.`,
+          (name) => `Una gota bastó. ${name} no despertó.`,
+          (name) => `La Santera señaló a ${name}. El veneno hizo el resto.`,
+        ],
+        lynch: [
+          (name) => `El pueblo votó y ${name} pagó la cuenta.`,
+          (name) => `${name} fue a juicio a plena luz del día. No hubo apelación.`,
+          (name) => `El pueblo señaló a ${name}. Caso cerrado.`,
+        ],
+        heartbreak: [
+          (name) => `${name} no soportó la pérdida y se fue con su amarre.`,
+          (name) => `Estaban amarrados. ${name} no se quedó atrás.`,
+          (name) => `A ${name} se le paró el corazón esta noche. El amarre aguantó hasta el final.`,
+        ],
+        revenge: [
+          (name) => `Al Pistolero le quedaba un disparo. Fue para ${name}.`,
+          (name) => `${name} cayó con la última bala del Pistolero.`,
+          (name) => `Última voluntad del Pistolero: ${name}.`,
+        ],
+      },
+    },
     over: {
       title: 'Fin de la partida',
       playAgain: 'Jugar otra vez',

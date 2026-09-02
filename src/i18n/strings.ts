@@ -147,6 +147,21 @@ export interface Strings {
       nextNight: string
       silencedToday: (name: string) => string
     }
+    /**
+     * The dawn slideshow: the night's public outcomes, one full screen each,
+     * for the narrator to read aloud or hold up to the table.
+     */
+    dawn: {
+      /** Accessible name of the play button on the day screen. */
+      play: string
+      /**
+       * A small bank of lines per cause of death, so two deaths in one night
+       * do not read the same. Each takes the victim's name. Newsprint voice:
+       * past tense, no exclamation marks. The pick is deterministic, so a
+       * slide reads the same after an undo or a reload.
+       */
+      death: Record<DeathCause, readonly ((name: string) => string)[]>
+    }
     over: {
       title: string
       playAgain: string

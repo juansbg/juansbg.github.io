@@ -138,6 +138,18 @@ Rules:
 - **The held role card.** Paper for every role alike, with the side in mono
   text. A colour-coded card would tell the table the side before the reader.
   The same rule applies to the across-the-room inspect card.
+- **The dawn slideshow.** `.screen--dawn` (`src/ui/screens/dawn.ts`) shows
+  the night's public outcomes one full screen at a time, from the ▶ on the
+  day screen. A death sets `data-lethal`: the whole ground goes Vendetta and
+  every ink goes Midnight. It is the danger button at cinema size and **the
+  only time Vendetta is a surface**. The mark inverts (Midnight block,
+  Vendetta letters), primary becomes a Midnight block with Ledger, ghost a
+  Midnight hairline; nothing white and nothing Ash touches the red. The name
+  is Bebas at the display maximum; the sentence under it comes from a bank
+  in the string tables (`ui.dawn.death`) picked by night and seat, never at
+  random. Calm slides stay on the day ground. The bar is not rendered while
+  a slide is up, for the same reason as the reveal: the day screen behind it
+  shows every role.
 
 ## Motion
 
@@ -148,8 +160,8 @@ Film cuts, not app fades. A page is turned, not dissolved. Nothing bounces
 |---|---|
 | `--dur-instant` 90ms | press: a 1px nudge and a colour swap |
 | `--dur-fast` 150ms | screen to screen |
-| `--dur-base` 220ms | things that slide up from the bottom: sheets, the role card |
-| `--dur-slow` 600ms | **dawn only**: the ground colour at phase change |
+| `--dur-base` 220ms | things that slide up from the bottom: sheets, the role card; the ground turning red between slides |
+| `--dur-slow` 600ms | **dawn only**: the ground colour at phase change, and the red draining out when the slideshow closes |
 | 2.6s loop | the crew glow, the only looping animation; frozen under `prefers-reduced-motion` |
 
 ## Night and day
@@ -157,6 +169,8 @@ Film cuts, not app fades. A page is turned, not dissolved. Nothing bounces
 `html[data-phase='night']` paints `--bg` (Midnight). `html[data-phase='day']`
 paints `--bg-day` (Midnight + Ash: warmer, still dark). The page never goes
 light; the report card is the sunrise. Setup and the reveal are night.
+`html[data-dawn='lethal']` is the one exception: a death slide paints the
+page Vendetta for as long as it is on screen.
 
 ## Voice
 

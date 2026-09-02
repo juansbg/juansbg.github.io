@@ -167,6 +167,41 @@ export const en: Strings = {
       nextNight: 'Night falls',
       silencedToday: (name) => `${name} cannot speak or vote today`,
     },
+    dawn: {
+      play: 'Read the night',
+      death: {
+        killers: [
+          (name) => `${name} was found at dawn. The Family had been by.`,
+          (name) => `${name} never saw the morning. The Family sends its regards.`,
+          (name) => `${name}'s chair is empty. The Family paid a visit.`,
+        ],
+        rogue: [
+          (name) => `${name} fell too. Somebody in the Family works alone.`,
+          (name) => `A second body: ${name}. Not everyone follows orders.`,
+          (name) => `${name} caught a shot nobody had agreed on.`,
+        ],
+        poison: [
+          (name) => `${name} drank from the wrong glass. The Santera chose.`,
+          (name) => `One drop was enough. ${name} did not wake up.`,
+          (name) => `The Santera picked ${name}. The poison did the rest.`,
+        ],
+        lynch: [
+          (name) => `The town voted, and ${name} paid the bill.`,
+          (name) => `${name} stood trial in broad daylight. There was no appeal.`,
+          (name) => `The town pointed at ${name}. Case closed.`,
+        ],
+        heartbreak: [
+          (name) => `${name} could not bear the loss and followed their binding.`,
+          (name) => `They were bound. ${name} did not stay behind.`,
+          (name) => `${name}'s heart gave out in the night. The binding held to the end.`,
+        ],
+        revenge: [
+          (name) => `The Gunman had one shot left. It was for ${name}.`,
+          (name) => `${name} fell to the Gunman's last bullet.`,
+          (name) => `The Gunman's last wish: ${name}.`,
+        ],
+      },
+    },
     over: {
       title: 'Game over',
       playAgain: 'Play again',

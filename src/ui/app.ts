@@ -28,6 +28,7 @@ import { editorMarkup, MIN_PLAYERS, namesMarkup, rosterMarkup } from './screens/
 import { dealRoles, systemRandom, type Complexity } from '../engine/deal'
 import { dayMarkup, inspectionMarkup, nightMarkup, questionCardMarkup, questionsIntroMarkup } from './screens/night'
 import { circleMarkup } from './screens/circle'
+import { dawnMarkup, dawnSlides } from './screens/dawn'
 import { historyMarkup, timelineMarkup } from './screens/timeline'
 import { bindHold, revealMarkup, roleCardMarkup, type RevealPhase } from './screens/reveal'
 
@@ -52,6 +53,8 @@ let armedSeat: PlayerId | null = null
 /** The player whose card is being held up for the detective to read. */
 let inspecting: PlayerId | null = null
 let showingLog = false
+/** The dawn slideshow: which slide is up, or null when the report is a list. */
+let dawn: number | null = null
 /** The overflow sheet behind the ⋯ button. */
 let menuOpen = false
 /**
@@ -121,6 +124,14 @@ function render(): void {
   document.documentElement.dataset.phase =
     state.screen === 'night' ? 'night' : state.screen === 'day' ? 'day' : 'neutral'
 
+  // The slideshow only exists on the day screen; anything that leaves it
+  // (undo, rewind, next night, restart) drops the slide with it.
+  if (state.screen !== 'day' || game.awaitingHunterShot !== null) dawn = null
+  const slides = dawn === null ? [] : dawnSlides(game, state.locale)
+  const slide = dawn === null ? null : slides[Math.min(dawn, slides.length - 1)] ?? null
+  if (slide) document.documentElement.dataset.dawn = slide.lethal ? 'lethal' : 'calm'
+  else delete document.documentElement.dataset.dawn
+
   releaseHandler?.()
   releaseHandler = null
 
@@ -169,7 +180,9 @@ function render(): void {
     body =
       game.awaitingHunterShot !== null
         ? hunterMarkup()
-        : dayMarkup(game, state.locale, state.layout)
+        : dawn !== null
+          ? dawnMarkup(slides, dawn, game.night, state.locale)
+          : dayMarkup(game, state.locale, state.layout)
     if (picking) sheets += pickerMarkup()
   } else {
     body = overMarkup()
@@ -270,6 +283,9 @@ function render(): void {
   function chromeMarkup(): string {
     if (document.body.classList.contains('is-revealing')) return ''
     if (state.screen === 'reveal' && revealOrder()[state.revealIndex]) return ''
+    // A slide may be held up to the table; the day screen behind it shows
+    // every role, so nothing may lead out of the slideshow but its own Done.
+    if (dawn !== null) return ''
     const inGame = state.screen !== 'setup'
     const timeline = inGame
       ? `<button class="bar__btn" type="button" data-log>${esc(t.ui.timeline.open)}</button>`
@@ -763,6 +779,38 @@ function bind(): void {
     })
     if (winner(state.session.current) !== null) setState({ screen: 'over' })
     else setState({})
+  })
+
+  // ---- Dawn slideshow ----
+  // Slides cut, they do not crossfade: a view transition on top of the
+  // ground's own colour transition left the red arriving one slide late.
+  // The slide's entrance is its own keyframe; the ground fades in CSS.
+  on(root, '[data-dawn-play]', 'click', () => {
+    dawn = 0
+    buzz()
+    setState({}, false)
+  })
+
+  on(root, '[data-dawn-next]', 'click', (e) => {
+    // The body and the Next button both carry this; a tap on the button
+    // must not also count as a tap on the body it sits outside of.
+    e.stopPropagation()
+    if (dawn === null) return
+    const count = dawnSlides(game, state.locale).length
+    if (dawn >= count - 1) dawn = null
+    else dawn += 1
+    setState({}, false)
+  })
+
+  on(root, '[data-dawn-prev]', 'click', () => {
+    if (dawn === null || dawn === 0) return
+    dawn -= 1
+    setState({}, false)
+  })
+
+  on(root, '[data-dawn-close]', 'click', () => {
+    dawn = null
+    setState({}, false)
   })
 
   on(root, '[data-next-night]', 'click', () => {

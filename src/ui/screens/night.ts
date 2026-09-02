@@ -170,6 +170,7 @@ export const dayMarkup = (
       <header class="screen__head">
         <h1 class="title title--sm">${esc(t.phase.townWakes)}</h1>
         <div class="screen__tools">
+          <button class="icon-btn" type="button" data-dawn-play aria-label="${esc(t.ui.dawn.play)}" title="${esc(t.ui.dawn.play)}">▶</button>
           <button class="icon-btn" type="button" data-undo aria-label="${esc(t.ui.common.undo)}" title="${esc(t.ui.common.undo)}">↶</button>
         </div>
       </header>
