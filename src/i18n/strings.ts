@@ -65,6 +65,15 @@ export interface Strings {
     }
     setup: {
       howMany: string
+      /** The name-entry screen. */
+      whoIsPlaying: string
+      addName: string
+      addHint: string
+      minPlayers: (n: number) => string
+      namesReady: (n: number) => string
+      clearNames: string
+      clearConfirm: string
+      remove: string
       players: string
       namePlaceholder: string
       rolePlaceholder: string
@@ -126,6 +135,8 @@ export interface Strings {
     over: {
       title: string
       playAgain: string
+      finishNow: string
+      history: string
     }
     timeline: {
       title: string

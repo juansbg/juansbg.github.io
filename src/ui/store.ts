@@ -1,8 +1,17 @@
-import { newSession, type Session } from '../engine/state'
+import { newSession, type Session, type TimelineEntry } from '../engine/state'
 import type { GameState } from '../engine/types'
 import { STATE_VERSION } from '../engine/types'
 import type { Locale } from '../i18n'
 import type { Layout } from './screens/night'
+
+/**
+ * How many moves of history survive a reload.
+ *
+ * Each snapshot is a whole GameState (~1.5 KB for eight players), so this
+ * bounds the save at well under localStorage's budget while keeping a full
+ * game's worth of log and rewind.
+ */
+export const HISTORY_LIMIT = 80
 
 /** Which screen the app is on. Derived from phase, except for the reveal. */
 export type Screen = 'setup' | 'reveal' | 'night' | 'day' | 'over'
@@ -30,20 +39,26 @@ interface Saved {
   screen: Screen
   revealIndex: number
   layout?: Layout
+  /** The last HISTORY_LIMIT snapshots and the moves that led from them. */
+  past?: GameState[]
+  timeline?: TimelineEntry[]
 }
 
 /**
  * Autosave.
  *
  * The engine's GameState is JSON-serializable by design, which is what makes
- * this three lines rather than a project. Losing a game to a phone call was
+ * this a few lines rather than a project. Losing a game to a phone call was
  * the worst failure mode of every previous version.
  *
- * Undo history is deliberately NOT persisted: it can grow without bound and a
- * narrator resuming a game hours later does not expect to undo into it.
+ * History is persisted too, capped at HISTORY_LIMIT moves. Without it the log
+ * came back empty after any reload, and the "rewind to here" buttons had
+ * nothing to rewind to — which defeats the point of having a log at all.
  */
 export const save = (state: AppState): void => {
   try {
+    const { past, timeline } = state.session
+    const keep = Math.max(0, past.length - HISTORY_LIMIT)
     const payload: Saved = {
       version: STATE_VERSION,
       game: state.session.current,
@@ -51,6 +66,8 @@ export const save = (state: AppState): void => {
       screen: state.screen,
       revealIndex: state.revealIndex,
       layout: state.layout,
+      past: past.slice(keep),
+      timeline: timeline.slice(keep),
     }
     localStorage.setItem(KEY, JSON.stringify(payload))
   } catch {
@@ -70,8 +87,18 @@ export const load = ():
     if (parsed.version !== STATE_VERSION) return null
     if (!Array.isArray(parsed.game?.players)) return null
 
+    // Saves from before history was persisted simply have none. The two
+    // arrays must stay the same length; a mismatch means a corrupt save,
+    // and an empty history is the safe reading of that.
+    const past = Array.isArray(parsed.past) ? parsed.past : []
+    const timeline = Array.isArray(parsed.timeline) ? parsed.timeline : []
+    const session: Session =
+      past.length === timeline.length
+        ? { current: parsed.game, past, timeline }
+        : newSession(parsed.game)
+
     return {
-      session: newSession(parsed.game),
+      session,
       locale: parsed.locale,
       screen: parsed.screen,
       revealIndex: parsed.revealIndex ?? 0,
@@ -88,5 +115,40 @@ export const clear = (): void => {
     localStorage.removeItem(KEY)
   } catch {
     // Nothing to do — see save().
+  }
+}
+
+const ROSTER_KEY = 'omerta:roster'
+
+/**
+ * The names from the last game, remembered across resets.
+ *
+ * The same group plays again and again; retyping eight names every time is
+ * the single most tedious thing about running the game. Kept separately from
+ * the game save so that resetting the game does not forget the people.
+ */
+export const loadRoster = (): string[] => {
+  try {
+    const raw = localStorage.getItem(ROSTER_KEY)
+    const parsed: unknown = raw === null ? [] : JSON.parse(raw)
+    return Array.isArray(parsed) ? parsed.filter((n): n is string => typeof n === 'string') : []
+  } catch {
+    return []
+  }
+}
+
+export const saveRoster = (names: readonly string[]): void => {
+  try {
+    localStorage.setItem(ROSTER_KEY, JSON.stringify(names))
+  } catch {
+    // See save().
+  }
+}
+
+export const clearRoster = (): void => {
+  try {
+    localStorage.removeItem(ROSTER_KEY)
+  } catch {
+    // See save().
   }
 }

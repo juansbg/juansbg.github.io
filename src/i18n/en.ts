@@ -92,6 +92,14 @@ export const en: Strings = {
     },
     setup: {
       howMany: 'How many players?',
+      whoIsPlaying: 'Who is playing?',
+      addName: 'Add',
+      addHint: 'Type a name and hit Enter. One after another.',
+      minPlayers: (n) => `You need at least ${n} players`,
+      namesReady: (n) => `${n} players. Let’s go`,
+      clearNames: 'Clear the list',
+      clearConfirm: 'Sure? This removes every name.',
+      remove: 'Remove',
       players: 'Players',
       namePlaceholder: 'Name',
       rolePlaceholder: 'Pick a role',
@@ -150,6 +158,8 @@ export const en: Strings = {
     over: {
       title: 'Game over',
       playAgain: 'Play again',
+      finishNow: 'End the game',
+      history: 'The whole game',
     },
     timeline: {
       title: 'Everything that happened',

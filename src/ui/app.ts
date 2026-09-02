@@ -20,11 +20,12 @@ import {
 import type { NightAction, PlayerId } from '../engine/types'
 import { detectLocale, renderWinner, strings } from '../i18n'
 import { buzz, esc, on, swap } from './dom'
-import { clear, load, save, type AppState } from './store'
-import { countPickerMarkup, editorMarkup, MIN_PLAYERS, rosterMarkup } from './screens/setup'
+import { clear, clearRoster, load, loadRoster, save, saveRoster, type AppState } from './store'
+import { editorMarkup, MIN_PLAYERS, namesMarkup, rosterMarkup } from './screens/setup'
 import { dealRoles, systemRandom, type Complexity } from '../engine/deal'
 import { dayMarkup, inspectionMarkup, nightMarkup } from './screens/night'
-import { timelineMarkup } from './screens/timeline'
+import { circleMarkup } from './screens/circle'
+import { historyMarkup, timelineMarkup } from './screens/timeline'
 import { bindHold, revealMarkup, roleCardMarkup, type RevealPhase } from './screens/reveal'
 
 const appRoot = document.querySelector<HTMLDivElement>('#app')
@@ -40,6 +41,8 @@ let picking = false
 let picked: PlayerId[] = []
 /** Chosen difficulty for auto-dealing. */
 let complexity: Complexity = 'standard'
+/** Names on the entry screen. Seeded from the last game's roster. */
+let names: string[] = loadRoster()
 /** The player whose card is being held up for the detective to read. */
 let inspecting: PlayerId | null = null
 let showingLog = false
@@ -95,6 +98,8 @@ function render(): void {
   const game = state.session.current
   const t = strings(state.locale)
   document.documentElement.lang = state.locale
+  document.documentElement.dataset.phase =
+    state.screen === 'night' ? 'night' : state.screen === 'day' ? 'day' : 'neutral'
 
   releaseHandler?.()
   releaseHandler = null
@@ -103,7 +108,7 @@ function render(): void {
 
   if (state.screen === 'setup') {
     body = game.players.length === 0
-      ? countPickerMarkup(state.locale)
+      ? namesMarkup(names, state.locale)
       : rosterMarkup(game.players, state.locale, complexity)
     if (editing !== null) {
       const player = game.players.find((p) => p.id === editing)
@@ -182,10 +187,14 @@ function render(): void {
 
   function overMarkup(): string {
     const line = renderWinner(winner(game), state.locale) ?? ''
+    // The whole game as coloured cards, night by night: v1's finishGame view.
     return `
-      <section class="screen screen--center">
+      <section class="screen screen--over">
         <h1 class="title title--sm">${esc(t.ui.over.title)}</h1>
-        <p class="winner">${esc(line)}</p>
+        ${line ? `<p class="winner">${esc(line)}</p>` : ''}
+        ${circleMarkup(game.players, state.locale, { showRoles: true, revealTeams: true, compact: true })}
+        <h2 class="subtitle subtitle--sm">${esc(t.ui.over.history)}</h2>
+        ${historyMarkup(game, state.locale)}
         <button class="btn btn--primary" type="button" data-restart>${esc(t.ui.over.playAgain)}</button>
       </section>
     `
@@ -246,20 +255,52 @@ function bind(): void {
   })
 
   on(root, '[data-reset]', 'click', () => {
+    // Forget the game, keep the people: the names come back on the next screen.
     clear()
+    names = loadRoster()
     editing = null
     singleTarget = null
+    inspecting = null
+    showingLog = false
+    picked = []
     state = boot()
     setState({ session: newSession(createGame([])), screen: 'setup', revealIndex: 0 })
   })
 
   // ---- Setup ----
-  on(root, '[data-count]', 'click', (_e, el) => {
-    const count = Number(el.dataset.count ?? MIN_PLAYERS)
-    const setups: PlayerSetup[] = Array.from({ length: count }, () => ({
-      name: '',
-      roleId: 'PLAIN' as RoleId,
-    }))
+  // ---- Names ----
+  // One field, Enter adds, repeat. The count is simply how many were typed.
+  on(root, '[data-name-form]', 'submit', (event) => {
+    event.preventDefault()
+    const input = root.querySelector<HTMLInputElement>('[data-new-name]')
+    const name = input?.value.trim() ?? ''
+    if (name === '') return
+    names = [...names, name]
+    saveRoster(names)
+    buzz()
+    setState({}, false)
+    root.querySelector<HTMLInputElement>('[data-new-name]')?.focus()
+  })
+
+  on(root, '[data-remove-name]', 'click', (_e, el) => {
+    names = names.filter((_, i) => i !== Number(el.dataset.removeName))
+    saveRoster(names)
+    setState({}, false)
+  })
+
+  on(root, '[data-clear-names]', 'click', () => {
+    // The remembered list is the one thing a reset keeps, so wiping it is
+    // deliberate and asks first.
+    if (!window.confirm(strings(state.locale).ui.setup.clearConfirm)) return
+    names = []
+    clearRoster()
+    setState({}, false)
+  })
+
+  on(root, '[data-names-done]', 'click', () => {
+    if (names.length < MIN_PLAYERS) return
+    const setups: PlayerSetup[] = names.map((name) => ({ name, roleId: 'PLAIN' as RoleId }))
+    saveRoster(names)
     buzz()
     setState({ session: newSession(createGame(setups)) })
   })
@@ -323,6 +364,7 @@ function bind(): void {
   })
 
   on(root, '[data-deal]', 'click', () => {
+    saveRoster(game.players.map((p) => p.name))
     revealPhase = 'handoff'
     buzz()
     setState({ screen: 'reveal', revealIndex: 0, revealMode: 'onboarding' })
@@ -546,7 +588,14 @@ function bind(): void {
 
   on(root, '[data-restart]', 'click', () => {
     clear()
+    names = loadRoster()
     setState({ session: newSession(createGame([])), screen: 'setup', revealIndex: 0 })
+  })
+
+  // End early and see the whole game — v1's flag button.
+  on(root, '[data-finish]', 'click', () => {
+    buzz()
+    setState({ screen: 'over' })
   })
 }
 

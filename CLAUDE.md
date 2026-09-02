@@ -14,7 +14,20 @@ Deployed as a GitHub Pages site (`juansbg.github.io`).
 
 The project is being rebuilt. The roadmap is six sprints; **Sprints 0-3 are done.**
 
-`src/engine/` is complete and at full narrator-script parity. `src/i18n/` holds the Spanish and English string tables and the outcome renderer. 73 tests, no DOM, no strings in the engine. **Sprint 4 (motion polish) and 5 (PWA) remain.** The UI lives in `src/ui/`: one token set in `tokens.css`, screens in `src/ui/screens/`, autosave in `store.ts`.
+`src/engine/` is complete and at full narrator-script parity. `src/i18n/` holds the Spanish and English string tables and the outcome renderer. 176 tests, no DOM, no strings in the engine. **Sprint 5 (PWA: service worker, manifest, offline, cutover from `/beta/` to `/`) remains.** The UI lives in `src/ui/`: one token set in `tokens.css`, screens in `src/ui/screens/`, autosave in `store.ts`.
+
+### How the narrator's flow works now
+
+- **Setup is names only.** `screens/setup.ts` starts with a single field: type a name, Enter, repeat. The player count is how many names were typed; there is no count picker. The list is remembered in `omerta:roster` across resets — reset forgets the game, not the people — and a separate "Clear the list" asks before wiping it.
+- **Roles are dealt at random** (`engine/deal.ts`) by default; manual assignment stays as an override. The dealer only ever hands out roles the engine fully resolves — `NOT_AUTO_DEALT` lists the exceptions and a test enforces it.
+- **The seating circle is the target picker** (`screens/circle.ts`). Seats render as `data-seat` / `data-target` / `data-lynch` depending on the question, so the existing handlers pick them up. Ineligible players are dimmed and disabled, never hidden; the crew glows red for the narrator (v2's idea). A list layout is a toggle, remembered.
+- **Outcomes are coloured cards** (`screens/timeline.ts`, `outcomeCardMarkup`): the morning report, the log, and the end-of-game history all colour each entry by the role that caused it via `i18n/outcomeAccent`. This is v1's `displayCards` rebuilt on structured outcomes. The page ground tints cold at night and warm by day (`html[data-phase]`).
+- **History is persisted**, capped at `HISTORY_LIMIT` moves (`store.ts`), so the log and every "rewind to here" survive a reload. Setup edits are kept for rewinding but hidden from the log (`kind: 'setup'`).
+
+### Two traps worth knowing
+
+- `dom.ts`'s `swap()` must always run its callback. `document.startViewTransition` rejects when the tab is hidden or a transition is in flight; an unhandled rejection there means the screen silently stops updating. It now falls back to a plain paint.
+- Node 26 ships an experimental `localStorage` global that is `undefined` without `--localstorage-file` and shadows jsdom's. Tests that touch storage install a small in-memory shim (`store.test.ts`) rather than relying on either.
 
 | | Path | Status |
 |---|---|---|

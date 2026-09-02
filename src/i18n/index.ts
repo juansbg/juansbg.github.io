@@ -1,4 +1,5 @@
 import type { GameState, Outcome, Player, PlayerId } from '../engine/types'
+import type { RoleId } from '../engine/roles'
 import type { Winner } from '../engine/state'
 import { en } from './en'
 import { es } from './es'
@@ -73,6 +74,50 @@ export const morningReport = (
     .filter((line): line is string => line !== null)
 
   return lines.length > 0 ? lines : [strings(locale).phase.quietNight]
+}
+
+/**
+ * The role whose colour an outcome should carry.
+ *
+ * v1 coloured every morning-report card by the role that caused it, which is
+ * what made the report readable at a glance — a red card is a killing, a
+ * purple one is the Santera. This is the structured version of that idea.
+ */
+export const outcomeAccent = (outcome: Outcome): RoleId | 'town' => {
+  switch (outcome.type) {
+    case 'death':
+      switch (outcome.cause) {
+        case 'killers': return 'KILLER'
+        case 'rogue': return 'ROGUE'
+        case 'poison': return 'MEDIC'
+        case 'heartbreak': return 'PAIR'
+        case 'revenge': return 'AVENGE'
+        case 'lynch': return 'town'
+      }
+    // eslint-disable-next-line no-fallthrough
+    case 'attackBlocked':
+      return outcome.by
+    case 'inspected':
+      return 'INSPECT'
+    case 'protected':
+      return 'GUARD'
+    case 'lovers':
+      return 'PAIR'
+    case 'father':
+      return 'PROTEGE'
+    case 'converted':
+      return 'CONVERT'
+    case 'silenced':
+      return 'SILENCE'
+    case 'extraVote':
+      return 'EXTRA_VOTE'
+    case 'sectSplit':
+      return 'SPLIT'
+    case 'growl':
+      return 'SENSE'
+    case 'roleChanged':
+      return outcome.to
+  }
 }
 
 export const renderWinner = (winner: Winner, locale: Locale): string | null => {

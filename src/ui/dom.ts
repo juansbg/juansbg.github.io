@@ -21,11 +21,25 @@ export const swap = (paint: () => void): void => {
   }
 
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches
-  if (reduced || typeof doc.startViewTransition !== 'function') {
+  // A hidden tab cannot run a transition, and starting one while another is
+  // in flight aborts it with InvalidStateError. In both cases the callback
+  // must still run — otherwise the screen simply stops updating, which is
+  // what happened when the app was backgrounded mid-render.
+  if (reduced || document.hidden || typeof doc.startViewTransition !== 'function') {
     paint()
     return
   }
-  doc.startViewTransition(paint)
+  let painted = false
+  const paintOnce = (): void => {
+    if (painted) return
+    painted = true
+    paint()
+  }
+  try {
+    doc.startViewTransition(paintOnce).finished.catch(paintOnce)
+  } catch {
+    paintOnce()
+  }
 }
 
 /** A short haptic tap where the platform supports it. */

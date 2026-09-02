@@ -33,6 +33,12 @@ export interface CircleOptions {
   selected?: readonly PlayerId[]
   showRoles?: boolean
   compact?: boolean
+  /**
+   * Mark the crew with a red glow. v2 did this on the narrator's board and it
+   * is the fastest way to read a table: the narrator already knows everything,
+   * and a glance beats reading six role labels.
+   */
+  revealTeams?: boolean
 }
 
 export const circleMarkup = (
@@ -41,7 +47,9 @@ export const circleMarkup = (
   options: CircleOptions = {},
 ): string => {
   const t = strings(locale)
-  const { pickAttr, eligible, selected = [], showRoles = false, compact = false } = options
+  const {
+    pickAttr, eligible, selected = [], showRoles = false, compact = false, revealTeams = false,
+  } = options
 
   const seats = players
     .map((p) => {
@@ -61,7 +69,8 @@ export const circleMarkup = (
                 ${pickAttr !== undefined && !canPick && p.alive ? 'data-ineligible' : ''}
                 ${canPick ? 'data-pickable' : ''}
                 ${selected.includes(p.id) ? 'data-selected' : ''}
-                ${p.hasQuestion ? 'data-question-flag' : ''}>
+                ${p.hasQuestion ? 'data-question-flag' : ''}
+                ${revealTeams && role.team === 'crew' && p.alive ? 'data-crew' : ''}>
           <span class="seat__name">${named ? esc(p.name) : '—'}</span>
           ${showRoles ? `<span class="seat__role">${esc(t.roles[p.roleId].name)}</span>` : ''}
           ${p.hasQuestion ? '<span class="seat__flag" aria-hidden="true">?</span>' : ''}

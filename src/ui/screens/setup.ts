@@ -9,18 +9,50 @@ import { circleMarkup } from './circle'
 export const MIN_PLAYERS = 4
 export const MAX_PLAYERS = 20
 
-export const countPickerMarkup = (locale: Locale): string => {
+/**
+ * Name entry. One field, Enter adds, repeat.
+ *
+ * This replaces the "how many players?" grid: the count is simply how many
+ * names were typed. With roles dealt at random this is all the narrator ever
+ * needs to enter, and the list is remembered between games so the same group
+ * never types it twice.
+ */
+export const namesMarkup = (names: readonly string[], locale: Locale): string => {
   const t = strings(locale)
-  const buttons = Array.from({ length: MAX_PLAYERS - MIN_PLAYERS + 1 }, (_, i) => {
-    const n = MIN_PLAYERS + i
-    return `<button class="count" type="button" data-count="${n}">${n}</button>`
-  }).join('')
+  const enough = names.length >= MIN_PLAYERS
+
+  const chips = names
+    .map(
+      (name, i) => `
+        <li class="name-chip" style="--i: ${i}">
+          <span class="name-chip__text">${esc(name)}</span>
+          <button class="name-chip__remove" type="button" data-remove-name="${i}"
+                  aria-label="${esc(t.ui.setup.remove)}">×</button>
+        </li>`,
+    )
+    .join('')
 
   return `
-    <section class="screen screen--setup">
+    <section class="screen screen--names">
       <h1 class="title">${esc(t.appName)}</h1>
-      <p class="subtitle">${esc(t.ui.setup.howMany)}</p>
-      <div class="count-grid">${buttons}</div>
+      <p class="subtitle">${esc(t.ui.setup.whoIsPlaying)}</p>
+
+      <form class="name-form" data-name-form autocomplete="off">
+        <input class="field__input name-form__input" type="text" data-new-name
+               placeholder="${esc(t.ui.setup.namePlaceholder)}"
+               enterkeyhint="next" autocapitalize="words" autofocus>
+        <button class="btn btn--primary" type="submit">${esc(t.ui.setup.addName)}</button>
+      </form>
+      <p class="field__hint">${esc(t.ui.setup.addHint)}</p>
+
+      <ul class="name-list">${chips}</ul>
+
+      <div class="actions">
+        <button class="btn btn--primary" type="button" data-names-done ${enough ? '' : 'disabled'}>
+          ${esc(enough ? t.ui.setup.namesReady(names.length) : t.ui.setup.minPlayers(MIN_PLAYERS))}
+        </button>
+        ${names.length > 0 ? `<button class="btn btn--ghost btn--small" type="button" data-clear-names>${esc(t.ui.setup.clearNames)}</button>` : ''}
+      </div>
     </section>
   `
 }
@@ -55,7 +87,7 @@ export const rosterMarkup = (
     <section class="screen screen--roster">
       <h1 class="title title--sm">${esc(t.ui.setup.players)}</h1>
       <p class="subtitle subtitle--sm">${esc(t.ui.setup.tapToEdit)}</p>
-      ${circleMarkup(players, locale, { pickAttr: 'seat', eligible: players.map((p) => p.id), showRoles: assigned })}
+      ${circleMarkup(players, locale, { pickAttr: 'seat', eligible: players.map((p) => p.id), showRoles: assigned, revealTeams: assigned })}
 
       <p class="field__label">${esc(t.ui.setup.complexity)}</p>
       <div class="chips">${levels}</div>

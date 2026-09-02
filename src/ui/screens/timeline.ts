@@ -1,6 +1,6 @@
 import type { Session, TimelineEntry } from '../../engine/state'
-import type { Player, PlayerId } from '../../engine/types'
-import { strings, type Locale } from '../../i18n'
+import type { GameState, Outcome, Player, PlayerId } from '../../engine/types'
+import { outcomeAccent, renderOutcome, strings, type Locale } from '../../i18n'
 import { esc } from '../dom'
 
 /**
@@ -9,6 +9,10 @@ import { esc } from '../dom'
  * A narrator checking back on "did the detective already look at Beto?" needs
  * the silent steps most of all, so every recorded move appears here — not just
  * the public outcomes the morning report reads aloud.
+ *
+ * Every row carries the colour of the role that made the move. v1 coloured its
+ * report cards this way and it was the most readable thing about it: a red
+ * card is a killing, a purple one is the Santera, without reading a word.
  */
 
 const nameOf = (players: readonly Player[], id: PlayerId | undefined): string =>
@@ -55,13 +59,32 @@ export const describeEntry = (
             action.potion === 'heal' ? t.ui.night.heal : t.ui.night.poison,
           )
         case 'chooseRole':
-          return tl.acted(roleName)
         case 'confirm':
-          return tl.acted(roleName)
         case 'split':
           return tl.acted(roleName)
       }
     }
+  }
+}
+
+/** The accent an entry should carry: its role, or the town for a lynching. */
+const entryAccent = (entry: TimelineEntry): string => {
+  if (entry.roleId) return `var(--role-${entry.roleId})`
+  if (entry.kind === 'lynch') return 'var(--town)'
+  if (entry.kind === 'hunterShot') return 'var(--role-AVENGE)'
+  return 'var(--fg-faint)'
+}
+
+/** A glyph per kind of move, so rows scan without reading. */
+const entryGlyph = (entry: TimelineEntry): string => {
+  switch (entry.kind) {
+    case 'nightStart': return '☾'
+    case 'nightEnd': return '☀'
+    case 'lynch': return '⚖'
+    case 'hunterShot': return '✦'
+    case 'action':
+      return entry.action?.kind === 'skip' ? '·' : '●'
+    default: return ''
   }
 }
 
@@ -76,16 +99,22 @@ export const timelineMarkup = (session: Session, locale: Locale): string => {
     .map((entry, i) => ({ entry, i }))
     .filter(({ entry }) => entry.kind !== 'setup')
     .reverse()
-    .map(
-      ({ entry, i }) => `
-        <li class="log__row" data-night="${entry.night}">
+    .map(({ entry, i }) => {
+      const divider = entry.kind === 'nightStart' || entry.kind === 'nightEnd'
+      return `
+        <li class="log__row${divider ? ' log__row--divider' : ''}${
+          entry.action?.kind === 'skip' ? ' log__row--quiet' : ''
+        }"
+            data-night="${entry.night}"
+            style="--accent: ${entryAccent(entry)}">
+          <span class="log__glyph" aria-hidden="true">${entryGlyph(entry)}</span>
           <span class="log__text">${esc(describeEntry(entry, players, locale))}</span>
           <button class="log__revert" type="button" data-revert="${i}">
             ${esc(t.ui.timeline.revertHere)}
           </button>
         </li>
-      `,
-    )
+      `
+    })
     .join('')
 
   return `
@@ -97,4 +126,58 @@ export const timelineMarkup = (session: Session, locale: Locale): string => {
       </div>
     </div>
   `
+}
+
+/**
+ * One public outcome as a coloured card — the unit of the morning report and
+ * of the end-of-game history. Direct descendant of v1's `displayCards`.
+ */
+export const outcomeCardMarkup = (
+  outcome: Outcome,
+  players: readonly Player[],
+  locale: Locale,
+  index = 0,
+): string | null => {
+  const line = renderOutcome(outcome, players, locale)
+  if (line === null) return null
+  const accent = outcomeAccent(outcome)
+  const colour = accent === 'town' ? 'var(--town)' : `var(--role-${accent})`
+
+  // The name is pulled out as a badge so it reads first, as v1's did.
+  const subject =
+    'target' in outcome ? players.find((p) => p.id === outcome.target)?.name : undefined
+
+  return `
+    <li class="report__card" style="--accent: ${colour}; --i: ${index}" data-kind="${outcome.type}">
+      ${subject ? `<span class="report__badge">${esc(subject)}</span>` : ''}
+      <span class="report__line">${esc(line)}</span>
+    </li>
+  `
+}
+
+/**
+ * Every public outcome of the whole game, grouped by night. This is v1's
+ * `finishGame()` view — the one thing the old app did that people liked.
+ */
+export const historyMarkup = (state: GameState, locale: Locale): string => {
+  const t = strings(locale)
+  const nights = [...new Set(state.log.map((o) => o.night))].sort((a, b) => a - b)
+
+  const groups = nights
+    .map((night) => {
+      const cards = state.log
+        .filter((o) => o.night === night && o.public)
+        .map((o, i) => outcomeCardMarkup(o, state.players, locale, i))
+        .filter((c): c is string => c !== null)
+        .join('')
+      return `
+        <section class="history__night">
+          <h3 class="history__title">${esc(t.ui.timeline.nightStart(night))}</h3>
+          <ul class="report">${cards || `<li class="report__card report__card--quiet">${esc(t.phase.quietNight)}</li>`}</ul>
+        </section>
+      `
+    })
+    .join('')
+
+  return `<div class="history">${groups}</div>`
 }

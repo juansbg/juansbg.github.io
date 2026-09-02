@@ -92,6 +92,14 @@ export const es: Strings = {
     },
     setup: {
       howMany: '¿Cuántos jugadores?',
+      whoIsPlaying: '¿Quién juega?',
+      addName: 'Añadir',
+      addHint: 'Escribe un nombre y pulsa Intro. Uno detrás de otro.',
+      minPlayers: (n) => `Hacen falta al menos ${n} jugadores`,
+      namesReady: (n) => `${n} jugadores. ¡Vamos!`,
+      clearNames: 'Borrar la lista',
+      clearConfirm: '¿Seguro? Se borran todos los nombres.',
+      remove: 'Quitar',
       players: 'Jugadores',
       namePlaceholder: 'Nombre',
       rolePlaceholder: 'Elige un papel',
@@ -150,6 +158,8 @@ export const es: Strings = {
     over: {
       title: 'Fin de la partida',
       playAgain: 'Jugar otra vez',
+      finishNow: 'Terminar la partida',
+      history: 'Toda la partida',
     },
     timeline: {
       title: 'Todo lo que ha pasado',

@@ -1,9 +1,10 @@
 import { ROLES, type RoleId } from '../../engine/roles'
 import { currentStep } from '../../engine/state'
 import type { GameState, Player, PlayerId } from '../../engine/types'
-import { morningReport, strings, type Locale } from '../../i18n'
+import { strings, type Locale } from '../../i18n'
 import { esc } from '../dom'
 import { circleMarkup, holdersOf, listMarkup } from './circle'
+import { outcomeCardMarkup } from './timeline'
 
 /** Who this role may target tonight, after its own constraints. */
 export const legalTargets = (state: GameState, roleId: RoleId): Player[] => {
@@ -96,6 +97,8 @@ export const nightMarkup = (
           pickAttr: 'target',
           eligible,
           selected: picked,
+          showRoles: true,
+          revealTeams: true,
         })
       : listMarkup(state.players, 'target', eligible, picked)
 
@@ -141,11 +144,16 @@ export const dayMarkup = (
   layout: Layout = 'circle',
 ): string => {
   const t = strings(locale)
-  const lines = morningReport(state, state.night, locale)
-
-  const report = lines
-    .map((line, i) => `<li class="report__line" style="--i: ${i}">${esc(line)}</li>`)
-    .join('')
+  // Coloured cards, one per public outcome, in the colour of the role that
+  // caused it — v1's displayCards, rebuilt on structured outcomes.
+  const cards = state.log
+    .filter((o) => o.night === state.night && o.public)
+    .map((o, i) => outcomeCardMarkup(o, state.players, locale, i))
+    .filter((c): c is string => c !== null)
+  const report =
+    cards.length > 0
+      ? cards.join('')
+      : `<li class="report__card report__card--quiet">${esc(t.phase.quietNight)}</li>`
 
   const living = state.players.filter((p) => p.alive).map((p) => p.id)
 
@@ -167,7 +175,9 @@ export const dayMarkup = (
       <p class="subtitle subtitle--sm">${esc(t.ui.day.whoDies)}</p>
       ${
         layout === 'circle'
-          ? circleMarkup(state.players, locale, { pickAttr: 'lynch', eligible: living })
+          ? circleMarkup(state.players, locale, {
+              pickAttr: 'lynch', eligible: living, showRoles: true, revealTeams: true,
+            })
           : listMarkup(state.players, 'lynch', living)
       }
       <button class="btn btn--ghost btn--small" type="button" data-layout>
@@ -178,6 +188,7 @@ export const dayMarkup = (
         <button class="btn btn--ghost" type="button" data-show-role>${esc(t.ui.reveal.showAgain)}</button>
         <button class="btn btn--primary" type="button" data-next-night>${esc(t.ui.day.nextNight)}</button>
       </div>
+      <button class="btn btn--ghost btn--small" type="button" data-finish>${esc(t.ui.over.finishNow)}</button>
     </section>
   `
 }
