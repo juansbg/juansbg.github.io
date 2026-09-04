@@ -60,6 +60,38 @@ describe('the projection for the whole town', () => {
     }
   })
 
+  it('names the dead for what they were only once the paper has had its day, and nobody else', () => {
+    // Beto (a Citizen) dies on night 1, Caro (the Detective) is hanged on day 1.
+    let state = createGame(
+      cast(['KILLER', 'PLAIN', 'INSPECT', 'GUARD', 'PLAIN', 'PLAIN'], ['Ana', 'Beto', 'Caro', 'Dani', 'Eva', 'Fer']),
+    )
+    state = startNight(state)
+    state = recordAction(state, { kind: 'target', roleId: 'GUARD', actor: 3, target: 3 })
+    state = recordAction(state, { kind: 'skip', roleId: 'INSPECT' })
+    state = recordAction(state, { kind: 'target', roleId: 'KILLER', actor: 0, target: 1 })
+    state = endNight(state)
+    state = lynch(state, 2)
+    expect(tvProjection(state, 'en').revealed).toEqual([])
+    expect(JSON.stringify(tvProjection(state, 'en'))).not.toContain('"INSPECT"')
+
+    state = startNight(state)
+    state = recordAction(state, { kind: 'target', roleId: 'GUARD', actor: 3, target: 4 })
+    state = recordAction(state, { kind: 'skip', roleId: 'KILLER' })
+    state = endNight(state)
+    const p = tvProjection(state, 'en', { paper: 2 })
+    expect(p.revealed.map((r) => r.id).sort()).toEqual([1, 2])
+    expect(p.revealed.find((r) => r.id === 2)?.roleId).toBe('INSPECT')
+    expect(p.revealed.find((r) => r.id === 1)?.trade).toBe(state.players[1]!.trade)
+    expect(p.paper).toBe(2)
+    // The living Family, the Bodyguard and the other citizens stay unnamed.
+    const json = JSON.stringify(p)
+    for (const id of ROLE_IDS) {
+      if (id === 'INSPECT' || id === 'PLAIN') continue
+      expect(json, id).not.toContain(`"${id}"`)
+    }
+    expect(json.split('"PLAIN"').length - 1).toBe(1)
+  })
+
   it('shows who is dead, silenced and marked, and the count against each seat', () => {
     let state = secretNight()
     state = castVote(state, 2, 0)

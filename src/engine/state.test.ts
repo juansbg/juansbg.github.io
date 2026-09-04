@@ -23,7 +23,7 @@ import {
   leader,
   type PlayerSetup,
 } from './state'
-import { TRADE_COUNT } from './state'
+import { TRADE_COUNT, revealedDead } from './state'
 import { quietGame } from './testing'
 import { STATE_VERSION, type GameState, type NightAction } from './types'
 import type { RoleId } from './roles'
@@ -574,5 +574,27 @@ describe('the citizens’ trades', () => {
     state = endNight(state)
     expect(state.players[2]!.roleId).toBe('KILLER')
     expect(state.players[2]!.trade).toBe(trade)
+  })
+})
+
+describe('the dead the paper may name', () => {
+  it('names a player the morning after the day they died, never sooner', () => {
+    let state = quietGame(cast(['KILLER', 'PLAIN', 'INSPECT', 'GUARD', 'PLAIN', 'PLAIN']))
+    state = startNight(state)
+    state = recordAction(state, { kind: 'target', roleId: 'GUARD', actor: 3, target: 3 })
+    state = recordAction(state, { kind: 'skip', roleId: 'INSPECT' })
+    state = recordAction(state, { kind: 'target', roleId: 'KILLER', actor: 0, target: 1 })
+    state = endNight(state)
+    // Day 1: Beto died last night; the paper has not had its day yet.
+    expect(revealedDead(state)).toEqual([])
+    state = lynch(state, 2)
+    expect(revealedDead(state)).toEqual([])
+    // Night 2, then day 2: both are a day old.
+    state = startNight(state)
+    state = recordAction(state, { kind: 'target', roleId: 'GUARD', actor: 3, target: 4 })
+    state = recordAction(state, { kind: 'skip', roleId: 'KILLER' })
+    state = endNight(state)
+    expect(revealedDead(state).map((p) => p.id).sort()).toEqual([1, 2])
+    expect(revealedDead(state).every((p) => !p.alive)).toBe(true)
   })
 })

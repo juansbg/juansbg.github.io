@@ -250,6 +250,22 @@ const killDuringDay = (
   }
 }
 
+/**
+ * The dead the paper has had a day to investigate (docs/GAZETTE.md §4): a
+ * player whose death was recorded on night N is named for what they were
+ * from the morning of day N + 1, always. A death by day is logged under the
+ * same night number, so a hanging on day 1 is revealed on day 2 as well.
+ * This is the one rule that makes a role public, so everything that shows a
+ * dead player's role to the room goes through it.
+ */
+export const revealedDead = (state: GameState): Player[] => {
+  const since = new Map<PlayerId, number>()
+  for (const o of state.log) {
+    if (o.type === 'death' && !since.has(o.target)) since.set(o.target, o.night)
+  }
+  return state.players.filter((p) => !p.alive && (since.get(p.id) ?? Infinity) < state.day)
+}
+
 export type Winner = 'town' | 'crew' | 'lovers' | 'martyr' | null
 
 /**

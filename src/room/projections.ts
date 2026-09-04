@@ -1,4 +1,5 @@
-import { leader, tally, winner, type Winner } from '../engine/state'
+import { leader, revealedDead, tally, winner, type Winner } from '../engine/state'
+import type { RoleId } from '../engine/roles'
 import type { GameState, Outcome, PlayerId } from '../engine/types'
 import type { Locale } from '../i18n'
 import type { Reading, Slide } from '../ui/screens/dawn'
@@ -54,6 +55,14 @@ export interface TvProjection {
   /** How many have voted, for a sealed ballot's running count. */
   voted: number
   winner: Winner
+  /**
+   * The dead the paper has named for what they were (`revealedDead`): the one
+   * place a role reaches the room, and only a day after the death. The leak
+   * test allows exactly these ids' roles and no other.
+   */
+  revealed: { id: PlayerId; roleId: RoleId; trade: number | null }[]
+  /** The edition open on the phone, by day, or null when none is. */
+  paper: number | null
 }
 
 /** The clock as the screen should show it: a snapshot, plus the deadline so a
@@ -65,6 +74,7 @@ export interface TvTimer extends TimerView {
 export interface TvContext {
   reading?: TvReading | null
   timer?: TvTimer | null
+  paper?: number | null
 }
 
 export const tvProjection = (
@@ -92,4 +102,6 @@ export const tvProjection = (
   leader: leader(state),
   voted: state.votes.length,
   winner: winner(state),
+  revealed: revealedDead(state).map((p) => ({ id: p.id, roleId: p.roleId, trade: p.trade })),
+  paper: context.paper ?? null,
 })
