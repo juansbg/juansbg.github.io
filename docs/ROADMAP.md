@@ -315,6 +315,11 @@ CLAUDE.md only in their own bullets.
   `tv.html`, "Big screen" in ⋯): the relay is deployed at
   `https://omerta-relay.jsblanco-gomez.workers.dev`, shut until the `ROOM_KEY`
   secret is set (see docs/BIG-SCREEN.md §5).
+- **The town paper and the citizens' trades** (user, 2026-09-04): designed in
+  `docs/GAZETTE.md`. Trades on the citizens' cards, a daily newspaper on Ash
+  newsprint built from the public outcomes, the dead named for what they were a
+  day late, and seeded nameless breadcrumbs through the trades. Session A takes
+  the engine (trades, seed, clue outcomes), Session B the paper.
 - Running statistics.
 - **The Cultist stays out for now** (decided 2026-09-04): a pending feature,
   not planned, until the user chooses a rule for it. The card remains
