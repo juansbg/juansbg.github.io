@@ -244,7 +244,9 @@ Phased so that each step is worth shipping alone:
    built it is a separate mode.
 
 Steps 1–3 are roughly the size of the engine rewrite: three or four sprints, plus
-the first piece of infrastructure the project owns.
+the first piece of infrastructure the project owns. **The design is in
+`docs/BIG-SCREEN.md`**: topology, room codes, what travels, the relay, the two
+pages, and the five decisions the user has to make before phase 1 starts.
 
 ## 3. Other features
 
