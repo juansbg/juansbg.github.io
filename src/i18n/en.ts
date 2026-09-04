@@ -271,13 +271,13 @@ export const en: Strings = {
         killers: [
           (name) => `${name} was found at dawn, face down in the fountain. The Family had been by.`,
           (name) => `${name} never saw the morning. Two cars, no plates, and the Family's regards.`,
-          (name) => `${name}'s chair is empty and the coffee is cold. The Family called before the bakery opened.`,
-          (name) => `They found ${name} in the alley behind the tailor's, wallet untouched. This was not a robbery.`,
+          (name) => `${name}'s chair is empty and the coffee is cold. The Family called before the street lights went out.`,
+          (name) => `They found ${name} in the alley off the square, wallet untouched. This was not a robbery.`,
           (name) => `${name} answered the door at three in the morning. It was the Family, and it was the last time.`,
           (name) => `A single shot on the pier, a cigarette still burning on the rail. ${name} is gone.`,
           (name) => `${name} went out for the evening paper and came back under a sheet. The Family sends flowers.`,
           (name) => `The Family left ${name} in the driver's seat with the engine running and the radio on.`,
-          (name) => `${name} was found in the barber's chair, towel still warm. The Family does not wait for a shave to end.`,
+          (name) => `${name} was found in an armchair by the window, the radio still on. The Family does not wait for the song to end.`,
           (name) => `Nobody heard a thing. By dawn ${name} was under a tarp on the loading dock and the Family was home in bed.`,
         ],
         rogue: [

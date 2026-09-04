@@ -271,13 +271,13 @@ export const es: Strings = {
         killers: [
           (name) => `Han encontrado a ${name} al amanecer, boca abajo en la fuente. La Familia pasó por su casa.`,
           (name) => `${name} no ha visto amanecer. Dos coches sin matrícula y recuerdos de la Familia.`,
-          (name) => `De ${name} solo quedan la silla vacía y el café frío. La Familia llegó antes que el panadero.`,
-          (name) => `Encontraron a ${name} en el callejón de la sastrería, con la cartera intacta. Esto no fue un robo.`,
+          (name) => `De ${name} solo quedan la silla vacía y el café frío. La Familia llegó antes de que se apagaran las farolas.`,
+          (name) => `Encontraron a ${name} en el callejón de la plaza, con la cartera intacta. Esto no fue un robo.`,
           (name) => `${name} abrió la puerta a las tres de la mañana. Era la Familia, y fue la última vez.`,
           (name) => `Un solo disparo en el muelle y un cigarro aún encendido en la barandilla. ${name} ya no está.`,
           (name) => `${name} salió a por el periódico de la tarde y volvió tapado con una sábana. La Familia manda flores.`,
           (name) => `La Familia dejó a ${name} en el asiento del conductor, con el motor en marcha y la radio puesta.`,
-          (name) => `Encontraron a ${name} en el sillón del barbero, con la toalla aún caliente. La Familia no espera a que acabe el afeitado.`,
+          (name) => `Encontraron a ${name} en un sillón junto a la ventana, con la radio aún puesta. La Familia no espera a que acabe la canción.`,
           (name) => `Nadie oyó nada. Al amanecer ${name} estaba bajo una lona en el muelle de carga y la Familia ya dormía.`,
         ],
         rogue: [

@@ -45,6 +45,20 @@ describe('string tables', () => {
     }
   })
 
+  it('keep every trade out of the death lines, where it would read as a clue', () => {
+    for (const locale of LOCALES) {
+      const t = strings(locale)
+      // A trade word at the start of a word: "baker" catches "bakery", "sastre" catches "sastrería".
+      const words = t.trades.map((w) => new RegExp('\\b' + w.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')))
+      for (const [cause, bank] of Object.entries(t.ui.dawn.death)) {
+        for (const line of bank) {
+          const text = line('Zed').toLowerCase()
+          for (const word of words) expect(text, locale + ' ' + cause + ': ' + text).not.toMatch(word)
+        }
+      }
+    }
+  })
+
   it('name every role in every language', () => {
     for (const locale of LOCALES) {
       const t = strings(locale)
