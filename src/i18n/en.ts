@@ -119,6 +119,8 @@ export const en: Strings = {
       simple: 'Simple',
       standard: 'Standard',
       complex: 'Advanced',
+      balance: (crew, players) => `${crew} of ${players} will be Family`,
+      lean: { town: 'leans the town', even: 'about even', crew: 'leans the Family' },
       editRoles: 'View and adjust roles',
       rearrange: 'Rearrange seats',
       rearrangeHint: 'Tap two people to swap them',

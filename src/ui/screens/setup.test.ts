@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { namesMarkup, MIN_PLAYERS } from './setup'
+import { balanceMarkup, namesMarkup, rosterMarkup, MIN_PLAYERS } from './setup'
+import { LOCALES } from '../../i18n'
 import { historyMarkup, outcomeCardMarkup, timelineMarkup } from './timeline'
 import { strings } from '../../i18n'
 import {
@@ -17,6 +18,31 @@ import type { RoleId } from '../../engine/roles'
 
 const cast = (roles: RoleId[], names?: string[]): PlayerSetup[] =>
   roles.map((roleId, i) => ({ name: names?.[i] ?? `P${i}`, roleId }))
+
+describe('the balance line', () => {
+  it('says how many will be Family and which way the table leans, in both languages', () => {
+    for (const locale of LOCALES) {
+      const players = createGame(cast(Array<RoleId>(8).fill('PLAIN'))).players
+      const html = balanceMarkup(players, locale, 'standard', false)
+      expect(html).toContain(strings(locale).ui.setup.balance(2, 8))
+      expect(html).toMatch(/data-lean="(town|even|crew)"/)
+    }
+  })
+
+  it('counts the Family actually at the table once roles are set, and drops the lean if they differ', () => {
+    const three = createGame(cast(['KILLER', 'KILLER', 'KILLER', 'PLAIN', 'PLAIN', 'PLAIN', 'PLAIN', 'PLAIN'])).players
+    const html = balanceMarkup(three, 'en', 'standard', true)
+    expect(html).toContain('3 of 8 will be Family')
+    expect(html).toContain('data-lean="custom"')
+    expect(html).not.toContain('leans')
+  })
+
+  it('sits under the complexity chips on the roster screen', () => {
+    const players = createGame(cast(Array<RoleId>(6).fill('PLAIN'), ['A', 'B', 'C', 'D', 'E', 'F'])).players
+    const html = rosterMarkup(players, 'en', 'simple')
+    expect(html.indexOf('data-complexity="simple"')).toBeLessThan(html.indexOf('class="balance"'))
+  })
+})
 
 describe('the names screen', () => {
   it('lists every name typed so far, in order', () => {

@@ -119,6 +119,8 @@ export const es: Strings = {
       simple: 'Sencilla',
       standard: 'Normal',
       complex: 'Avanzada',
+      balance: (crew, players) => `${crew} de ${players} serán de la Familia`,
+      lean: { town: 'favorece al pueblo', even: 'equilibrada', crew: 'favorece a la Familia' },
       editRoles: 'Ver y ajustar papeles',
       rearrange: 'Recolocar asientos',
       rearrangeHint: 'Toca a dos personas para intercambiarlas',

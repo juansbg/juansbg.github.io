@@ -288,7 +288,9 @@ CLAUDE.md only in their own bullets.
    (peer, step 4 below) and later the TV have data. Engine only; the UI is the
    peer's. **Done:** `castVote`, `withdrawVote`, `tally`, `leader` in
    `src/engine/state.ts`; the public `tally` outcome; `STATE_VERSION` 3.
-5. **Balance preview in setup**, from the simulator's numbers.
+5. **Balance preview in setup**, from the simulator's numbers. **Done:**
+   `balanceOf()` in `src/engine/balance.ts`, `balanceMarkup` under the
+   complexity chips.
 
 ### Session B — `pueblo-duerme-60` (main checkout)
 

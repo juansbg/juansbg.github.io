@@ -96,6 +96,10 @@ export interface Strings {
       simple: string
       standard: string
       complex: string
+      /** Under the complexity: how many of the table will be Family. */
+      balance: (crew: number, players: number) => string
+      /** …and which way the dealer's table leans, from the simulator. */
+      lean: { town: string; even: string; crew: string }
       editRoles: string
       rearrange: string
       rearrangeHint: string

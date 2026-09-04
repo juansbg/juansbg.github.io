@@ -1,4 +1,5 @@
 import { ROLE_IDS, ROLES } from '../../engine/roles'
+import { balanceOf } from '../../engine/balance'
 import { COMPLEXITIES, type Complexity } from '../../engine/deal'
 import type { RoleId } from '../../engine/roles'
 import type { Player } from '../../engine/types'
@@ -108,6 +109,7 @@ export const rosterMarkup = (
       <div class="complexity" role="group" aria-label="${esc(t.ui.setup.complexity)}">
         <p class="label">${esc(t.ui.setup.complexity)}</p>
         <div class="chips">${levels}</div>
+        ${balanceMarkup(players, locale, complexity, assigned)}
       </div>
 
       <div class="actions">
@@ -120,6 +122,29 @@ export const rosterMarkup = (
         </button>
       </div>
     </section>
+  `
+}
+
+/**
+ * One line under the complexity: how many will be Family, and which way the
+ * table leans. Before the deal it describes what the dealer will do; after it,
+ * or after roles were set by hand, it counts the Family actually at the table,
+ * and the lean is only claimed when that matches the dealer's plan.
+ */
+export const balanceMarkup = (
+  players: readonly Player[],
+  locale: Locale,
+  complexity: Complexity,
+  assigned: boolean,
+): string => {
+  const t = strings(locale)
+  const plan = balanceOf(players.length, complexity)
+  const crew = assigned ? players.filter((p) => ROLES[p.roleId].team === 'crew').length : plan.crew
+  const lean = crew === plan.crew ? t.ui.setup.lean[plan.lean] : null
+  return `
+    <p class="balance" data-lean="${crew === plan.crew ? plan.lean : 'custom'}">
+      ${esc(t.ui.setup.balance(crew, players.length))}${lean === null ? '' : ` · ${esc(lean)}`}
+    </p>
   `
 }
 
