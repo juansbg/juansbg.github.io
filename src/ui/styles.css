@@ -2783,3 +2783,79 @@ html[data-dawn] body {
 .stage--tv [data-timer-reset] {
   display: none;
 }
+
+/* Two codes on the sheet: one for the players, one for the TV. */
+.room__qrs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--space-3);
+}
+
+.room__pane {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: center;
+}
+
+.room__qrs .room__qr svg {
+  width: min(38vw, 11rem);
+}
+
+.room .sheet__panel,
+.sheet__panel.room {
+  overflow-y: auto;
+}
+
+/* A seat with a phone in the room: a small mark on the name. */
+.name-chip[data-joined] .name-chip__text::after {
+  content: ' ·';
+  color: var(--accent);
+}
+
+.tableview__voted {
+  margin: 0;
+  color: var(--fg-muted);
+  font-size: var(--text-sm);
+}
+
+/* ---------- A player's phone ---------- */
+.stage--seat {
+  padding: max(var(--space-4), env(safe-area-inset-top)) var(--space-4) max(var(--space-4), env(safe-area-inset-bottom));
+}
+
+.mine {
+  gap: var(--space-4);
+}
+
+.mine__join {
+  display: grid;
+  gap: var(--space-3);
+  width: 100%;
+  max-width: 22rem;
+}
+
+.mine__head {
+  text-align: center;
+}
+
+.mine__stage {
+  flex: 1 1 0;
+  min-height: 10rem;
+}
+
+.mine__note {
+  margin: 0;
+  color: var(--fg-muted);
+  text-align: center;
+}
+
+.mine__ballot {
+  display: grid;
+  gap: var(--space-2);
+  grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
+}
+
+.mine__choice[data-on] {
+  border-color: var(--fg);
+  background: color-mix(in oklab, var(--fg) 14%, transparent);
+}

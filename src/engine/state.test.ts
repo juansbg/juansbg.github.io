@@ -23,7 +23,7 @@ import {
   leader,
   type PlayerSetup,
 } from './state'
-import { TRADE_COUNT, revealedDead } from './state'
+import { TRADE_COUNT, assignTrades, revealedDead } from './state'
 import { quietGame } from './testing'
 import { STATE_VERSION, type GameState, type NightAction } from './types'
 import type { RoleId } from './roles'
@@ -596,5 +596,32 @@ describe('the dead the paper may name', () => {
     state = endNight(state)
     expect(revealedDead(state).map((p) => p.id).sort()).toEqual([1, 2])
     expect(revealedDead(state).every((p) => !p.alive)).toBe(true)
+  })
+})
+
+describe('trades follow the roles', () => {
+  it('strips a trade from anyone dealt a role and gives every citizen one', () => {
+    const seeded = (seed: number) => {
+      let s = seed >>> 0
+      return () => {
+        s = (s * 1664525 + 1013904223) >>> 0
+        return s / 2 ** 32
+      }
+    }
+    // A table starts as citizens, so everyone has a trade; then the roles land.
+    let state = createGame(cast(['PLAIN', 'PLAIN', 'PLAIN', 'PLAIN', 'PLAIN']), seeded(2))
+    expect(state.players.every((p) => p.trade !== null)).toBe(true)
+    const kept = state.players[1]!.trade
+    state = {
+      ...state,
+      players: state.players.map((p, i) => ({ ...p, roleId: i === 0 ? 'KILLER' : i === 2 ? 'INSPECT' : 'PLAIN' })),
+    }
+    state = assignTrades(state, seeded(3))
+    expect(state.players[0]!.trade).toBeNull()
+    expect(state.players[2]!.trade).toBeNull()
+    expect(state.players[1]!.trade).toBe(kept)
+    const trades = state.players.filter((p) => p.roleId === 'PLAIN').map((p) => p.trade)
+    expect(trades.every((t) => t !== null)).toBe(true)
+    expect(new Set(trades).size).toBe(trades.length)
   })
 })

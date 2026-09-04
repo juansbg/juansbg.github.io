@@ -74,6 +74,35 @@ export const createGame = (
   }
 }
 
+/**
+ * Trades follow the roles, not the seats: a table is created with everyone a
+ * Citizen, then dealt, then perhaps edited by hand, and only the citizens who
+ * are left should hold one. Called when the roles are settled (the deal, an
+ * edit); citizens keep the trade they had, anyone else loses theirs, and a
+ * citizen without one draws from what is free.
+ */
+export const assignTrades = (state: GameState, random: Random = systemRandom): GameState => {
+  const held = new Set<number>()
+  const players = state.players.map((p) => {
+    if (p.roleId !== 'PLAIN') return { ...p, trade: null }
+    if (p.trade !== null && !held.has(p.trade)) {
+      held.add(p.trade)
+      return p
+    }
+    return { ...p, trade: null }
+  })
+  const free = shuffle(
+    Array.from({ length: TRADE_COUNT }, (_, i) => i).filter((i) => !held.has(i)),
+    random,
+  )
+  return {
+    ...state,
+    players: players.map((p) =>
+      p.roleId === 'PLAIN' && p.trade === null ? { ...p, trade: free.shift() ?? null } : p,
+    ),
+  }
+}
+
 export const startNight = (state: GameState): GameState => {
   const night = state.night + 1
   const players = state.players.map((p) => ({

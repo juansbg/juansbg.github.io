@@ -24,6 +24,10 @@ before anyone builds it. It ends with the decisions the user has to make.
   says otherwise: the seat page is an option per game, the ballot is sealed
   with a live count of how many have voted, ties stay with the narrator, and
   the screen follows the narrator's language.
+- **Players name themselves (decided 2026-09-04).** One QR for the whole
+  table; a player scans it, types a name, and takes the seat with that name
+  or adds one. The per-seat QR in §3 is not built. **The ballot is sealed**
+  until the narrator taps Reveal (decision 3, confirmed).
 
 ## 1. Goals and non-goals
 
@@ -233,8 +237,11 @@ to keep watching the TV projection.
    `.env` makes it the app's default.
 2. **Seat cards** (`seat.html`, the seat projection, encryption, the join
    flow): pass-the-phone becomes optional. About the size of the reveal
-   sprint.
+   sprint. **Built** (2026-09-04): ECDH over the relay, AES-GCM on every
+   seat projection, join by name, the card under a hold.
 3. **Votes from seats**: small once 2 exists; the engine side is already done.
+   **Built** with 2: a vote from a phone is `castVote` through the log, the
+   ballot sealed on the TV until the narrator reveals.
 
 Three or four sprints for all of it. Phase 1 is where the infrastructure gets
 decided, so it is the one to start with.

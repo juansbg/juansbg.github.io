@@ -4,9 +4,11 @@
  * A dumb hub keyed by room code (docs/BIG-SCREEN.md §5). The narrator's phone
  * publishes projections; the room fans them out to the screens that should
  * see them, remembers the last one per target so a screen that reconnects is
- * current at once, and forwards votes and joins back to the narrator. It
- * holds no game: a TV projection is public by construction, and a seat
- * projection arrives already encrypted with a key the server never sees.
+ * current at once, and forwards joins and votes back to the narrator. It
+ * holds no game: a TV projection is public by construction, and a player's
+ * projection arrives already encrypted with a key the server never sees
+ * (the phone and the player agree it over ECDH; the relay carries only
+ * public keys).
  *
  * One Worker routes; one Durable Object per room keeps the sockets. Rooms
  * evict themselves after six idle hours. Nothing here survives a room.
@@ -124,7 +126,7 @@ export default {
 } satisfies ExportedHandler<Env>
 
 /** How a socket joined, kept as its tags so it survives hibernation. */
-type Role = 'narrator' | 'tv' | 'seat'
+type Role = 'narrator' | 'tv' | 'player'
 
 const MAX_MESSAGE = 16 * 1024
 /** Sockets one room will hold: a table, a few screens, some reconnect slack. */
@@ -132,16 +134,23 @@ const MAX_SOCKETS = 40
 /** Messages allowed per socket per second before it is dropped. */
 const RATE = 20
 const IDLE_MS = 6 * 60 * 60 * 1000
+/** A player's connection id: chosen by the page, random hex, kept for reconnects. */
+const CID = /^[0-9a-f]{16,64}$/
+const MAX_NAME = 40
+const MAX_KEY = 400
 
 /** What the narrator sends. Anything else from the narrator is ignored. */
 type Published =
   | { kind: 'tv' }
-  | { kind: 'seat'; seat: number }
+  /** The narrator's public key, for every player present and every one to come. */
+  | { kind: 'hello'; pub: string }
+  /** One player's projection, sealed for that player. */
+  | { kind: 'player'; cid: string; payload: string }
 
-/** What a seat sends. Forwarded to the narrator as is. */
-type FromSeat =
-  | { kind: 'joined'; seat: number }
-  | { kind: 'vote'; seat: number; target: number | null }
+/** What a player sends. Forwarded to the narrator with the socket's own cid. */
+type FromPlayer =
+  | { kind: 'join'; name: string; pub: string }
+  | { kind: 'vote'; target: number | null }
 
 const seatOf = (value: unknown): number | null =>
   typeof value === 'number' && Number.isInteger(value) && value >= 0 && value < 64 ? value : null
@@ -170,7 +179,6 @@ export class Room extends DurableObject<Env> {
     const url = new URL(request.url)
     const secretHash = await this.ctx.storage.get<string>('secretHash')
     if (secretHash === undefined) return new Response('no such room', { status: 404 })
-
     if (this.ctx.getWebSockets().length >= MAX_SOCKETS) return new Response('room full', { status: 429 })
 
     const as = url.searchParams.get('as')
@@ -184,11 +192,12 @@ export class Room extends DurableObject<Env> {
     } else if (as === 'tv') {
       tags = ['tv']
       this.tellTvs(1)
-    } else if (as === 'seat') {
-      const seat = seatOf(Number(url.searchParams.get('seat')))
-      if (seat === null) return new Response('seat', { status: 400 })
-      for (const old of this.ctx.getWebSockets(`seat:${seat}`)) old.close(4000, 'replaced')
-      tags = ['seat', `seat:${seat}`]
+    } else if (as === 'player') {
+      const cid = url.searchParams.get('cid') ?? ''
+      if (!CID.test(cid)) return new Response('cid', { status: 400 })
+      // The same phone again (a reload) replaces its older socket.
+      for (const old of this.ctx.getWebSockets(`cid:${cid}`)) old.close(4000, 'replaced')
+      tags = ['player', `cid:${cid}`]
     } else {
       return new Response('as', { status: 400 })
     }
@@ -201,17 +210,14 @@ export class Room extends DurableObject<Env> {
     if (as === 'tv') {
       const last = await this.ctx.storage.get<string>('last:tv')
       if (last !== undefined) server.send(last)
-    } else if (as === 'seat') {
-      const last = await this.ctx.storage.get<string>(`last:seat:${url.searchParams.get('seat')}`)
+    } else if (as === 'player') {
+      const hello = await this.ctx.storage.get<string>('last:hello')
+      if (hello !== undefined) server.send(hello)
+      const last = await this.ctx.storage.get<string>(`last:player:${url.searchParams.get('cid')}`)
       if (last !== undefined) server.send(last)
     } else {
       // The narrator learns who is in the room already.
-      const seats = this.ctx
-        .getWebSockets('seat')
-        .flatMap((ws) => this.ctx.getTags(ws))
-        .filter((t) => t.startsWith('seat:'))
-        .map((t) => Number(t.slice(5)))
-      server.send(JSON.stringify({ kind: 'present', seats, tvs: this.ctx.getWebSockets('tv').length }))
+      server.send(JSON.stringify({ kind: 'present', players: this.cids(), tvs: this.ctx.getWebSockets('tv').length }))
     }
 
     await this.touch()
@@ -243,21 +249,30 @@ export class Room extends DurableObject<Env> {
       if (msg.kind === 'tv') {
         await this.ctx.storage.put('last:tv', message)
         for (const tv of this.ctx.getWebSockets('tv')) tv.send(message)
-      } else if (msg.kind === 'seat') {
-        const seat = seatOf(msg.seat)
-        if (seat === null) return
-        await this.ctx.storage.put(`last:seat:${seat}`, message)
-        for (const s of this.ctx.getWebSockets(`seat:${seat}`)) s.send(message)
+      } else if (msg.kind === 'hello') {
+        if (typeof msg.pub !== 'string' || msg.pub.length > MAX_KEY) return
+        await this.ctx.storage.put('last:hello', message)
+        for (const p of this.ctx.getWebSockets('player')) p.send(message)
+      } else if (msg.kind === 'player') {
+        if (typeof msg.cid !== 'string' || !CID.test(msg.cid) || typeof msg.payload !== 'string') return
+        await this.ctx.storage.put(`last:player:${msg.cid}`, message)
+        for (const p of this.ctx.getWebSockets(`cid:${msg.cid}`)) p.send(message)
       }
       await this.touch()
-    } else if (role === 'seat') {
-      const msg = parsed as FromSeat
-      // The seat is the socket's, not the message's: a phone cannot vote as another seat.
-      const own = Number(tags.find((t) => t.startsWith('seat:'))?.slice(5))
-      if (msg.kind !== 'joined' && msg.kind !== 'vote') return
-      if (msg.kind === 'vote' && msg.target !== null && seatOf(msg.target) === null) return
-      const forward = JSON.stringify({ ...msg, seat: own })
-      for (const n of this.ctx.getWebSockets('narrator')) n.send(forward)
+    } else if (role === 'player') {
+      const msg = parsed as FromPlayer
+      // The cid is the socket's, not the message's: a phone cannot speak as another.
+      const cid = tags.find((t) => t.startsWith('cid:'))?.slice(4) ?? ''
+      if (msg.kind === 'join') {
+        if (typeof msg.name !== 'string' || typeof msg.pub !== 'string') return
+        if (msg.name.trim() === '' || msg.name.length > MAX_NAME || msg.pub.length > MAX_KEY) return
+        this.tellNarrator({ kind: 'join', cid, name: msg.name.trim(), pub: msg.pub })
+      } else if (msg.kind === 'vote') {
+        if (msg.target !== null && seatOf(msg.target) === null) return
+        this.tellNarrator({ kind: 'vote', cid, target: msg.target })
+      } else {
+        return
+      }
       await this.touch()
     }
     // A TV never sends anything worth reading.
@@ -265,11 +280,11 @@ export class Room extends DurableObject<Env> {
 
   override async webSocketClose(ws: WebSocket, code: number, reason: string): Promise<void> {
     ws.close(code, reason)
-    if (this.ctx.getTags(ws).includes('tv')) this.tellTvs(0)
-    const seat = this.ctx.getTags(ws).find((t) => t.startsWith('seat:'))
-    if (seat !== undefined) {
-      const left = JSON.stringify({ kind: 'left', seat: Number(seat.slice(5)) })
-      for (const n of this.ctx.getWebSockets('narrator')) n.send(left)
+    const tags = this.ctx.getTags(ws)
+    if (tags.includes('tv')) this.tellTvs(0)
+    const cid = tags.find((t) => t.startsWith('cid:'))?.slice(4)
+    if (cid !== undefined && this.ctx.getWebSockets(`cid:${cid}`).length <= 1) {
+      this.tellNarrator({ kind: 'left', cid })
     }
   }
 
@@ -283,11 +298,27 @@ export class Room extends DurableObject<Env> {
     await this.ctx.storage.deleteAll()
   }
 
+  private cids(): string[] {
+    return [
+      ...new Set(
+        this.ctx
+          .getWebSockets('player')
+          .flatMap((ws) => this.ctx.getTags(ws))
+          .filter((t) => t.startsWith('cid:'))
+          .map((t) => t.slice(4)),
+      ),
+    ]
+  }
+
+  private tellNarrator(message: unknown): void {
+    const text = JSON.stringify(message)
+    for (const n of this.ctx.getWebSockets('narrator')) n.send(text)
+  }
+
   /** The narrator sees how many screens are on the room; `delta` counts the one joining or leaving. */
   private tellTvs(delta: number): void {
     const count = this.ctx.getWebSockets('tv').length + (delta > 0 ? 1 : 0)
-    const text = JSON.stringify({ kind: 'tvs', count })
-    for (const n of this.ctx.getWebSockets('narrator')) n.send(text)
+    this.tellNarrator({ kind: 'tvs', count })
   }
 
   private async touch(): Promise<void> {

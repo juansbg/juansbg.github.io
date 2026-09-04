@@ -1,4 +1,4 @@
-import { leader, revealedDead, tally, winner, type Winner } from '../engine/state'
+import { canVote, leader, revealedDead, tally, winner, type Winner } from '../engine/state'
 import type { RoleId } from '../engine/roles'
 import type { GameState, Outcome, PlayerId } from '../engine/types'
 import type { Locale } from '../i18n'
@@ -75,6 +75,11 @@ export interface TvContext {
   reading?: TvReading | null
   timer?: TvTimer | null
   paper?: number | null
+  /**
+   * The ballot is sealed: the room sees how many have voted, not for whom,
+   * until the narrator reveals. The count and the leader stay on the phone.
+   */
+  sealed?: boolean
 }
 
 export const tvProjection = (
@@ -98,10 +103,83 @@ export const tvProjection = (
   log: state.log.filter((o) => o.public),
   reading: context.reading ?? null,
   timer: context.timer ?? null,
-  tally: tally(state).map((e) => ({ target: e.target, votes: e.votes })),
-  leader: leader(state),
+  tally: context.sealed ? [] : tally(state).map((e) => ({ target: e.target, votes: e.votes })),
+  leader: context.sealed ? null : leader(state),
   voted: state.votes.length,
   winner: winner(state),
   revealed: revealedDead(state).map((p) => ({ id: p.id, roleId: p.roleId, trade: p.trade })),
   paper: context.paper ?? null,
+})
+
+/**
+ * One player's own view, sealed for their phone alone (docs/BIG-SCREEN.md §4).
+ * It carries exactly one role — theirs — and nothing about anyone else but
+ * names and who may still be voted for. `projections.test.ts` holds it to
+ * that. The role is withheld until the narrator has dealt (`dealt`), so a
+ * phone joining during setup does not read "Citizen" off a roster that has
+ * not been played yet.
+ */
+export interface SeatProjection {
+  kind: 'seat'
+  locale: Locale
+  seat: PlayerId
+  name: string
+  roleId: RoleId | null
+  trade: number | null
+  alive: boolean
+  phase: GameState['phase']
+  night: number
+  day: number
+  canVote: boolean
+  vote: PlayerId | null
+  /** Who this seat may vote for: the living, themselves excluded. */
+  eligible: { id: PlayerId; name: string }[]
+  winner: Winner
+}
+
+export const seatProjection = (
+  state: GameState,
+  seat: PlayerId,
+  locale: Locale,
+  context: { dealt: boolean },
+): SeatProjection | null => {
+  const me = state.players.find((p) => p.id === seat)
+  if (!me) return null
+  const voting = state.phase === 'day' && me.alive && canVote(state, seat)
+  return {
+    kind: 'seat',
+    locale,
+    seat,
+    name: me.name,
+    roleId: context.dealt ? me.roleId : null,
+    trade: context.dealt ? me.trade : null,
+    alive: me.alive,
+    phase: state.phase,
+    night: state.night,
+    day: state.day,
+    canVote: voting,
+    vote: state.votes.find((v) => v.voter === seat)?.target ?? null,
+    eligible: voting
+      ? state.players.filter((p) => p.alive && p.id !== seat).map((p) => ({ id: p.id, name: p.name }))
+      : [],
+    winner: winner(state),
+  }
+}
+
+/** A seat before there is a game: the roster is still names on the narrator's screen. */
+export const waitingSeat = (seat: PlayerId, name: string, locale: Locale): SeatProjection => ({
+  kind: 'seat',
+  locale,
+  seat,
+  name,
+  roleId: null,
+  trade: null,
+  alive: true,
+  phase: 'setup',
+  night: 0,
+  day: 0,
+  canVote: false,
+  vote: null,
+  eligible: [],
+  winner: null,
 })

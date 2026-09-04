@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { tvProjection } from './projections'
+import { seatProjection, tvProjection, waitingSeat } from './projections'
 import { LOCALES } from '../i18n'
 import { ROLE_IDS, type RoleId } from '../engine/roles'
 import {
@@ -107,10 +107,65 @@ describe('the projection for the whole town', () => {
     expect(p.log.every((o) => o.public)).toBe(true)
   })
 
+  it('hides the count and the leader while the ballot is sealed, but not how many voted', () => {
+    let state = secretNight()
+    state = castVote(state, 2, 0)
+    state = castVote(state, 3, 0)
+    const sealed = tvProjection(state, 'en', { sealed: true })
+    expect(sealed.tally).toEqual([])
+    expect(sealed.leader).toBeNull()
+    expect(sealed.voted).toBe(2)
+    expect(tvProjection(state, 'en', { sealed: false }).tally).toHaveLength(1)
+  })
+
   it('is plain JSON that survives a round trip', () => {
     const state = lynch(secretNight(), 0)
     const p = tvProjection(state, 'es', { timer: { phase: 'running', seconds: 42, endsAt: null } })
     expect(JSON.parse(JSON.stringify(p))).toEqual(p)
     expect(p.players.find((s) => s.id === 0)?.alive).toBe(false)
+  })
+})
+
+describe('a seat’s own projection', () => {
+  it('carries exactly one role, its own, and only once the cards are dealt', () => {
+    let state = secretNight()
+    state = castVote(state, 3, 0)
+    for (const locale of LOCALES) {
+      const mine = seatProjection(state, 2, locale, { dealt: true })!
+      const json = JSON.stringify(mine)
+      expect(mine.roleId).toBe('INSPECT')
+      expect(json.split('"INSPECT"').length - 1).toBe(1)
+      for (const id of ROLE_IDS) if (id !== 'INSPECT') expect(json, id).not.toContain(`"${id}"`)
+      expect(json).not.toContain('voter')
+      expect(json).not.toContain('"public"')
+      // The eligible list is names, not roles, and never the seat itself.
+      expect(mine.eligible.map((e) => e.id)).not.toContain(2)
+      expect(mine.canVote).toBe(true)
+      expect(mine.vote).toBeNull()
+      expect(seatProjection(state, 3, locale, { dealt: true })!.vote).toBe(0)
+
+      const undealt = seatProjection(state, 2, locale, { dealt: false })!
+      expect(undealt.roleId).toBeNull()
+      expect(undealt.trade).toBeNull()
+    }
+  })
+
+  it('knows the silenced cannot vote and the dead are out', () => {
+    let state = secretNight()
+    const silenced = seatProjection(state, 6, 'en', { dealt: true })!
+    expect(silenced.canVote).toBe(false)
+    expect(silenced.eligible).toEqual([])
+    state = lynch(state, 5)
+    const dead = seatProjection(state, 5, 'en', { dealt: true })!
+    expect(dead.alive).toBe(false)
+    expect(dead.canVote).toBe(false)
+    expect(seatProjection(state, 99, 'en', { dealt: true })).toBeNull()
+  })
+
+  it('has a shape for a seat that exists only as a name so far', () => {
+    const w = waitingSeat(3, 'Dani', 'es')
+    expect(w.roleId).toBeNull()
+    expect(w.phase).toBe('setup')
+    expect(JSON.parse(JSON.stringify(w))).toEqual(w)
   })
 })

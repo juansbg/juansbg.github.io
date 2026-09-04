@@ -305,10 +305,14 @@ export interface Strings {
       table: string
       /** The row that opens the room sheet: a code and a QR for a TV. */
       bigScreen: string
+      /** Lifts the seal on the day's ballot for the room; the value is the count so far. */
+      revealVotes: string
     }
     /** The table view: the seating plan for the room, phone on its side. */
     table: {
       day: (n: number) => string
+      /** The sealed ballot's running count: n of the living have voted. */
+      voted: (n: number, living: number) => string
     }
     /** The room sheet on the narrator's phone. */
     room: {
@@ -326,8 +330,28 @@ export interface Strings {
       scan: string
       noTv: string
       tvs: (n: number) => string
+      players: (n: number) => string
+      forTv: string
+      forPlayers: string
+      scanPlayers: string
       reconnecting: string
       failed: string
+    }
+    /** A player's own phone. */
+    seat: {
+      title: string
+      yourName: string
+      join: string
+      joined: (name: string) => string
+      waiting: string
+      waitingForDeal: string
+      youAre: (seat: number) => string
+      vote: string
+      yourVote: string
+      cannotVote: string
+      out: string
+      refused: string
+      refusedBody: string
     }
     /** The TV page, before and between projections. */
     tv: {

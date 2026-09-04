@@ -140,13 +140,26 @@ export const parseFragment = (hash: string): { room: string | null; relay: strin
 
 export type LinkStatus = 'connecting' | 'open' | 'closed'
 
-/** What the relay sends the narrator. */
+/** What the relay sends the narrator. `cid` is a player's connection, chosen by their page. */
 export type FromRelay =
-  | { kind: 'present'; seats: number[]; tvs: number }
+  | { kind: 'present'; players: string[]; tvs: number }
   | { kind: 'tvs'; count: number }
-  | { kind: 'joined'; seat: number }
-  | { kind: 'left'; seat: number }
-  | { kind: 'vote'; seat: number; target: number | null }
+  /** A player asked for a seat by name, with the public half of their key. */
+  | { kind: 'join'; cid: string; name: string; pub: string }
+  | { kind: 'left'; cid: string }
+  | { kind: 'vote'; cid: string; target: number | null }
+
+/** What the narrator sends besides the TV projection. */
+export type ToRelay =
+  | { kind: 'hello'; pub: string }
+  | { kind: 'player'; cid: string; payload: string }
+
+/** The address a player opens: one for the whole table, the code in the fragment. */
+export const seatUrl = (room: Room, site: string): string => {
+  const params = new URLSearchParams({ room: room.code })
+  if (room.relay !== normalizeRelay(DEFAULT_RELAY)) params.set('relay', room.relay)
+  return `${site.replace(/\/+$/, '')}/seat.html#${params.toString()}`
+}
 
 export interface LinkHandlers {
   onStatus?: (status: LinkStatus) => void
@@ -183,6 +196,13 @@ export class NarratorLink {
       this.frame = null
       this.flush()
     })
+  }
+
+  /** A message straight through: the hello, a player's sealed card. Dropped while the socket is down. */
+  send(message: ToRelay): boolean {
+    if (this.ws === null || this.ws.readyState !== WebSocket.OPEN) return false
+    this.ws.send(JSON.stringify(message))
+    return true
   }
 
   close(): void {
@@ -295,6 +315,71 @@ export class ScreenLink {
       if (this.ping !== null) window.clearInterval(this.ping)
       this.ping = null
       this.onStatus('closed')
+      this.attempt += 1
+      setTimeout(() => this.connect(), Math.min(30_000, 500 * 2 ** Math.min(this.attempt, 6)))
+    }
+    ws.onerror = () => ws.close()
+  }
+}
+
+export interface PlayerHandlers {
+  onStatus: (status: LinkStatus) => void
+  /** The narrator's public key: derive the shared one, then say who we are. */
+  onHello: (pub: string) => void
+  /** This seat's projection, still sealed. */
+  onSealed: (payload: string) => void
+}
+
+/**
+ * A player's side: one socket as `cid`, kept up like the screen's, and two
+ * things to say — a join and a vote.
+ */
+export class PlayerLink {
+  private ws: WebSocket | null = null
+  private attempt = 0
+  private ping: number | null = null
+
+  constructor(
+    private readonly relay: string,
+    private readonly code: string,
+    private readonly cid: string,
+    private readonly handlers: PlayerHandlers,
+  ) {
+    this.connect()
+  }
+
+  send(message: { kind: 'join'; name: string; pub: string } | { kind: 'vote'; target: number | null }): boolean {
+    if (this.ws === null || this.ws.readyState !== WebSocket.OPEN) return false
+    this.ws.send(JSON.stringify(message))
+    return true
+  }
+
+  private connect(): void {
+    this.handlers.onStatus('connecting')
+    const ws = new WebSocket(`${wsUrl(this.relay)}/rooms/${this.code}/ws?as=player&cid=${this.cid}`)
+    this.ws = ws
+    ws.onopen = () => {
+      this.attempt = 0
+      this.ping = window.setInterval(() => ws.send('ping'), 25_000)
+      this.handlers.onStatus('open')
+    }
+    ws.onmessage = (event) => {
+      if (typeof event.data !== 'string' || event.data === 'pong') return
+      try {
+        const parsed = JSON.parse(event.data) as { kind?: unknown; pub?: unknown; payload?: unknown }
+        if (parsed.kind === 'hello' && typeof parsed.pub === 'string') this.handlers.onHello(parsed.pub)
+        else if (parsed.kind === 'player' && typeof parsed.payload === 'string') this.handlers.onSealed(parsed.payload)
+      } catch {
+        // Not ours.
+      }
+    }
+    ws.onclose = (event) => {
+      if (this.ping !== null) window.clearInterval(this.ping)
+      this.ping = null
+      if (this.ws === ws) this.ws = null
+      this.handlers.onStatus('closed')
+      // Replaced by this phone's own newer socket: that one carries on.
+      if (event.code === 4000) return
       this.attempt += 1
       setTimeout(() => this.connect(), Math.min(30_000, 500 * 2 ** Math.min(this.attempt, 6)))
     }

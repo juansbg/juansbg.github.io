@@ -54,6 +54,11 @@ export const tableMarkup = (p: TvProjection, controls = true): string => {
     <section class="screen screen--table" data-table data-phase="${p.phase}">
       <header class="tableview__head">
         <p class="label">${esc(caption)}</p>
+        ${
+          p.voted > 0 && p.tally.length === 0
+            ? `<p class="tableview__voted">${esc(t.ui.table.voted(p.voted, p.players.filter((s) => s.alive).length))}</p>`
+            : ''
+        }
       </header>
       ${p.timer && p.phase === 'day' ? `<div class="tableview__clock">${timerMarkup(p.timer, p.locale)}</div>` : ''}
       ${circleMarkup(p.players.map(seatOf), p.locale, { votes, leader: p.leader })}

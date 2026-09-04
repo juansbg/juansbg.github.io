@@ -1,7 +1,9 @@
 import { ROLES, isRoleId, type RoleId } from '../engine/roles'
 import {
   advance,
+  assignTrades,
   canUndo,
+  canVote,
   castVote,
   createGame,
   currentStep,
@@ -27,7 +29,7 @@ import { accentOf } from './accent'
 import { buzz, esc, on, swap } from './dom'
 import { sound, unlockOnGesture } from './sound'
 import { clear, clearRoster, load, loadRoster, loadTimer, save, saveRoster, saveTimer, type AppState } from './store'
-import { editorMarkup, MIN_PLAYERS, namesMarkup, rosterMarkup } from './screens/setup'
+import { editorMarkup, MAX_PLAYERS, MIN_PLAYERS, namesMarkup, rosterMarkup } from './screens/setup'
 import { dealRoles, systemRandom, type Complexity } from '../engine/deal'
 import { dayMarkup, inspectionMarkup, nightMarkup, playerViewMarkup, questionCardMarkup, questionsIntroMarkup } from './screens/night'
 import { dawnMarkup, dawnSlides, verdictSlides, type Reading, type Slide } from './screens/dawn'
@@ -44,10 +46,14 @@ import {
   saveRelay,
   saveRoom,
   saveRoomKey,
+  seatUrl,
   tvUrl,
+  type FromRelay,
   type LinkStatus,
   type Room,
 } from '../room/client'
+import { makeKeys, seal, sharedKey, type KeyPair } from '../room/crypto'
+import { seatProjection, waitingSeat, type SeatProjection } from '../room/projections'
 import { qrSvg } from '../room/qr'
 import { timelineMarkup } from './screens/timeline'
 import { paperMarkup, sharePaper, type ShareResult } from './screens/paper'
@@ -117,21 +123,146 @@ let roomBusy = false
 /** Why the last attempt failed: the relay refused the key, or did not answer. */
 let roomError: 'key' | 'relay' | null = null
 
+/**
+ * A player who joined from their own phone: a name they typed, the public
+ * half of their key, the seat they were given by name, and what they were
+ * last sent so nothing is sealed twice. Lives in memory only: after a reload
+ * the phone says hello with a new key and every player joins again.
+ */
+interface Guest {
+  name: string
+  pub: string
+  key: CryptoKey | null
+  seat: PlayerId | null
+  lastSent: string | null
+  /** Seals for this guest go out in order. */
+  queue: Promise<void>
+}
+const guests = new Map<string, Guest>()
+/** This phone's half of the key exchange, made once per page load. */
+let narratorKeys: KeyPair | null = null
+/** The ballot: sealed until the narrator taps Reveal; every move that leaves the day seals it again. */
+let votesRevealed = false
+
+const sameName = (a: string, b: string): boolean => a.trim().toLowerCase() === b.trim().toLowerCase()
+
+/** Seats already given to other guests. */
+const takenSeats = (except: string): Set<PlayerId> =>
+  new Set([...guests.entries()].filter(([cid, g]) => cid !== except && g.seat !== null).map(([, g]) => g.seat as PlayerId))
+
+/** Seats that have a phone: the pass-around can skip them. */
+const seatedFromPhones = (): Set<PlayerId> =>
+  new Set([...guests.values()].filter((g) => g.seat !== null && g.key !== null).map((g) => g.seat as PlayerId))
+
+/**
+ * Finds a guest a seat by name. While the roster is still names, a matching
+ * name takes that seat and a new one is added to the list; once the game has
+ * players, only a matching, unclaimed name will do — the narrator seats
+ * strangers by hand.
+ */
+function claimSeat(cid: string, name: string): PlayerId | null {
+  const taken = takenSeats(cid)
+  const game = state.session.current
+  if (state.screen === 'setup' && game.players.length === 0) {
+    const match = names.findIndex((n, i) => sameName(n, name) && !taken.has(i))
+    if (match !== -1) return match
+    if (names.length >= MAX_PLAYERS) return null
+    names = [...names, name.trim()]
+    saveRoster(names)
+    return names.length - 1
+  }
+  const player = game.players.find((p) => sameName(p.name, name) && !taken.has(p.id))
+  return player ? player.id : null
+}
+
+async function admit(cid: string, name: string, pub: string): Promise<void> {
+  const existing = guests.get(cid)
+  const key = narratorKeys === null ? null : await sharedKey(narratorKeys.privateKey, pub)
+  const seat = existing?.seat !== null && existing !== undefined && existing.seat !== null && sameName(existing.name, name)
+    ? existing.seat
+    : claimSeat(cid, name)
+  guests.set(cid, { name: name.trim(), pub, key, seat, lastSent: null, queue: existing?.queue ?? Promise.resolve() })
+  setState({}, false)
+}
+
+function handleRoomMessage(message: FromRelay): void {
+  switch (message.kind) {
+    case 'tvs':
+      tvs = message.count
+      break
+    case 'present':
+      tvs = message.tvs
+      break
+    case 'join':
+      void admit(message.cid, message.name, message.pub)
+      return
+    case 'left':
+      return
+    case 'vote': {
+      const guest = guests.get(message.cid)
+      const game = state.session.current
+      if (!guest || guest.seat === null || state.screen !== 'day' || !canVote(game, guest.seat)) return
+      const voter = guest.seat
+      if (message.target === null) {
+        if (!game.votes.some((v) => v.voter === voter)) return
+        mutate((s) => withdrawVote(s, voter), { night: game.night, kind: 'vote', voter })
+      } else {
+        const target = message.target
+        const ok = game.players.some((p) => p.id === target && p.alive) && target !== voter
+        if (!ok) return
+        mutate((s) => castVote(s, voter, target), { night: game.night, kind: 'vote', voter, target })
+      }
+      return
+    }
+  }
+  if (roomOpen) setState({}, false)
+}
+
 function connectRoom(): void {
   if (room === null) return
   link?.close()
+  if (narratorKeys === null) {
+    void makeKeys().then((keys) => {
+      narratorKeys = keys
+      link?.send({ kind: 'hello', pub: keys.pub })
+    })
+  }
   link = new NarratorLink(room, {
     onStatus: (status) => {
       roomStatus = status
+      // Every fresh socket says hello, so a player who connected first can key up.
+      if (status === 'open' && narratorKeys !== null) link?.send({ kind: 'hello', pub: narratorKeys.pub })
       if (roomOpen) setState({}, false)
     },
-    onMessage: (message) => {
-      if (message.kind === 'tvs') tvs = message.count
-      else if (message.kind === 'present') tvs = message.tvs
-      else return
-      if (roomOpen) setState({}, false)
-    },
+    onMessage: handleRoomMessage,
   })
+}
+
+/** What one guest should see now, or a refusal if they have no seat. */
+function seatNow(guest: Guest): SeatProjection | { kind: 'refused' } {
+  if (guest.seat === null) return { kind: 'refused' }
+  const game = state.session.current
+  if (state.screen === 'setup' && game.players.length === 0) {
+    return waitingSeat(guest.seat, names[guest.seat] ?? guest.name, state.locale)
+  }
+  return seatProjection(game, guest.seat, state.locale, { dealt: state.screen !== 'setup' }) ?? { kind: 'refused' }
+}
+
+function publishSeats(): void {
+  if (link === null) return
+  for (const [cid, guest] of guests) {
+    const text = JSON.stringify(seatNow(guest))
+    if (text === guest.lastSent) continue
+    guest.lastSent = text
+    guest.queue = guest.queue.then(async () => {
+      if (guest.key === null) {
+        if (narratorKeys === null) return
+        guest.key = await sharedKey(narratorKeys.privateKey, guest.pub)
+      }
+      const payload = await seal(guest.key, text)
+      if (!link?.send({ kind: 'player', cid, payload })) guest.lastSent = null
+    })
+  }
 }
 
 /** What the room sees right now: the table view and the TV render the same thing. */
@@ -139,11 +270,14 @@ function projectionNow(): TvProjection {
   return tvProjection(state.session.current, state.locale, {
     reading: dawn !== null ? { kind: dawnKind, index: dawn, slides: currentSlides() } : null,
     timer: state.screen === 'day' ? { ...viewOf(timer, Date.now()), endsAt: timer.endsAt } : null,
+    sealed: !votesRevealed,
   })
 }
 
 function publish(): void {
-  link?.publish(projectionNow())
+  if (link === null) return
+  link.publish(projectionNow())
+  publishSeats()
 }
 
 if (room !== null) connectRoom()
@@ -194,6 +328,7 @@ let voter: PlayerId | null = null
 const leaveDay = (): void => {
   voting = false
   voter = null
+  votesRevealed = false
   setTimer(resetTimer(timer))
 }
 
@@ -323,7 +458,7 @@ function render(entering = false): void {
     body = questionsIntroMarkup(flaggedNow, state.locale)
   } else if (state.screen === 'setup') {
     body = game.players.length === 0
-      ? namesMarkup(names, state.locale)
+      ? namesMarkup(names, state.locale, seatedFromPhones())
       : rosterMarkup(game.players, state.locale, complexity, rearranging, armedSeat)
     if (editing !== null) {
       const player = game.players.find((p) => p.id === editing)
@@ -499,13 +634,25 @@ function render(entering = false): void {
     const r = t.ui.room
     let body: string
     if (room !== null) {
-      const url = tvUrl(room, location.origin)
-      const status = roomStatus !== 'open' ? r.reconnecting : tvs > 0 ? r.tvs(tvs) : r.noTv
+      const tv = tvUrl(room, location.origin)
+      const seats = seatUrl(room, location.origin)
+      const seated = [...guests.values()].filter((g) => g.seat !== null).length
+      const status = roomStatus !== 'open' ? r.reconnecting : `${tvs > 0 ? r.tvs(tvs) : r.noTv} · ${r.players(seated)}`
       body = `
         <p class="title room__code" aria-label="${esc(r.code)}">${esc(room.code)}</p>
-        <div class="room__qr" aria-hidden="true">${qrSvg(url)}</div>
-        <p class="room__hint">${esc(r.scan)}</p>
-        <p class="room__url">${esc(url)}</p>
+        <div class="room__qrs">
+          <div class="room__pane">
+            <p class="label">${esc(r.forPlayers)}</p>
+            <div class="room__qr" aria-hidden="true">${qrSvg(seats)}</div>
+            <p class="room__hint">${esc(r.scanPlayers)}</p>
+          </div>
+          <div class="room__pane">
+            <p class="label">${esc(r.forTv)}</p>
+            <div class="room__qr" aria-hidden="true">${qrSvg(tv)}</div>
+            <p class="room__hint">${esc(r.scan)}</p>
+          </div>
+        </div>
+        <p class="room__url">${esc(tv)}</p>
         <p class="room__status" data-room-status>${esc(status)}</p>
         <button class="btn btn--ghost" type="button" data-room-close>${esc(r.close)}</button>
       `
@@ -616,6 +763,9 @@ function render(entering = false): void {
            </div>`
         : '',
       row('data-room', t.ui.menu.bigScreen, room?.code ?? ''),
+      room !== null && state.screen === 'day' && game.votes.length > 0 && !votesRevealed
+        ? row('data-reveal-votes', t.ui.menu.revealVotes, String(game.votes.length))
+        : '',
       inPlay ? row('data-table', t.ui.menu.table) : '',
       state.screen === 'day' ? row('data-show-role', t.ui.reveal.showAgain) : '',
       row('data-mute', t.ui.menu.sound, sound.muted() ? t.ui.menu.off : t.ui.menu.on),
@@ -637,10 +787,11 @@ function render(entering = false): void {
 }
 
 /** Living players, in seating order — the order the phone travels. */
+// A seat with a phone already has its card there: the pass-around skips it.
 const revealOrder = () =>
   state.revealMode === 'single'
     ? state.session.current.players.filter((p) => p.id === singleTarget)
-    : state.session.current.players
+    : state.session.current.players.filter((p) => !seatedFromPhones().has(p.id))
 
 let singleTarget: PlayerId | null = null
 
@@ -888,6 +1039,8 @@ function bind(): void {
 
   on(root, '[data-deal]', 'click', () => {
     saveRoster(game.players.map((p) => p.name))
+    // The roles are settled here: the trades go to whoever is still a citizen.
+    mutate((s) => assignTrades(s, systemRandom), { night: 0, kind: 'setup' })
     revealPhase = 'handoff'
     buzz()
     setState({ screen: 'reveal', revealIndex: 0, revealMode: 'onboarding' })
@@ -1165,8 +1318,17 @@ function bind(): void {
     link = null
     room = null
     tvs = 0
+    guests.clear()
     roomStatus = 'closed'
     saveRoom(null)
+    setState({}, false)
+  })
+
+  // The ballot comes off the seal: the count and the leader reach the room.
+  on(root, '[data-reveal-votes]', 'click', () => {
+    menuOpen = false
+    votesRevealed = true
+    buzz()
     setState({}, false)
   })
 

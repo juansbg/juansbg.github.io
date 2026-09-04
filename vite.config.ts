@@ -46,6 +46,7 @@ export default defineConfig({
       input: {
         main: 'index.html',
         tv: 'tv.html',
+        seat: 'seat.html',
       },
     },
   },

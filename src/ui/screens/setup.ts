@@ -18,14 +18,20 @@ export const MAX_PLAYERS = 20
  * needs to enter, and the list is remembered between games so the same group
  * never types it twice.
  */
-export const namesMarkup = (names: readonly string[], locale: Locale): string => {
+export const namesMarkup = (
+  names: readonly string[],
+  locale: Locale,
+  joined: ReadonlySet<number> = new Set(),
+): string => {
   const t = strings(locale)
   const enough = names.length >= MIN_PLAYERS
 
+  // A seat taken from a phone through the room carries a mark; the name
+  // itself is the same list either way, typed here or there.
   const chips = names
     .map(
       (name, i) => `
-        <li class="name-chip" style="--i: ${i}">
+        <li class="name-chip" style="--i: ${i}"${joined.has(i) ? ' data-joined' : ''}>
           <span class="name-chip__text">${esc(name)}</span>
           <button class="name-chip__remove" type="button" data-remove-name="${i}"
                   aria-label="${esc(t.ui.setup.remove)}">×</button>
