@@ -65,6 +65,8 @@ export const playGame = (
   policies: Policies,
   random: Random,
   observe: Observer = () => {},
+  /** Called after every single state change, for tests that check what each screen would show. */
+  watch: Observer = () => {},
 ): GameResult => {
   let g = createGame(roles.map((roleId, i) => ({ name: `P${i}`, roleId })), random)
   let overOnFirstMorning = false
@@ -73,20 +75,27 @@ export const playGame = (
 
   for (;;) {
     g = startNight(g)
+    watch(g)
     while (!isNightComplete(g)) {
       const roleId = currentStep(g)
       if (roleId === null) break
       g = recordAction(g, policies.night(g, roleId, random))
+      watch(g)
     }
     g = endNight(g)
     observe(g)
+    watch(g)
     g = settle(g, policies, random)
+    watch(g)
     if (over(g)) {
       overOnFirstMorning = g.night === 1
       break
     }
 
-    g = settle(lynch(g, policies.vote(g, random)), policies, random)
+    g = lynch(g, policies.vote(g, random))
+    watch(g)
+    g = settle(g, policies, random)
+    watch(g)
     if (over(g)) {
       overOnFirstDay = g.day === 1
       break
