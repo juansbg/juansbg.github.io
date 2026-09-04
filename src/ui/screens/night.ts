@@ -1,4 +1,5 @@
 import { spareCards } from '../../engine/cards'
+import { legalTargets } from '../../engine/targets'
 import { ROLES, type RoleId } from '../../engine/roles'
 import { doomedTonight } from '../../engine/resolve'
 import { currentStep } from '../../engine/state'
@@ -10,21 +11,9 @@ import { esc } from '../dom'
 import { circleMarkup, holdersOf, listMarkup, type CircleOptions, type Perspective } from './circle'
 import { outcomeCardMarkup } from './timeline'
 
-/** Who this role may target tonight, after its own constraints. */
-export const legalTargets = (state: GameState, roleId: RoleId): Player[] => {
-  const spec = ROLES[roleId].target
-  const living = state.players.filter((p) => p.alive)
-  if (spec.kind !== 'player') return living
-
-  return living.filter((p) => {
-    // The Family never eats its own. The Renegade may — that is his point.
-    if (roleId === 'KILLER' && ROLES[p.roleId].team === 'crew') return false
-    if (!spec.mayTargetSelf && p.roleId === roleId) return false
-    // "…but never the same person two nights running."
-    if (!spec.mayRepeatConsecutively && p.protectedLastNight) return false
-    return true
-  })
-}
+// The target rule is the engine's (engine/targets.ts); re-exported so the
+// screen and its tests keep one import.
+export { legalTargets }
 
 /**
  * How many players this role must pick before its action can be recorded.

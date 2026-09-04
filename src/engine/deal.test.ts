@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { COMPLEXITIES, NOT_AUTO_DEALT, crewSize, dealRoles, shuffle, type Complexity } from './deal'
+import { COMPLEXITIES, GODFATHER_FROM, NOT_AUTO_DEALT, crewSize, dealRoles, shuffle, type Complexity } from './deal'
 import { ROLES, isCrewRole, type RoleId } from './roles'
 
 /** A small deterministic generator, so a failure is always reproducible. */
@@ -17,8 +17,11 @@ const townOf = (roles: RoleId[]) => roles.filter((r) => !isCrewRole(r))
 describe('crew size', () => {
   it('is about a quarter of the table', () => {
     expect(crewSize(4)).toBe(1)
-    expect(crewSize(6)).toBe(2)
+    expect(crewSize(6)).toBe(1)
+    expect(crewSize(7)).toBe(2)
     expect(crewSize(8)).toBe(2)
+    expect(crewSize(10)).toBe(2)
+    expect(crewSize(11)).toBe(3)
     expect(crewSize(12)).toBe(3)
     expect(crewSize(16)).toBe(4)
     expect(crewSize(20)).toBe(5)
@@ -85,6 +88,13 @@ describe('dealing', () => {
   it('promotes a Godfather above simple level, and never below it', () => {
     expect(dealRoles(12, 'simple', seeded(4))).not.toContain('CONVERT')
     expect(dealRoles(12, 'standard', seeded(4))).toContain('CONVERT')
+  })
+
+  it('keeps the Godfather off small tables, where one conversion ends the game', () => {
+    for (const complexity of ['standard', 'complex'] as const) {
+      expect(dealRoles(GODFATHER_FROM - 1, complexity, seeded(4))).not.toContain('CONVERT')
+      expect(dealRoles(GODFATHER_FROM, complexity, seeded(4))).toContain('CONVERT')
+    }
   })
 
   it('adds the Renegade only on big complex tables', () => {

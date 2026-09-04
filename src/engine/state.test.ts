@@ -144,6 +144,15 @@ describe('win conditions', () => {
     expect(winner(state)).toBe('lovers')
   })
 
+  it('the town wins a wipe-out: the Gunman hanged with two left takes the last crew member with him', () => {
+    let state = createGame(cast(['AVENGE', 'KILLER']))
+    state = lynch(state, 0)
+    expect(state.awaitingHunterShot).toBe(0)
+    state = hunterShot(state, 1)
+    expect(state.players.every((p) => !p.alive)).toBe(true)
+    expect(winner(state)).toBe('town')
+  })
+
   it('reports no winner while the game is live', () => {
     expect(winner(createGame(cast(['KILLER', 'PLAIN', 'INSPECT', 'GUARD'])))).toBeNull()
   })

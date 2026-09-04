@@ -136,6 +136,80 @@ findings (1–3) do not depend on them.
   build if a table stalls, ends in a wipe with no winner, or ends on the first
   morning more than a few percent of the time.
 
+### After the fixes (2026-09-04)
+
+All three decisions are on `main`: `src/engine/sim/` is the simulator, `npm run
+sim` prints this table, and `src/engine/sim/balance.test.ts` runs 400 games per
+setting on every test run. The same run as above, after the changes:
+
+```
+== town policy: random ==
+n   cx        town  crew  lov  mar wipe | nights avg  p10  p90  max | over@N1  over@D1  >8n  stalled
+5   simple      33   67    0    0    0 |       1.8    1    2    3 |       0       24    0        0
+6   simple      46   54    0    0    0 |       2.0    1    3    4 |       0       19    0        0
+7   simple      13   87    0    0    0 |       2.4    2    3    5 |       0        0    0        0
+8   simple      20   80    0    0    0 |       2.7    2    4    5 |       0        0    0        0
+9   simple      21   79    0    0    0 |       3.4    3    4    6 |       0        0    0        0
+10  simple      30   70    0    0    0 |       3.8    3    5    6 |       0        0    0        0
+12  simple      16   84    0    0    0 |       4.3    3    5    7 |       0        0    0        0
+15  simple       8   92    0    0    0 |       5.4    4    7    9 |       0        0    0        0
+5   standard    33   67    0    0    0 |       1.8    1    2    3 |       0       24    0        0
+6   standard    48   52    0    0    0 |       2.1    1    3    4 |       2       19    0        0
+7   standard    21   79    0    0    0 |       2.4    2    3    5 |       0        5    0        0
+8   standard    14   87    0    0    0 |       2.7    2    4    5 |       0        3    0        0
+9   standard    17   83    0    0    0 |       3.3    2    5    7 |       0        1    0        0
+10  standard    21   79    0    0    0 |       3.8    3    5    6 |       0        0    0        0
+12  standard    14   86    0    0    0 |       4.4    3    6    8 |       0        0    0        0
+15  standard    10   90    0    0    0 |       5.4    4    7    9 |       0        0    1        0
+5   complex     37   61    1    2    0 |       1.7    1    2    3 |       2       32    0        0
+6   complex     44   50    1    5    0 |       1.9    1    3    4 |       2       26    0        0
+7   complex     18   77    0    5    0 |       2.2    1    3    5 |       2        9    0        0
+8   complex     12   82    0    6    0 |       2.4    2    4    6 |       0        8    0        0
+9   complex     14   78    0    8    0 |       3.0    2    4    6 |       0        4    0        0
+10  complex     16   74    0   10    0 |       3.4    2    5    6 |       0        4    0        0
+12  complex     11   77    0   12    0 |       3.5    2    5    7 |       0        4    0        0
+15  complex      6   80    0   14    0 |       4.1    2    6    9 |       0        3    0        0
+
+== town policy: detective ==
+n   cx        town  crew  lov  mar wipe | nights avg  p10  p90  max | over@N1  over@D1  >8n  stalled
+5   simple      61   39    0    0    0 |       1.5    1    2    3 |       0       50    0        0
+6   simple      79   21    0    0    0 |       1.7    1    2    3 |       0       41    0        0
+7   simple      40   60    0    0    0 |       2.4    2    3    4 |       0        0    0        0
+8   simple      58   42    0    0    0 |       2.8    2    4    5 |       0        0    0        0
+9   simple      54   46    0    0    0 |       3.2    2    4    5 |       0        0    0        0
+10  simple      66   34    0    0    0 |       3.5    2    4    6 |       0        0    0        0
+12  simple      52   48    0    0    0 |       4.5    3    5    7 |       0        0    0        0
+15  simple      39   61    0    0    0 |       5.9    5    7    9 |       0        0    0        0
+5   standard    62   38    0    0    0 |       1.5    1    2    3 |       0       50    0        0
+6   standard    75   25    0    0    0 |       1.7    1    3    4 |       2       40    0        0
+7   standard    53   47    0    0    0 |       2.4    2    3    4 |       0        5    0        0
+8   standard    41   59    0    0    0 |       2.9    2    4    5 |       0        2    0        0
+9   standard    50   50    0    0    0 |       3.4    2    4    6 |       0        1    0        0
+10  standard    54   46    0    0    0 |       3.9    3    5    7 |       0        0    0        0
+12  standard    47   53    0    0    0 |       4.8    3    6    8 |       0        0    0        0
+15  standard    40   60    0    0    0 |       6.1    4    8    9 |       0        0    1        0
+5   complex     62   36    0    2    0 |       1.4    1    2    3 |       3       54    0        0
+6   complex     71   24    1    4    0 |       1.6    1    2    3 |       2       42    0        0
+7   complex     45   51    0    4    0 |       2.2    2    3    4 |       2        8    0        0
+8   complex     35   59    0    6    0 |       2.7    2    4    5 |       0        7    0        0
+9   complex     42   51    0    7    0 |       3.2    2    4    6 |       0        4    0        0
+10  complex     45   45    0   10    0 |       3.5    2    5    6 |       0        4    0        0
+12  complex     31   58    0   11    0 |       3.8    2    5    7 |       0        3    0        0
+15  complex     26   60    0   14    0 |       4.7    3    7    8 |       0        3    0        0
+```
+
+What changed: six players now ends on the first morning 2% of the time instead of
+51% (only the Chameleon taking a card, or a coin-flip poison, can do it), and a
+detective-led town wins it three times in four, which is the bot's strength at a
+one-crew table rather than a problem. Seven players lost its Godfather and moved
+from 68% crew to about even. Ten players moved from three crew to two and from 70%
+crew to about even. Nothing stalls; every game has a winner; wipe-outs round to
+zero and are a town win when they happen.
+
+The balance test asserts: no stall, no game without a winner, wipe-outs at most
+1%, first-morning endings at most 5%, and each side winning at least 15% of
+detective-led games at every size from 5 to 15 at every complexity.
+
 ## 2. The big-screen mode
 
 The user's proposal: the narrator casts a table view to a TV, every player scans a
@@ -205,10 +279,11 @@ CLAUDE.md only in their own bullets.
 
 1. **Permanent simulator** — `src/engine/sim/` (policies, `playGame`, stats),
    `npm run sim` printing the table above, and `balance.test.ts` asserting the
-   invariants. *Done first because 2 and 3 are verified with it.*
+   invariants. *Done first because 2 and 3 are verified with it.* **Done.**
 2. **Wipe-out is a town win** — `winner()` in `src/engine/state.ts`, tests.
+   **Done.**
 3. **Deal balance** — `crewSize` and the Godfather threshold in
-   `src/engine/deal.ts`; rerun the table into this document.
+   `src/engine/deal.ts`; rerun the table into this document. **Done.**
 4. **Per-player vote record** — an engine outcome for the day's vote, so the tally
    (peer, step 4 below) and later the TV have data. Engine only; the UI is the
    peer's.

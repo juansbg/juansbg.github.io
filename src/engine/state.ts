@@ -160,8 +160,11 @@ export const winner = (state: GameState): Winner => {
   )
   if (martyrExecuted) return 'martyr'
 
-  if (living.length === 0) return null
-
+  // Nobody left is not "no winner": every road to a wipe-out runs through the
+  // last crew member dying (the Gunman hanged with two left and shooting the
+  // other, a pair of lovers as the last two), and no crew left is the town's
+  // condition. The crew count below answers it; a null here left the app on a
+  // day screen with an empty table and no way out.
   if (living.length === 2) {
     const [a, b] = living as [Player, Player]
     if (a.loverOf === b.id && b.loverOf === a.id) return 'lovers'

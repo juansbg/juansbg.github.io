@@ -14,14 +14,14 @@ Deployed as a GitHub Pages site (`juansbg.github.io`).
 
 The project is being rebuilt. The roadmap is six sprints; **all six are done.** v3 is the live site at the root; the old trees are no longer deployed.
 
-`src/engine/` is complete and at full narrator-script parity: every role that takes a night step is wired end to end, including the ones that used to be prompted and then ignored (see "Every night step is real" below). `src/i18n/` holds the Spanish and English string tables and the outcome renderer. 265 tests, no DOM, no strings in the engine. The app installs and runs offline (see "The app is a PWA" below). The UI lives in `src/ui/`: one token set in `tokens.css`, screens in `src/ui/screens/`, autosave in `store.ts`.
+`src/engine/` is complete and at full narrator-script parity: every role that takes a night step is wired end to end, including the ones that used to be prompted and then ignored (see "Every night step is real" below). `src/i18n/` holds the Spanish and English string tables and the outcome renderer. 282 tests, no DOM, no strings in the engine. A simulator plays whole games against the engine and a balance test runs on every test run (see "The simulator" below). The app installs and runs offline (see "The app is a PWA" below). The UI lives in `src/ui/`: one token set in `tokens.css`, screens in `src/ui/screens/`, autosave in `store.ts`.
 
 `STATE_VERSION` is 2. Version 1 saves did not track the Apothecary's vials; `store.ts` migrates them on load (`healUsed`/`poisonUsed` default to false) rather than dropping the game. Bump the version again only with a migration beside it.
 
 ### How the narrator's flow works now
 
 - **Setup is names only.** `screens/setup.ts` starts with a single field: type a name, Enter, repeat. The player count is how many names were typed; there is no count picker. The list is remembered in `omerta:roster` across resets — reset forgets the game, not the people — and a separate "Clear the list" asks before wiping it.
-- **Roles are dealt at random** (`engine/deal.ts`) by default; manual assignment stays as an override. The dealer only ever hands out roles the engine fully resolves — `NOT_AUTO_DEALT` lists the exceptions and a test enforces it. The list is now just `SPLIT` (the script gives the Cultist no win condition, so it is a pure manipulation card and a table must choose it) and `PICK_SIDE` (counts as crew for the deal but may stay with the town, so it would unbalance whichever side it does not pick). The Chameleon (`SWAP`) is dealt at complex tables since its card picker exists.
+- **Roles are dealt at random** (`engine/deal.ts`) by default; manual assignment stays as an override. The crew is `floor((n + 1) / 4)`, one at five or six players, two up to ten, three up to fourteen; the Godfather is dealt from `GODFATHER_FROM` (eight) players up. Both numbers came out of the simulator: rounding to nearest gave six players two crew, and one conversion then ended the game on the first morning half the time. The dealer only ever hands out roles the engine fully resolves — `NOT_AUTO_DEALT` lists the exceptions and a test enforces it. The list is now just `SPLIT` (the script gives the Cultist no win condition, so it is a pure manipulation card and a table must choose it) and `PICK_SIDE` (counts as crew for the deal but may stay with the town, so it would unbalance whichever side it does not pick). The Chameleon (`SWAP`) is dealt at complex tables since its card picker exists.
 - **Every night step is real.** Each of these was once a prompt whose answer went nowhere; the fix for each lives in `screens/night.ts` and `engine/resolve.ts`:
   - *The Godfather* (`CONVERT`) is asked after the Family has chosen, with the victim named and two buttons — take them in, or let the hit go ahead (`data-night-confirm` / `data-skip`). It used to offer only Confirm, so every prompted night converted. Once the one conversion is spent (`infectionUsed`) `scheduleFor` drops his step; he still wakes with the Family, there is just nothing to ask.
   - *The Associate* (`PICK_SIDE`) records a `chooseRole` to `KILLER` or `PLAIN` on night one (`data-choose-role`). A bare `confirm` was recorded before, which the resolver ignores.
@@ -42,6 +42,8 @@ The project is being rebuilt. The roadmap is six sprints; **all six are done.** 
 - **The page never scrolls.** `html/body/#app` are a fixed `100dvh` with overflow hidden; `#app` is a two-row grid of `.stage` over a persistent `.bar`. Only designated regions scroll: the morning report, the timeline sheet, the end-of-game history, the names list. The seating circle is sized from `min(width, height)` of its container so it shrinks on short phones. A change that makes `document.documentElement.scrollHeight > innerHeight` on any screen at 375×667 is a regression.
 - **One bottom bar, one menu.** Timeline is the only first-class button; everything else (language, circle/list, show a role again, end the game, restart) lives behind ⋯. Per-screen primary actions stay in the stage. **The bar is not rendered while a player can see the screen** — during a reveal, while the phone is turned to a player (`showingPlayer`), or while a dawn slide is up — because the timeline would show them every move and the menu can end the game. Each of those is an early return in `chromeMarkup()`; they are independent and order does not matter. Do not add loose buttons to the bottom of screens.
 - **Entrances play once.** `screen-in`, `seat-in`, `card-in` and `line-in` only run when the stage carries `data-enter`, which `render(true)` sets for an animated `setState` (a step, a screen, a move). `setState({}, false)` repaints the same scene without them, so a pick, the menu or a toggle never bounces the table into place again. A new entrance keyframe on stage content goes into the `.stage:not([data-enter])` list in `styles.css`; sheets and dawn slides are deliberately not in it.
+- **A wipe-out is the town's win.** `winner()` no longer returns `null` when nobody is alive: every road there runs through the last crew member dying (the Gunman hanged with two left and shooting the other), and the crew-count check answers it. The `null` left the app on a day screen with an empty table.
+- **Who a role may target is the engine's rule**, `legalTargets` in `engine/targets.ts`; the night screen re-exports it, and the simulator's bots pick from it, so the two cannot disagree.
 - **Seats can be rearranged only during setup** (`swapSeats` / `moveSeat` in `engine/state.ts`). Ids are seating positions and are referenced from the log and lovers once play starts, so both refuse after that.
 - **Destructive actions ask on our own sheet.** Clear names, end the game and restart open `confirmMarkup()` (`app.ts`, the `confirming` flag): the question in body type, Cancel, and a Vendetta button carrying the same label as the row that was tapped. They used to be `window.confirm`, which flashes a white system dialog in a dark room. Add a fourth destructive action by extending `Pending`, not by calling `window.confirm`.
 
@@ -52,6 +54,12 @@ The project is being rebuilt. The roadmap is six sprints; **all six are done.** 
 - Icons are `public/icon-*.png`, rasterised from `favicon.svg` with `rsvg-convert`; the maskable one is the same fedora on a padded viewBox so it survives the platform's mask. Regenerate all three if the sigil changes.
 - An install row appears in ⋯ only while the browser has fired `beforeinstallprompt` (Android/desktop Chrome). iOS has no such event; there the user adds to the home screen from Safari's share sheet, and `apple-touch-icon.png` is what it shows.
 - **Verifying offline:** the in-app browser pane refuses to fetch service-worker scripts, so it cannot prove this. Build, `npx vite preview`, and drive headless Chrome over the DevTools protocol instead: register, wait for `activated`, `Network.emulateNetworkConditions {offline: true}`, navigate, and assert `#app .stage` rendered and the fonts loaded. `src/vite-env.d.ts` carries the plugin's types for `virtual:pwa-register`.
+
+### The simulator
+
+- `src/engine/sim/` plays whole games through the public engine API with crude bots (`policies.ts`: everyone picks a legal target at random; the town votes either at random or by following the Detective). `playGame` is the loop, `stats.ts` the summary, `report.ts` the table. `npm run sim [games]` prints it (bundled with rolldown by `scripts/sim.mjs`, since Node cannot run the extensionless TS imports directly); paste the result over the table in `docs/ROADMAP.md` after any change to the dealer, the resolver or the win conditions.
+- `balance.test.ts` runs 400 games per setting, every size from 5 to 15 at every complexity under both policies, and fails on a stall, a game with no winner, more than 1% wipe-outs, more than 5% of games over before the first vote, or either side winning less than 15% of detective-led games. The bounds are loose on purpose: the bots play badly by design, and the test exists to catch a rule change that decides the game, not to tune it. **The win rates it prints are indicative, not a measurement of the real game.**
+- The bots sit out `SPLIT` and `PICK_SIDE`, which the dealer never hands out. A new role with a night step needs a case in `randomNight` only if its action is not a plain target.
 
 ### Design language
 
@@ -94,6 +102,7 @@ npm install      # first time
 npm run dev      # vite dev server
 npm run test     # vitest — the engine suite is the safety net
 npm run build    # typecheck + production build
+npm run sim      # the balance report, 3000 games per table; `npm run sim 500` for a quick one
 ```
 
 Local Node is 26; CI runs 24. Vite 8, TypeScript 7, Vitest 4.
@@ -103,6 +112,7 @@ Local Node is 26; CI runs 24. Vite 8, TypeScript 7, Vitest 4.
 ```
 src/
   engine/   pure TS — no DOM, no strings, fully unit-testable
+    sim/         bots that play whole games; the balance test and the report
   i18n/     es/en string tables and the outcome renderer
   ui/       renders from engine state; owns all strings and animation
     tokens.css     the ONE palette — never invent a colour outside it

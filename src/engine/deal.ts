@@ -21,11 +21,20 @@ export type Random = () => number
  *
  * Roughly a quarter of the table, the standard ratio for this family of games.
  * Fewer and the town wins on arithmetic; more and the first night decides it.
+ *
+ * Rounded down: 5–6 players get one, 7–10 two, 11–14 three. It used to round
+ * to nearest, which gave six players two crew (a third of the table) and the
+ * simulator showed half of those games over before anyone had voted.
  */
-export const crewSize = (players: number): number => {
-  if (players < 5) return 1
-  return Math.max(1, Math.round(players / 4))
-}
+export const crewSize = (players: number): number =>
+  Math.max(1, Math.floor((players + 1) / 4))
+
+/**
+ * The Godfather is dealt from this many players up. Below it a single
+ * conversion brings the crew to parity, and the game ends on the morning it
+ * happens; the balance test checks the threshold rather than trusting it.
+ */
+export const GODFATHER_FROM = 8
 
 /**
  * The crew's make-up.
@@ -34,10 +43,10 @@ export const crewSize = (players: number): number => {
  * (who converts instead of killing) and, on big complex tables, add the
  * Renegade, who can shoot his own side.
  */
-const crewRoles = (size: number, complexity: Complexity): RoleId[] => {
+const crewRoles = (players: number, size: number, complexity: Complexity): RoleId[] => {
   const crew: RoleId[] = Array.from({ length: size }, () => 'KILLER')
   if (complexity === 'simple') return crew
-  if (size >= 2) crew[0] = 'CONVERT'
+  if (size >= 2 && players >= GODFATHER_FROM) crew[0] = 'CONVERT'
   if (complexity === 'complex' && size >= 3) crew[1] = 'ROGUE'
   return crew
 }
@@ -109,7 +118,7 @@ export const dealRoles = (
 ): RoleId[] => {
   if (players <= 0) return []
 
-  const crew = crewRoles(crewSize(players), complexity)
+  const crew = crewRoles(players, crewSize(players), complexity)
   const townSeats = players - crew.length
 
   const essentials = ESSENTIAL.slice(0, Math.max(0, Math.min(ESSENTIAL.length, townSeats)))

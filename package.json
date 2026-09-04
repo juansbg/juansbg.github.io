@@ -11,6 +11,7 @@
     "preview": "vite preview",
     "test": "vitest run",
     "test:watch": "vitest",
+    "sim": "node scripts/sim.mjs",
     "typecheck": "tsc --noEmit"
   },
   "devDependencies": {
