@@ -295,6 +295,11 @@ export interface Strings {
     room: {
       intro: string
       relay: string
+      /** The key the relay wants before it opens a room, and where it comes from. */
+      key: string
+      keyHint: string
+      /** The relay refused the key. */
+      refused: string
       open: string
       opening: string
       close: string

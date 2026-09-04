@@ -14,8 +14,48 @@
 
 import { DurableObject } from 'cloudflare:workers'
 
+/** The rate-limiting binding; the types package has no name for it yet. */
+interface RateLimiter {
+  limit(options: { key: string }): Promise<{ success: boolean }>
+}
+
 export interface Env {
   ROOM: DurableObjectNamespace<Room>
+  RATE: RateLimiter
+  /** Comma-separated origins allowed to use the relay, or "*" locally. */
+  ALLOWED_ORIGINS: string
+  /** Needed to open a room. A secret, set with wrangler; unset means nobody may. */
+  ROOM_KEY?: string
+}
+
+/**
+ * The site is public and the relay is metered, so three doors are kept shut
+ * until release: only pages from our origin are answered, only a phone that
+ * knows the room key may open a room, and one address gets thirty handshakes
+ * a minute. None of this costs a request beyond the one being refused.
+ */
+const allowedOrigin = (request: Request, env: Env): boolean => {
+  if (env.ALLOWED_ORIGINS === '*') return true
+  const origin = request.headers.get('Origin')
+  if (origin === null) return false
+  return env.ALLOWED_ORIGINS.split(',').map((o) => o.trim()).includes(origin)
+}
+
+const withinRate = async (request: Request, env: Env): Promise<boolean> => {
+  const key = request.headers.get('CF-Connecting-IP') ?? 'unknown'
+  const { success } = await env.RATE.limit({ key })
+  return success
+}
+
+const hasRoomKey = (request: Request, env: Env): boolean => {
+  const expected = env.ROOM_KEY ?? ''
+  // Fail closed: a relay deployed before its secret is set opens no rooms.
+  if (expected === '') return false
+  const given = request.headers.get('X-Room-Key') ?? ''
+  if (given.length !== expected.length) return false
+  let diff = 0
+  for (let i = 0; i < expected.length; i++) diff |= given.charCodeAt(i) ^ expected.charCodeAt(i)
+  return diff === 0
 }
 
 /** Readable across a room: no 0/O, no 1/I. */
@@ -31,7 +71,7 @@ const randomCode = (): string => {
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
-  'Access-Control-Allow-Headers': 'Content-Type',
+  'Access-Control-Allow-Headers': 'Content-Type, X-Room-Key',
 }
 
 const json = (body: unknown, status = 200): Response =>
@@ -45,9 +85,14 @@ export default {
     const url = new URL(request.url)
 
     if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: CORS })
+    if (url.pathname === '/') return json({ service: 'omerta-relay' })
+
+    if (!allowedOrigin(request, env)) return new Response('origin', { status: 403, headers: CORS })
+    if (!(await withinRate(request, env))) return new Response('slow down', { status: 429, headers: CORS })
 
     // The phone opens a room with the hash of its secret; the code comes back.
     if (request.method === 'POST' && url.pathname === '/rooms') {
+      if (!hasRoomKey(request, env)) return json({ error: 'key' }, 403)
       const body = (await request.json().catch(() => null)) as { secretHash?: unknown } | null
       const secretHash = body?.secretHash
       if (typeof secretHash !== 'string' || !/^[0-9a-f]{64}$/.test(secretHash)) {
@@ -74,7 +119,6 @@ export default {
       return room.fetch(request)
     }
 
-    if (url.pathname === '/') return json({ service: 'omerta-relay' })
     return new Response('not found', { status: 404, headers: CORS })
   },
 } satisfies ExportedHandler<Env>
@@ -83,6 +127,8 @@ export default {
 type Role = 'narrator' | 'tv' | 'seat'
 
 const MAX_MESSAGE = 16 * 1024
+/** Sockets one room will hold: a table, a few screens, some reconnect slack. */
+const MAX_SOCKETS = 40
 /** Messages allowed per socket per second before it is dropped. */
 const RATE = 20
 const IDLE_MS = 6 * 60 * 60 * 1000
@@ -124,6 +170,8 @@ export class Room extends DurableObject<Env> {
     const url = new URL(request.url)
     const secretHash = await this.ctx.storage.get<string>('secretHash')
     if (secretHash === undefined) return new Response('no such room', { status: 404 })
+
+    if (this.ctx.getWebSockets().length >= MAX_SOCKETS) return new Response('room full', { status: 429 })
 
     const as = url.searchParams.get('as')
     let tags: string[]

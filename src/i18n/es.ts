@@ -339,6 +339,9 @@ export const es: Strings = {
     room: {
       intro: 'Abre una sala y una tele muestra la mesa: nombres, quién ha muerto, el recuento, el reloj y las lecturas. Nada secreto sale de este teléfono.',
       relay: 'Dirección del relé',
+      key: 'Clave de la sala',
+      keyHint: 'El relé solo abre salas a un teléfono que conoce su clave.',
+      refused: 'El relé ha rechazado la clave.',
       open: 'Abrir una sala',
       opening: 'Abriendo…',
       close: 'Cerrar la sala',

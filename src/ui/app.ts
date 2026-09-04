@@ -35,12 +35,15 @@ import { tableMarkup } from './screens/table'
 import { tvProjection, type TvProjection } from '../room/projections'
 import {
   NarratorLink,
+  RelayRefused,
   loadRelay,
   loadRoom,
+  loadRoomKey,
   normalizeRelay,
   openRoom,
   saveRelay,
   saveRoom,
+  saveRoomKey,
   tvUrl,
   type LinkStatus,
   type Room,
@@ -111,7 +114,8 @@ let roomStatus: LinkStatus = 'closed'
 /** Screens on the room, as the relay reports them. */
 let tvs = 0
 let roomBusy = false
-let roomError = false
+/** Why the last attempt failed: the relay refused the key, or did not answer. */
+let roomError: 'key' | 'relay' | null = null
 
 function connectRoom(): void {
   if (room === null) return
@@ -513,7 +517,13 @@ function render(entering = false): void {
           <input class="field__input" type="url" data-relay value="${esc(loadRelay())}"
                  placeholder="https://…workers.dev" autocapitalize="off" autocorrect="off" spellcheck="false">
         </label>
-        ${roomError ? `<p class="notice">${esc(r.failed)}</p>` : ''}
+        <label class="field">
+          <span class="field__label">${esc(r.key)}</span>
+          <input class="field__input" type="text" data-room-key value="${esc(loadRoomKey())}"
+                 autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="off">
+        </label>
+        <p class="room__hint">${esc(r.keyHint)}</p>
+        ${roomError !== null ? `<p class="notice">${esc(roomError === 'key' ? r.refused : r.failed)}</p>` : ''}
         <button class="btn btn--primary" type="button" data-room-open${roomBusy ? ' disabled' : ''}>${esc(roomBusy ? r.opening : r.open)}</button>
       `
     }
@@ -1116,7 +1126,7 @@ function bind(): void {
   on(root, '[data-room]', 'click', () => {
     menuOpen = false
     roomOpen = true
-    roomError = false
+    roomError = null
     setState({}, false)
   })
 
@@ -1124,23 +1134,25 @@ function bind(): void {
     if (roomBusy) return
     const field = root.querySelector<HTMLInputElement>('[data-relay]')
     const relay = normalizeRelay(field?.value ?? loadRelay())
+    const key = (root.querySelector<HTMLInputElement>('[data-room-key]')?.value ?? loadRoomKey()).trim()
     if (relay === '') {
-      roomError = true
+      roomError = 'relay'
       setState({}, false)
       return
     }
     saveRelay(relay)
+    saveRoomKey(key)
     roomBusy = true
-    roomError = false
+    roomError = null
     setState({}, false)
-    void openRoom(relay)
+    void openRoom(relay, key)
       .then((opened) => {
         room = opened
         saveRoom(room)
         connectRoom()
       })
-      .catch(() => {
-        roomError = true
+      .catch((error: unknown) => {
+        roomError = error instanceof RelayRefused && error.status === 403 ? 'key' : 'relay'
       })
       .then(() => {
         roomBusy = false

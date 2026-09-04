@@ -15,6 +15,25 @@ export const DEFAULT_RELAY: string = (import.meta.env.VITE_RELAY_URL as string |
 
 const RELAY_KEY = 'omerta:relay'
 const ROOM_KEY = 'omerta:room'
+const ROOM_PASS_KEY = 'omerta:roomKey'
+
+/** The key the relay asks for before it opens a room. The narrator's, kept on the phone. */
+export const loadRoomKey = (): string => {
+  try {
+    return localStorage.getItem(ROOM_PASS_KEY) ?? ''
+  } catch {
+    return ''
+  }
+}
+
+export const saveRoomKey = (key: string): void => {
+  try {
+    if (key.trim() === '') localStorage.removeItem(ROOM_PASS_KEY)
+    else localStorage.setItem(ROOM_PASS_KEY, key.trim())
+  } catch {
+    // Private mode: the key holds until the page closes.
+  }
+}
 
 export const loadRelay = (): string => {
   try {
@@ -76,16 +95,24 @@ const randomSecret = (): string => {
 
 export const normalizeRelay = (url: string): string => url.trim().replace(/\/+$/, '')
 
-/** Opens a room on the relay. Throws if the relay is unreachable or refuses. */
-export const openRoom = async (relay: string): Promise<Room> => {
+export class RelayRefused extends Error {
+  constructor(readonly status: number) {
+    super(`relay ${status}`)
+  }
+}
+
+/** Opens a room on the relay. Throws RelayRefused on a refusal, Error when unreachable. */
+export const openRoom = async (relay: string, key = ''): Promise<Room> => {
   const base = normalizeRelay(relay)
   const secret = randomSecret()
+  const headers: Record<string, string> = { 'Content-Type': 'application/json' }
+  if (key !== '') headers['X-Room-Key'] = key
   const response = await fetch(`${base}/rooms`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify({ secretHash: await sha256(secret) }),
   })
-  if (!response.ok) throw new Error(`relay ${response.status}`)
+  if (!response.ok) throw new RelayRefused(response.status)
   const body = (await response.json()) as { code?: unknown }
   if (typeof body.code !== 'string') throw new Error('relay: no code')
   return { code: body.code, secret, relay: base }

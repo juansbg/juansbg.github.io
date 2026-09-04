@@ -171,6 +171,14 @@ rooms evict themselves. The whole server is one file.
   after six hours idle. Message cap 16 KB, a few messages per second per
   connection, no storage.
 
+**Keeping it closed until release (2026-09-04).** The site is public and the
+relay is metered, so: only the site's origin is answered; opening a room needs
+a key only the narrator has (`ROOM_KEY`, a Worker secret, typed once into the
+phone); one address gets thirty handshakes a minute; a room holds forty
+sockets. The account stays on the Free plan, which stops rather than bills.
+To release, publish the key in the app or drop the check, and widen the
+origins if the app ever lives elsewhere.
+
 Any WebSocket relay would do (sixty lines of Node on Fly or Render); the
 protocol does not depend on Cloudflare. The relay URL is a build-time constant
 with a per-game override in ⋯, so a self-hosted one is a setting.

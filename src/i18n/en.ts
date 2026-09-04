@@ -339,6 +339,9 @@ export const en: Strings = {
     room: {
       intro: 'Open a room and a TV shows the table: names, who is dead, the count, the clock and the readings. Nothing secret leaves this phone.',
       relay: 'Relay address',
+      key: 'Room key',
+      keyHint: 'The relay only opens rooms for a phone that knows its key.',
+      refused: 'The relay refused the key.',
       open: 'Open a room',
       opening: 'Opening…',
       close: 'Close the room',
