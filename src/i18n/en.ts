@@ -45,6 +45,13 @@ export const en: Strings = {
     SPLIT: { name: 'The Cultist', prompt: 'Splits the town into two factions.' , brief: 'On the first night you split the town into two opposing factions. Only you know who ended up on which side, and that secret is your edge.' , detail: 'On the first night you split the town into two factions, and the narrator tells each person privately which side they are on. Only you know the full list. How you use that secret is up to you and the table — it is a pure manipulation card.' },
   },
 
+  trades: [
+    'Baker', 'Tailor', 'Butcher', 'Barber', 'Florist', 'Fishmonger',
+    'Cobbler', 'Blacksmith', 'Innkeeper', 'Grocer', 'Milkman', 'Postman',
+    'Schoolteacher', 'Nurse', 'Priest', 'Gravedigger', 'Locksmith', 'Watchmaker',
+    'Printer', 'Pianist', 'Seamstress', 'Chimney sweep', 'Carpenter', 'Tobacconist',
+  ],
+
   phase: {
     nightFalls: 'The city sleeps',
     nightFallsBody: 'Everyone close your eyes.',

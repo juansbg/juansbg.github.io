@@ -33,6 +33,7 @@ const seatOf = (s: TvSeat): Player => ({
   sect: null,
   fatherOf: null,
   hasQuestion: s.hasQuestion,
+  trade: null,
 })
 
 export const tableMarkup = (p: TvProjection, controls = true): string => {

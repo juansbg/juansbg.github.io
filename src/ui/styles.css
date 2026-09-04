@@ -1056,6 +1056,14 @@ body {
   text-wrap: balance;
 }
 
+/* A citizen's trade, under the role: the small line that makes "I am the
+   baker" something a player can say. Plex, a step quieter than the name. */
+.reveal__trade {
+  margin: 0;
+  font-size: var(--text-md);
+  color: color-mix(in oklab, var(--on-paper) 72%, var(--paper));
+}
+
 /* The side is text, not colour. The card is the same paper for every role,
    so the glow across the table gives nothing away. */
 .reveal__team {

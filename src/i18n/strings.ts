@@ -34,6 +34,12 @@ export interface Strings {
   languageName: string
 
   roles: Record<RoleId, RoleStrings>
+  /**
+   * The citizens' trades, by index — `Player.trade`. The same order in every
+   * language, and exactly TRADE_COUNT of them (engine/state.ts). A shop sign,
+   * not a description of the person: the word's gender is the word's.
+   */
+  trades: readonly string[]
 
   phase: {
     nightFalls: string

@@ -20,6 +20,7 @@ const player = (roleId: RoleId, name = 'Ana'): Player => ({
   sect: null,
   fatherOf: null,
   hasQuestion: false,
+  trade: null,
 })
 
 const markup = (phase: RevealPhase, roleId: RoleId = 'KILLER') =>
@@ -84,6 +85,21 @@ describe('the revealed card', () => {
 
   it('marks a crew member as crew', () => {
     expect(roleCardMarkup(player('KILLER'), 'en')).toContain(strings('en').ui.reveal.teamCrew)
+  })
+
+  // A citizen's trade is on the held card, under the role, and nowhere the
+  // trade could be read before the hold: it is a secret the town has to earn.
+  it.each(LOCALES)('names a citizen’s trade on the card only (%s)', (locale) => {
+    const t = strings(locale)
+    const citizen = { ...player('PLAIN'), trade: 3 }
+    expect(roleCardMarkup(citizen, locale)).toContain(esc(t.trades[3]!))
+    expect(roleCardMarkup(player('INSPECT'), locale)).not.toContain('reveal__trade')
+    for (const phase of ['handoff', 'confirm'] as const) {
+      const before = revealMarkup({
+        player: citizen, position: 1, total: 3, phase, locale, mode: 'onboarding', canGoBack: false,
+      })
+      expect(before, `${locale}/${phase}`).not.toContain(esc(t.trades[3]!))
+    }
   })
 
   // The rules for first-timers are the role's own detail, the text the

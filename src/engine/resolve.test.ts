@@ -18,6 +18,7 @@ const makePlayer = (id: number, roleId: RoleId, name = `P${id}`): Player => ({
   sect: null,
   fatherOf: null,
   hasQuestion: false,
+  trade: null,
 })
 
 const stateWith = (
@@ -35,6 +36,7 @@ const stateWith = (
   pending,
   votes: [],
   log: [],
+  seed: 1,
   infectionUsed: false,
   healUsed: false,
   poisonUsed: false,

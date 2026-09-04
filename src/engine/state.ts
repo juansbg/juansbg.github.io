@@ -1,3 +1,4 @@
+import { shuffle, systemRandom, type Random } from './deal'
 import { isCrewRole, type RoleId } from './roles'
 import { scheduleFor } from './schedule'
 import { applyDeaths, resolveNight } from './resolve'
@@ -17,7 +18,13 @@ export interface PlayerSetup {
   roleId: RoleId
 }
 
-const newPlayer = (id: PlayerId, setup: PlayerSetup): Player => ({
+/**
+ * How many trades the string tables name. A table of twenty citizens still
+ * gets distinct ones. `i18n.test.ts` holds both languages to this number.
+ */
+export const TRADE_COUNT = 24
+
+const newPlayer = (id: PlayerId, setup: PlayerSetup, trade: number | null): Player => ({
   id,
   name: setup.name,
   roleId: setup.roleId,
@@ -32,26 +39,40 @@ const newPlayer = (id: PlayerId, setup: PlayerSetup): Player => ({
   sect: null,
   fatherOf: null,
   hasQuestion: false,
+  trade,
 })
 
-export const createGame = (setups: readonly PlayerSetup[]): GameState => ({
-  version: STATE_VERSION,
-  phase: 'setup',
-  night: 0,
-  day: 0,
-  // Identity is the index, assigned once. Names are display data only and may
-  // repeat freely — nothing downstream is allowed to key off them.
-  players: setups.map((s, i) => newPlayer(i, s)),
-  schedule: [],
-  stepIndex: 0,
-  pending: [],
-  votes: [],
-  log: [],
-  infectionUsed: false,
-  healUsed: false,
-  poisonUsed: false,
-  awaitingHunterShot: null,
-})
+/**
+ * Trades go to the citizens in a shuffled order, so two games at the same
+ * table never seat the same baker. The source of randomness is injected for
+ * the tests and the simulator; the app passes nothing and gets the system's.
+ */
+export const createGame = (
+  setups: readonly PlayerSetup[],
+  random: Random = systemRandom,
+): GameState => {
+  const pool = shuffle(Array.from({ length: TRADE_COUNT }, (_, i) => i), random)
+  let dealt = 0
+  return {
+    version: STATE_VERSION,
+    phase: 'setup',
+    night: 0,
+    day: 0,
+    // Identity is the index, assigned once. Names are display data only and may
+    // repeat freely — nothing downstream is allowed to key off them.
+    players: setups.map((s, i) => newPlayer(i, s, s.roleId === 'PLAIN' ? (pool[dealt++] ?? null) : null)),
+    schedule: [],
+    stepIndex: 0,
+    pending: [],
+    votes: [],
+    log: [],
+    infectionUsed: false,
+    healUsed: false,
+    poisonUsed: false,
+    awaitingHunterShot: null,
+    seed: Math.floor(random() * 2 ** 32),
+  }
+}
 
 export const startNight = (state: GameState): GameState => {
   const night = state.night + 1

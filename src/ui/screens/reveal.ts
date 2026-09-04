@@ -125,6 +125,7 @@ export const roleCardMarkup = (player: Player, locale: Locale): string => {
       <p class="reveal__label">${esc(t.ui.reveal.yourRole)}</p>
       <span class="reveal__sigil">${sigilMarkup(player.roleId)}</span>
       <h2 class="reveal__role">${esc(roleStrings.name)}</h2>
+      ${player.trade !== null ? `<p class="reveal__trade">${esc(t.trades[player.trade] ?? '')}</p>` : ''}
       <p class="reveal__team" data-team="${role.team}">${esc(team)}</p>
       <p class="reveal__prompt">${esc(roleStrings.brief)}</p>
       <section class="reveal__rules">

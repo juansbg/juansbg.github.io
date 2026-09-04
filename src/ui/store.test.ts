@@ -206,6 +206,25 @@ describe('older saves', () => {
     expect(load()!.session.current.votes).toEqual([])
   })
 
+  it('migrates a version-3 game, which had no trades and no seed', () => {
+    const game = createGame(cast(['KILLER', 'PLAIN', 'MEDIC']))
+    const v3 = JSON.parse(JSON.stringify(game)) as { players: Record<string, unknown>[]; seed?: number }
+    delete v3['seed']
+    for (const p of v3.players) delete p['trade']
+    localStorage.setItem(
+      'omerta:v1',
+      JSON.stringify({
+        version: 3, game: v3, locale: 'en', screen: 'day', revealIndex: 0,
+        past: [v3], timeline: [{ night: 0, kind: 'setup' }],
+      }),
+    )
+    const loaded = load()!
+    expect(loaded.session.current.players.every((p) => p.trade === null)).toBe(true)
+    expect(typeof loaded.session.current.seed).toBe('number')
+    // Every snapshot shares the seed, or an undo would reroll the paper.
+    expect(loaded.session.past[0]!.seed).toBe(loaded.session.current.seed)
+  })
+
   it('drops anything older than that', () => {
     const game = createGame(cast(['KILLER', 'PLAIN']))
     localStorage.setItem(

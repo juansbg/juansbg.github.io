@@ -45,6 +45,13 @@ export const es: Strings = {
     SPLIT: { name: 'El Sectario', prompt: 'Divide al pueblo en dos bandos.' , brief: 'La primera noche divides al pueblo en dos bandos enfrentados. Sólo tú sabes quién quedó en cada lado, y ese secreto es tu ventaja.' , detail: 'La primera noche divides al pueblo en dos bandos, y el narrador se lo comunica a cada persona en privado. Sólo tú sabes la lista completa. Cómo uses ese secreto depende de ti y de la mesa: es una carta de manipulación pura.' },
   },
 
+  trades: [
+    'Panadero', 'Sastre', 'Carnicero', 'Barbero', 'Florista', 'Pescadero',
+    'Zapatero', 'Herrero', 'Posadero', 'Tendero', 'Lechero', 'Cartero',
+    'Maestro', 'Enfermera', 'Cura', 'Sepulturero', 'Cerrajero', 'Relojero',
+    'Impresor', 'Pianista', 'Costurera', 'Deshollinador', 'Carpintero', 'Estanquero',
+  ],
+
   phase: {
     nightFalls: 'La ciudad duerme',
     nightFallsBody: 'Que todos cierren los ojos.',

@@ -39,6 +39,13 @@ export interface Player {
    * privately and the narrator checks on them before the first night.
    */
   hasQuestion: boolean
+  /**
+   * A citizen's trade: an index into the string tables' `trades`, so the
+   * engine never holds a word for it. Null for anyone with a role. Dealt at
+   * setup, unique within a game, kept if the citizen is converted, and
+   * secret until the paper names the dead (docs/GAZETTE.md).
+   */
+  trade: number | null
 }
 
 export type Phase = 'setup' | 'night' | 'day' | 'over'
@@ -85,6 +92,12 @@ export interface GameState {
   poisonUsed: boolean
   /** Set when a dead Cazador still owes a revenge shot the narrator must pick. */
   awaitingHunterShot: PlayerId | null
+  /**
+   * Seeds anything the engine rolls on its own (the paper's clues), so an
+   * undo and a redo roll the same and the log never changes under the
+   * narrator. Set once at createGame.
+   */
+  readonly seed: number
 }
 
 /** What the narrator recorded at one night step. */
@@ -135,4 +148,4 @@ export type DeathCause =
   | 'heartbreak'
   | 'revenge'
 
-export const STATE_VERSION = 3
+export const STATE_VERSION = 4

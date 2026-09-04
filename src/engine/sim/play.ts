@@ -62,7 +62,7 @@ export const playGame = (
   policies: Policies,
   random: Random,
 ): GameResult => {
-  let g = createGame(roles.map((roleId, i) => ({ name: `P${i}`, roleId })))
+  let g = createGame(roles.map((roleId, i) => ({ name: `P${i}`, roleId })), random)
   let overOnFirstMorning = false
   let overOnFirstDay = false
   let stalled = false

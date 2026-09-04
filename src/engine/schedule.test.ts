@@ -17,6 +17,7 @@ const makePlayer = (id: number, roleId: RoleId, alive = true): Player => ({
   sect: null,
   fatherOf: null,
   hasQuestion: false,
+  trade: null,
 })
 
 const table = (roles: RoleId[]): Player[] => roles.map((r, i) => makePlayer(i, r))

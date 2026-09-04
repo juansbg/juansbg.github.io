@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { LOCALES, detectLocale, morningReport, renderOutcome, strings } from './index'
 import { ROLE_IDS } from '../engine/roles'
 import {
+  TRADE_COUNT,
   createGame,
   endNight,
   recordAction,
@@ -14,6 +15,14 @@ const setup = (roles: (typeof ROLE_IDS)[number][], names?: string[]): PlayerSetu
   roles.map((roleId, i) => ({ name: names?.[i] ?? `P${i}`, roleId }))
 
 describe('string tables', () => {
+  it('name exactly TRADE_COUNT trades, distinct, in every language', () => {
+    for (const locale of LOCALES) {
+      const trades = strings(locale).trades
+      expect(trades.length, locale).toBe(TRADE_COUNT)
+      expect(new Set(trades).size, locale).toBe(TRADE_COUNT)
+    }
+  })
+
   it('name every role in every language', () => {
     for (const locale of LOCALES) {
       const t = strings(locale)

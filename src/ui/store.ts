@@ -1,5 +1,6 @@
 import { newSession, type Session, type TimelineEntry } from '../engine/state'
-import type { GameState } from '../engine/types'
+import { systemRandom } from '../engine/deal'
+import type { GameState, Player } from '../engine/types'
 import { STATE_VERSION } from '../engine/types'
 import type { Locale } from '../i18n'
 import type { Layout } from './screens/night'
@@ -92,9 +93,11 @@ export const load = ():
     // Saves from before history was persisted simply have none. The two
     // arrays must stay the same length; a mismatch means a corrupt save,
     // and an empty history is the safe reading of that.
-    const past = Array.isArray(parsed.past) ? parsed.past.map(migrate) : []
+    // One seed for every snapshot of the game, or an undo would reroll.
+    const seed = Math.floor(systemRandom() * 2 ** 32)
+    const past = Array.isArray(parsed.past) ? parsed.past.map((g) => migrate(g, seed)) : []
     const timeline = Array.isArray(parsed.timeline) ? parsed.timeline : []
-    const game = migrate(parsed.game)
+    const game = migrate(parsed.game, seed)
     const session: Session =
       past.length === timeline.length
         ? { current: game, past, timeline }
@@ -114,11 +117,12 @@ export const load = ():
 }
 
 /** State versions this build can still read. Anything older is dropped. */
-const MIGRATABLE: readonly number[] = [1, 2, STATE_VERSION]
+const MIGRATABLE: readonly number[] = [1, 2, 3, STATE_VERSION]
 
 /** A snapshot as an older build may have written it. */
-type SavedGame = Omit<GameState, 'healUsed' | 'poisonUsed' | 'votes'> &
-  Partial<Pick<GameState, 'healUsed' | 'poisonUsed' | 'votes'>>
+type SavedPlayer = Omit<Player, 'trade'> & Partial<Pick<Player, 'trade'>>
+type SavedGame = Omit<GameState, 'healUsed' | 'poisonUsed' | 'votes' | 'seed' | 'players'> &
+  Partial<Pick<GameState, 'healUsed' | 'poisonUsed' | 'votes' | 'seed'>> & { players: SavedPlayer[] }
 
 /**
  * Brings an older snapshot up to the current shape.
@@ -126,12 +130,16 @@ type SavedGame = Omit<GameState, 'healUsed' | 'poisonUsed' | 'votes'> &
  * Version 1 did not track the Apothecary's vials; a game saved then simply has
  * both unspent, which is the generous reading and the only one available.
  * Version 2 did not record the day's votes; a day in progress starts with none.
+ * Version 3 had no trades and no seed: the citizens of a game saved then keep
+ * no trade (the paper simply never names one), and the seed is drawn now.
  */
-const migrate = (game: SavedGame): GameState => ({
+const migrate = (game: SavedGame, seed: number): GameState => ({
   ...game,
+  players: game.players.map((p) => ({ ...p, trade: p.trade ?? null })),
   healUsed: game.healUsed ?? false,
   poisonUsed: game.poisonUsed ?? false,
   votes: game.votes ?? [],
+  seed: game.seed ?? seed,
 })
 
 export const clear = (): void => {

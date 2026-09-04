@@ -23,6 +23,7 @@ import {
   leader,
   type PlayerSetup,
 } from './state'
+import { TRADE_COUNT } from './state'
 import { STATE_VERSION, type GameState, type NightAction } from './types'
 import type { RoleId } from './roles'
 
@@ -534,5 +535,43 @@ describe('the day’s vote', () => {
   it('is forgotten at nightfall', () => {
     const state = startNight(castVote(day(), 1, 0))
     expect(state.votes).toEqual([])
+  })
+})
+
+describe('the citizens’ trades', () => {
+  const seeded = (seed: number) => {
+    let s = seed >>> 0
+    return () => {
+      s = (s * 1664525 + 1013904223) >>> 0
+      return s / 2 ** 32
+    }
+  }
+
+  it('gives every citizen a distinct trade and nobody else one', () => {
+    const state = createGame(cast(['PLAIN', 'KILLER', 'PLAIN', 'INSPECT', 'PLAIN', 'PLAIN']), seeded(3))
+    const trades = state.players.filter((p) => p.roleId === 'PLAIN').map((p) => p.trade)
+    expect(trades.every((t) => t !== null && t >= 0 && t < TRADE_COUNT)).toBe(true)
+    expect(new Set(trades).size).toBe(trades.length)
+    expect(state.players.filter((p) => p.roleId !== 'PLAIN').every((p) => p.trade === null)).toBe(true)
+  })
+
+  it('deals the same trades and seed for the same randomness', () => {
+    const a = createGame(cast(['PLAIN', 'PLAIN', 'KILLER']), seeded(9))
+    const b = createGame(cast(['PLAIN', 'PLAIN', 'KILLER']), seeded(9))
+    expect(a.players.map((p) => p.trade)).toEqual(b.players.map((p) => p.trade))
+    expect(a.seed).toBe(b.seed)
+    expect(createGame(cast(['PLAIN', 'PLAIN', 'KILLER']), seeded(10)).seed).not.toBe(a.seed)
+  })
+
+  it('keeps the trade when a citizen is converted', () => {
+    let state = createGame(cast(['CONVERT', 'KILLER', 'PLAIN', 'INSPECT', 'PLAIN']), seeded(4))
+    const trade = state.players[2]!.trade
+    state = startNight(state)
+    state = recordAction(state, { kind: 'target', roleId: 'INSPECT', actor: 3, target: 0 })
+    state = recordAction(state, { kind: 'target', roleId: 'KILLER', actor: null, target: 2 })
+    state = recordAction(state, { kind: 'confirm', roleId: 'CONVERT' })
+    state = endNight(state)
+    expect(state.players[2]!.roleId).toBe('KILLER')
+    expect(state.players[2]!.trade).toBe(trade)
   })
 })
