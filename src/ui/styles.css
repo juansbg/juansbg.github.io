@@ -2859,3 +2859,93 @@ html[data-dawn] body {
   border-color: var(--fg);
   background: color-mix(in oklab, var(--fg) 14%, transparent);
 }
+
+/* ---------- The lobby on the big screen ---------- */
+.screen--lobby {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--space-5);
+  align-items: center;
+  max-width: none;
+  height: 100%;
+}
+
+@media (orientation: portrait) {
+  .screen--lobby {
+    grid-template-columns: 1fr;
+    grid-template-rows: auto minmax(0, 1fr);
+    align-items: start;
+  }
+}
+
+.lobby__code {
+  display: grid;
+  gap: var(--space-3);
+  justify-items: center;
+  text-align: center;
+}
+
+.lobby__room {
+  margin: 0;
+  font-size: clamp(3rem, 12vmin, 7rem);
+  letter-spacing: 0.18em;
+  line-height: 1;
+}
+
+.lobby__qr svg {
+  width: min(60vmin, 22rem);
+}
+
+.lobby__roster {
+  display: grid;
+  gap: var(--space-3);
+  min-height: 0;
+}
+
+.lobby__names {
+  display: grid;
+  gap: var(--space-2);
+  grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.lobby__name {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-2) var(--space-3);
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  letter-spacing: var(--track-display);
+  color: var(--fg-muted);
+  border: 1px solid var(--hairline);
+}
+
+.lobby__name[data-joined] {
+  color: var(--fg);
+  border-color: var(--hairline-strong);
+}
+
+.lobby__mark {
+  color: var(--accent);
+}
+
+.room__names {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: var(--space-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.room__names li {
+  padding: var(--space-1) var(--space-2);
+  font-family: var(--font-display);
+  letter-spacing: var(--track-display);
+  border: 1px solid var(--hairline-strong);
+}

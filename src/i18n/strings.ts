@@ -313,6 +313,11 @@ export interface Strings {
       day: (n: number) => string
       /** The sealed ballot's running count: n of the living have voted. */
       voted: (n: number, living: number) => string
+      /** The lobby on the big screen. */
+      scanToJoin: string
+      joined: (n: number, total: number) => string
+      onPhone: string
+      proceed: string
     }
     /** The room sheet on the narrator's phone. */
     room: {
@@ -331,9 +336,12 @@ export interface Strings {
       noTv: string
       tvs: (n: number) => string
       players: (n: number) => string
+      /** The TV's address, to type or cast; and the seated names on the sheet. */
       forTv: string
       forPlayers: string
       scanPlayers: string
+      openOnTv: string
+      nobodyYet: string
       reconnecting: string
       failed: string
     }

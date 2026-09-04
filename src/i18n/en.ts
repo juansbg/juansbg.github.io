@@ -377,6 +377,10 @@ export const en: Strings = {
     table: {
       day: (n) => `Day ${n}`,
       voted: (n, living) => `${n} of ${living} have voted`,
+      scanToJoin: 'Scan to take a seat',
+      joined: (n, total) => (total === 0 ? 'Nobody at the table yet' : `${n} of ${total} on their phones`),
+      onPhone: 'on their phone',
+      proceed: 'Everyone is in',
     },
     room: {
       intro: 'Open a room and a TV shows the table: names, who is dead, the count, the clock and the readings. Nothing secret leaves this phone.',
@@ -395,6 +399,8 @@ export const en: Strings = {
       forTv: 'For the TV',
       forPlayers: 'For the players',
       scanPlayers: 'Each player scans this and types their name',
+      openOnTv: 'To use a TV, open this address on it',
+      nobodyYet: 'Nobody has joined yet',
       reconnecting: 'Reconnecting to the relay…',
       failed: 'The relay did not answer. Check the address and try again.',
     },

@@ -377,6 +377,10 @@ export const es: Strings = {
     table: {
       day: (n) => `Día ${n}`,
       voted: (n, living) => `Han votado ${n} de ${living}`,
+      scanToJoin: 'Escanea para sentarte',
+      joined: (n, total) => (total === 0 ? 'Aún no hay nadie en la mesa' : `${n} de ${total} con el móvil`),
+      onPhone: 'con el móvil',
+      proceed: 'Ya están todos',
     },
     room: {
       intro: 'Abre una sala y una tele muestra la mesa: nombres, quién ha muerto, el recuento, el reloj y las lecturas. Nada secreto sale de este teléfono.',
@@ -395,6 +399,8 @@ export const es: Strings = {
       forTv: 'Para la tele',
       forPlayers: 'Para los jugadores',
       scanPlayers: 'Cada jugador lo escanea y escribe su nombre',
+      openOnTv: 'Para usar una tele, abre esta dirección en ella',
+      nobodyYet: 'Todavía no ha entrado nadie',
       reconnecting: 'Reconectando con el relé…',
       failed: 'El relé no ha respondido. Revisa la dirección y vuelve a intentarlo.',
     },

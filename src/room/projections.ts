@@ -63,6 +63,13 @@ export interface TvProjection {
   revealed: { id: PlayerId; roleId: RoleId; trade: number | null }[]
   /** The edition open on the phone, by day, or null when none is. */
   paper: number | null
+  /**
+   * The lobby, during setup only: the address players join at, and the
+   * roster as it fills, each name marked once a phone holds it. Null and
+   * empty once the game has begun.
+   */
+  join: string | null
+  roster: { name: string; joined: boolean }[]
 }
 
 /** The clock as the screen should show it: a snapshot, plus the deadline so a
@@ -80,6 +87,8 @@ export interface TvContext {
    * until the narrator reveals. The count and the leader stay on the phone.
    */
   sealed?: boolean
+  join?: string | null
+  roster?: { name: string; joined: boolean }[]
 }
 
 export const tvProjection = (
@@ -109,6 +118,8 @@ export const tvProjection = (
   winner: winner(state),
   revealed: revealedDead(state).map((p) => ({ id: p.id, roleId: p.roleId, trade: p.trade })),
   paper: context.paper ?? null,
+  join: state.phase === 'setup' ? (context.join ?? null) : null,
+  roster: state.phase === 'setup' ? (context.roster ?? []) : [],
 })
 
 /**

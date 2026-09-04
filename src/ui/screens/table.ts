@@ -2,6 +2,7 @@ import type { Player } from '../../engine/types'
 import { renderWinner, strings } from '../../i18n'
 import type { TvProjection, TvSeat } from '../../room/projections'
 import { esc } from '../dom'
+import { qrSvg } from '../../room/qr'
 import { circleMarkup } from './circle'
 import { timerMarkup } from './timer'
 
@@ -38,6 +39,7 @@ const seatOf = (s: TvSeat): Player => ({
 
 export const tableMarkup = (p: TvProjection, controls = true): string => {
   const t = strings(p.locale)
+  if (p.phase === 'setup') return lobbyMarkup(p, controls, t)
   // The engine's phase stays where the game ended; a winner is what "over" means.
   const over = p.winner !== null
   const caption = over
@@ -102,5 +104,42 @@ const readingMarkup = (p: TvProjection, controls: boolean): string => {
           : ''
       }
     </div>
+  `
+}
+
+/**
+ * Before the game: the screen everyone looks at shows the code and the QR the
+ * players join with, and the roster filling up. The narrator's own device
+ * gets the button to go on; a TV through the relay just shows.
+ */
+const lobbyMarkup = (p: TvProjection, controls: boolean, t: ReturnType<typeof strings>): string => {
+  const code = p.join === null ? null : new URLSearchParams(p.join.split('#')[1] ?? '').get('room')
+  const joined = p.roster.filter((r) => r.joined).length
+  const names = p.roster
+    .map(
+      (r) => `<li class="lobby__name"${r.joined ? ' data-joined' : ''}>${esc(r.name)}${
+        r.joined ? `<span class="lobby__mark" aria-label="${esc(t.ui.table.onPhone)}">●</span>` : ''
+      }</li>`,
+    )
+    .join('')
+  return `
+    <section class="screen screen--lobby" data-table data-phase="setup">
+      <div class="lobby__code">
+        <p class="label">${esc(t.ui.table.scanToJoin)}</p>
+        ${code === null ? '' : `<p class="title lobby__room">${esc(code)}</p>`}
+        ${p.join === null ? '' : `<div class="room__qr lobby__qr" aria-hidden="true">${qrSvg(p.join)}</div>`}
+      </div>
+      <div class="lobby__roster">
+        <p class="label">${esc(t.ui.table.joined(joined, p.roster.length))}</p>
+        <ul class="lobby__names">${names}</ul>
+        ${
+          controls
+            ? `<div class="actions">
+                 <button class="btn btn--primary" type="button" data-table-proceed>${esc(t.ui.table.proceed)}</button>
+               </div>`
+            : ''
+        }
+      </div>
+    </section>
   `
 }

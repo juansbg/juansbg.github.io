@@ -266,11 +266,22 @@ function publishSeats(): void {
 }
 
 /** What the room sees right now: the table view and the TV render the same thing. */
+/** The roster as the lobby shows it: names typed here or on a phone, marked once a phone holds the seat. */
+function lobbyRoster(): { name: string; joined: boolean }[] {
+  const seated = seatedFromPhones()
+  const game = state.session.current
+  return game.players.length === 0
+    ? names.map((name, i) => ({ name, joined: seated.has(i) }))
+    : game.players.map((p) => ({ name: p.name, joined: seated.has(p.id) }))
+}
+
 function projectionNow(): TvProjection {
   return tvProjection(state.session.current, state.locale, {
     reading: dawn !== null ? { kind: dawnKind, index: dawn, slides: currentSlides() } : null,
     timer: state.screen === 'day' ? { ...viewOf(timer, Date.now()), endsAt: timer.endsAt } : null,
     sealed: !votesRevealed,
+    join: room === null ? null : seatUrl(room, location.origin),
+    roster: lobbyRoster(),
   })
 }
 
@@ -456,6 +467,9 @@ function render(entering = false): void {
     body = questionCardMarkup(askingPlayer, state.locale, position, total)
   } else if (askIntro && flaggedNow.length > 0) {
     body = questionsIntroMarkup(flaggedNow, state.locale)
+  } else if (tableView) {
+    // The room's screen wins over every screen of the narrator's, the lobby included.
+    body = tableMarkup(projectionNow())
   } else if (state.screen === 'setup') {
     body = game.players.length === 0
       ? namesMarkup(names, state.locale, seatedFromPhones())
@@ -478,8 +492,6 @@ function render(entering = false): void {
           canGoBack: state.revealMode === 'onboarding' && state.revealIndex > 0,
         })
       : revealDoneMarkup()
-  } else if (tableView) {
-    body = tableMarkup(projectionNow())
   } else if (state.screen === 'night') {
     const subject = game.players.find((p) => p.id === inspecting)
     body = subject
@@ -636,24 +648,19 @@ function render(entering = false): void {
     if (room !== null) {
       const tv = tvUrl(room, location.origin)
       const seats = seatUrl(room, location.origin)
-      const seated = [...guests.values()].filter((g) => g.seat !== null).length
-      const status = roomStatus !== 'open' ? r.reconnecting : `${tvs > 0 ? r.tvs(tvs) : r.noTv} · ${r.players(seated)}`
+      const seated = [...guests.values()].filter((g) => g.seat !== null)
+      const status = roomStatus !== 'open' ? r.reconnecting : `${tvs > 0 ? r.tvs(tvs) : r.noTv} · ${r.players(seated.length)}`
+      const who = seated.length === 0
+        ? `<p class="room__hint">${esc(r.nobodyYet)}</p>`
+        : `<ul class="room__names">${seated.map((g) => `<li>${esc(g.name)}</li>`).join('')}</ul>`
       body = `
         <p class="title room__code" aria-label="${esc(r.code)}">${esc(room.code)}</p>
-        <div class="room__qrs">
-          <div class="room__pane">
-            <p class="label">${esc(r.forPlayers)}</p>
-            <div class="room__qr" aria-hidden="true">${qrSvg(seats)}</div>
-            <p class="room__hint">${esc(r.scanPlayers)}</p>
-          </div>
-          <div class="room__pane">
-            <p class="label">${esc(r.forTv)}</p>
-            <div class="room__qr" aria-hidden="true">${qrSvg(tv)}</div>
-            <p class="room__hint">${esc(r.scan)}</p>
-          </div>
-        </div>
-        <p class="room__url">${esc(tv)}</p>
+        <div class="room__qr" aria-hidden="true">${qrSvg(seats)}</div>
+        <p class="room__hint">${esc(r.scanPlayers)}</p>
+        ${who}
         <p class="room__status" data-room-status>${esc(status)}</p>
+        <p class="room__hint">${esc(r.openOnTv)}</p>
+        <p class="room__url">${esc(tv)}</p>
         <button class="btn btn--ghost" type="button" data-room-close>${esc(r.close)}</button>
       `
     } else {
@@ -766,7 +773,7 @@ function render(entering = false): void {
       room !== null && state.screen === 'day' && game.votes.length > 0 && !votesRevealed
         ? row('data-reveal-votes', t.ui.menu.revealVotes, String(game.votes.length))
         : '',
-      inPlay ? row('data-table', t.ui.menu.table) : '',
+      inPlay || room !== null ? row('data-show-table', t.ui.menu.table) : '',
       state.screen === 'day' ? row('data-show-role', t.ui.reveal.showAgain) : '',
       row('data-mute', t.ui.menu.sound, sound.muted() ? t.ui.menu.off : t.ui.menu.on),
       installPrompt ? row('data-install', t.ui.menu.install) : '',
@@ -1264,7 +1271,7 @@ function bind(): void {
   })
 
   // ---- The table, for the room ----
-  on(root, '[data-table]', 'click', () => {
+  on(root, '[data-show-table]', 'click', () => {
     menuOpen = false
     tableView = true
     setState({})
@@ -1272,6 +1279,19 @@ function bind(): void {
 
   on(root, '[data-table-close]', 'click', () => {
     tableView = false
+    setState({})
+  })
+
+  // Everyone is in: the names become the roster and the narrator deals.
+  on(root, '[data-table-proceed]', 'click', () => {
+    tableView = false
+    if (state.screen === 'setup' && game.players.length === 0 && names.length >= MIN_PLAYERS) {
+      const setups: PlayerSetup[] = names.map((name) => ({ name, roleId: 'PLAIN' as RoleId }))
+      saveRoster(names)
+      buzz()
+      setState({ session: newSession(createGame(setups)) })
+      return
+    }
     setState({})
   })
 
@@ -1303,6 +1323,12 @@ function bind(): void {
         room = opened
         saveRoom(room)
         connectRoom()
+        // Before the game, the room is a lobby: turn this screen to it at
+        // once, so a stood-up phone or a mirrored iPad shows the code.
+        if (state.screen === 'setup') {
+          roomOpen = false
+          tableView = true
+        }
       })
       .catch((error: unknown) => {
         roomError = error instanceof RelayRefused && error.status === 403 ? 'key' : 'relay'

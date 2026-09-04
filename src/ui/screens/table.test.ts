@@ -81,6 +81,23 @@ describe('the table for the room', () => {
     expect(html).toContain(strings('en').winner.town)
   })
 
+  it('is a lobby before the game: the code and QR to join, and who is in', () => {
+    const fresh = createGame(cast(['PLAIN', 'PLAIN', 'PLAIN'], ['Ana', 'Beto', 'Caro']))
+    const p = tvProjection(fresh, 'en', {
+      join: 'https://site/seat.html#room=AB2CD',
+      roster: [{ name: 'Ana', joined: true }, { name: 'Beto', joined: false }, { name: 'Caro', joined: true }],
+    })
+    const mine = tableMarkup(p)
+    expect(mine).toContain('AB2CD')
+    expect(mine).toContain('<svg')
+    expect(mine).toMatch(/data-joined[^>]*>Ana/)
+    expect(mine).not.toMatch(/data-joined[^>]*>Beto/)
+    expect(mine).toContain(strings('en').ui.table.joined(2, 3))
+    expect(mine).toContain('data-table-proceed')
+    expect(mine).not.toContain('seat__name')
+    expect(tableMarkup(p, false)).not.toContain('data-table-proceed')
+  })
+
   it('shows the clock by day', () => {
     const html = tableMarkup(tvProjection(morning(), 'en', { timer: { phase: 'running', seconds: 90, endsAt: null } }))
     expect(html).toContain('data-timer-digits')

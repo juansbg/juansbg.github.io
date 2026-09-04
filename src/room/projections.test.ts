@@ -125,6 +125,19 @@ describe('the projection for the whole town', () => {
     expect(tvProjection(createGame([]), 'en').winner).toBeNull()
   })
 
+  it('carries the lobby only during setup', () => {
+    const fresh = createGame(cast(['PLAIN', 'PLAIN', 'PLAIN', 'PLAIN'], ['Ana', 'Beto', 'Caro', 'Dani']))
+    const lobby = tvProjection(fresh, 'en', {
+      join: 'https://site/seat.html#room=AB2CD',
+      roster: [{ name: 'Ana', joined: true }, { name: 'Beto', joined: false }],
+    })
+    expect(lobby.join).toBe('https://site/seat.html#room=AB2CD')
+    expect(lobby.roster.map((r) => r.joined)).toEqual([true, false])
+    const begun = tvProjection(secretNight(), 'en', { join: 'https://site/seat.html#room=AB2CD', roster: [{ name: 'Ana', joined: true }] })
+    expect(begun.join).toBeNull()
+    expect(begun.roster).toEqual([])
+  })
+
   it('is plain JSON that survives a round trip', () => {
     const state = lynch(secretNight(), 0)
     const p = tvProjection(state, 'es', { timer: { phase: 'running', seconds: 42, endsAt: null } })
