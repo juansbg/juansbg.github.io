@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { dawnMarkup, dawnSlides, deathLines, pickLine, verdictSlides } from './dawn'
 import { LOCALES, strings } from '../../i18n'
-import { createGame, endNight, lynch, recordAction, startNight, type PlayerSetup } from '../../engine/state'
+import { castVote, createGame, endNight, lynch, recordAction, startNight, type PlayerSetup } from '../../engine/state'
 import type { DeathCause, GameState, Outcome } from '../../engine/types'
 import type { RoleId } from '../../engine/roles'
 
@@ -149,6 +149,17 @@ describe('the dawn markup', () => {
 
 describe('the town’s verdict', () => {
   const afterVote = (): GameState => lynch(bloodyNight(), 2)
+
+  it('opens with the tally when votes were recorded, and keeps it out of the morning', () => {
+    let state = bloodyNight()
+    state = castVote(state, 0, 2)
+    state = lynch(state, 2)
+    expect(dawnSlides(state, 'en').map((s) => s.name)).toEqual(['Beto'])
+    const verdict = verdictSlides(state, 'en')
+    expect(verdict.map((s) => s.kind)).toEqual(['tally', 'death'])
+    expect(verdict[0]!.line).toBe('The town voted: Caro 1.')
+    expect(verdict[0]!.accent).toBe('town')
+  })
 
   it('is read on its own, not folded into the morning', () => {
     const state = afterVote()

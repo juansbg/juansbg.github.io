@@ -111,22 +111,24 @@ export const load = ():
 }
 
 /** State versions this build can still read. Anything older is dropped. */
-const MIGRATABLE: readonly number[] = [1, STATE_VERSION]
+const MIGRATABLE: readonly number[] = [1, 2, STATE_VERSION]
 
 /** A snapshot as an older build may have written it. */
-type SavedGame = Omit<GameState, 'healUsed' | 'poisonUsed'> &
-  Partial<Pick<GameState, 'healUsed' | 'poisonUsed'>>
+type SavedGame = Omit<GameState, 'healUsed' | 'poisonUsed' | 'votes'> &
+  Partial<Pick<GameState, 'healUsed' | 'poisonUsed' | 'votes'>>
 
 /**
  * Brings an older snapshot up to the current shape.
  *
  * Version 1 did not track the Apothecary's vials; a game saved then simply has
  * both unspent, which is the generous reading and the only one available.
+ * Version 2 did not record the day's votes; a day in progress starts with none.
  */
 const migrate = (game: SavedGame): GameState => ({
   ...game,
   healUsed: game.healUsed ?? false,
   poisonUsed: game.poisonUsed ?? false,
+  votes: game.votes ?? [],
 })
 
 export const clear = (): void => {

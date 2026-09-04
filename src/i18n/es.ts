@@ -73,6 +73,8 @@ export const es: Strings = {
     silenced: (name) => `Han quemado la casa de ${name}: hoy no puede hablar ni votar.`,
     extraVote: (name) => `${name} carga hoy con un voto más en su contra.`,
     cardTaken: (role) => `${role} ya no está en el centro.`,
+    tally: (entries) =>
+      `El pueblo votó: ${entries.map((e) => `${e.name} ${e.votes}`).join(', ')}.`,
     growl: () => 'El sabueso ha gruñido esta noche.',
   },
 

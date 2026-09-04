@@ -9,6 +9,7 @@ import {
   type Outcome,
   type Player,
   type PlayerId,
+  type Vote,
 } from './types'
 
 export interface PlayerSetup {
@@ -44,6 +45,7 @@ export const createGame = (setups: readonly PlayerSetup[]): GameState => ({
   schedule: [],
   stepIndex: 0,
   pending: [],
+  votes: [],
   log: [],
   infectionUsed: false,
   healUsed: false,
@@ -68,6 +70,8 @@ export const startNight = (state: GameState): GameState => {
     schedule: scheduleFor(players, night, { infectionUsed: state.infectionUsed }),
     stepIndex: 0,
     pending: [],
+    // A day that ended without an execution takes its votes with it.
+    votes: [],
   }
 }
 
@@ -111,9 +115,93 @@ export const endNight = (state: GameState): GameState => {
   }
 }
 
-/** The village votes someone out. */
-export const lynch = (state: GameState, target: PlayerId): GameState =>
-  killDuringDay(state, target, 'lynch')
+// ---------------------------------------------------------------------------
+// The day's vote
+// ---------------------------------------------------------------------------
+
+/**
+ * Can this player vote today? The dead cannot, and neither can whoever the
+ * Arsonist silenced for the day.
+ */
+export const canVote = (state: GameState, voter: PlayerId): boolean => {
+  const p = state.players.find((x) => x.id === voter)
+  return p !== undefined && p.alive && p.silencedOnDay !== state.day
+}
+
+/**
+ * Records one person's vote, replacing any they had already cast. A vote from
+ * someone who cannot vote, for someone dead, or for themselves is ignored and
+ * the state comes back unchanged, so a stale tap cannot corrupt the tally.
+ */
+export const castVote = (state: GameState, voter: PlayerId, target: PlayerId): GameState => {
+  const chosen = state.players.find((p) => p.id === target)
+  if (!canVote(state, voter) || voter === target || !chosen?.alive) return state
+  return {
+    ...state,
+    votes: [...state.votes.filter((v) => v.voter !== voter), { voter, target }],
+  }
+}
+
+/** Takes a vote back. */
+export const withdrawVote = (state: GameState, voter: PlayerId): GameState =>
+  state.votes.some((v) => v.voter === voter)
+    ? { ...state, votes: state.votes.filter((v) => v.voter !== voter) }
+    : state
+
+export interface TallyEntry {
+  target: PlayerId
+  /** Votes against, counting the Raven's extra for the day. */
+  votes: number
+  voters: PlayerId[]
+}
+
+/**
+ * The count so far, most votes first, seats in order among equals. The Raven's
+ * extra vote counts against its target even if nobody else voted for them.
+ */
+export const tally = (state: GameState): TallyEntry[] => {
+  const entries = new Map<PlayerId, TallyEntry>()
+  const entry = (target: PlayerId): TallyEntry => {
+    let e = entries.get(target)
+    if (!e) {
+      e = { target, votes: 0, voters: [] }
+      entries.set(target, e)
+    }
+    return e
+  }
+  for (const v of state.votes) {
+    const e = entry(v.target)
+    e.votes += 1
+    e.voters.push(v.voter)
+  }
+  for (const p of state.players) {
+    if (p.alive && p.extraVotesOnDay === state.day) entry(p.id).votes += 1
+  }
+  return [...entries.values()].sort((a, b) => b.votes - a.votes || a.target - b.target)
+}
+
+/** Who the tally points at, or null when nobody has voted or the top is tied. */
+export const leader = (state: GameState): PlayerId | null => {
+  const [first, second] = tally(state)
+  if (!first || first.votes === 0) return null
+  if (second && second.votes === first.votes) return null
+  return first.target
+}
+
+/**
+ * The village votes someone out.
+ *
+ * If votes were recorded they go into the log first as a public tally, so
+ * the town's record shows who chose whom before it shows who died.
+ */
+export const lynch = (state: GameState, target: PlayerId): GameState => {
+  const votes: Vote[] = state.votes
+  const record: Outcome[] =
+    votes.length === 0
+      ? []
+      : [{ type: 'tally', night: state.night, day: state.day, votes: [...votes], public: true }]
+  return killDuringDay({ ...state, votes: [], log: [...state.log, ...record] }, target, 'lynch')
+}
 
 /** The Cazador's revenge shot, taken after he dies. */
 export const hunterShot = (state: GameState, target: PlayerId): GameState => {

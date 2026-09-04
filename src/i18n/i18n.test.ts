@@ -232,3 +232,15 @@ describe('the card taken from the centre', () => {
     }
   })
 })
+
+describe('the tally', () => {
+  it('reads most votes first, in both languages', () => {
+    const players = createGame(setup(['KILLER', 'PLAIN', 'INSPECT'], ['Ana', 'Beto', 'Caro'])).players
+    const outcome = {
+      type: 'tally' as const, night: 1, day: 1, public: true as const,
+      votes: [{ voter: 0, target: 1 }, { voter: 2, target: 1 }, { voter: 1, target: 0 }],
+    }
+    expect(renderOutcome(outcome, players, 'en')).toBe('The town voted: Beto 2, Ana 1.')
+    expect(renderOutcome(outcome, players, 'es')).toBe('El pueblo votó: Beto 2, Ana 1.')
+  })
+})

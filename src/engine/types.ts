@@ -43,6 +43,12 @@ export interface Player {
 
 export type Phase = 'setup' | 'night' | 'day' | 'over'
 
+/** One person's vote in the day's tally. A voter has at most one. */
+export interface Vote {
+  readonly voter: PlayerId
+  readonly target: PlayerId
+}
+
 /**
  * The complete game. Must stay JSON-serializable: autosave (Sprint 3) and
  * undo both depend on structured-cloning this and nothing else.
@@ -61,6 +67,12 @@ export interface GameState {
   stepIndex: number
   /** Actions recorded tonight, not yet resolved. */
   pending: NightAction[]
+  /**
+   * The day's votes so far, one per voter. Optional: the narrator may still
+   * just tap whom the town chose. The execution records them as a public
+   * `tally` outcome and clears them; so does nightfall.
+   */
+  votes: Vote[]
   /** Everything that has actually happened, oldest first. */
   log: Outcome[]
   /** The Infecto converts a victim once per game. */
@@ -112,6 +124,8 @@ export type Outcome =
   | { type: 'roleChanged'; night: number; target: PlayerId; to: RoleId; public: false }
   /** The Chameleon took a card from the centre; the table learns which, not who. */
   | { type: 'cardTaken'; night: number; role: RoleId; public: true }
+  /** Who voted for whom before the town executed someone. Raw votes; the Raven's extra is its own outcome. */
+  | { type: 'tally'; night: number; day: number; votes: Vote[]; public: true }
 
 export type DeathCause =
   | 'killers'
@@ -121,4 +135,4 @@ export type DeathCause =
   | 'heartbreak'
   | 'revenge'
 
-export const STATE_VERSION = 2
+export const STATE_VERSION = 3

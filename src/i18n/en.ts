@@ -73,6 +73,8 @@ export const en: Strings = {
     silenced: (name) => `${name}'s house was burned down — today they cannot speak or vote.`,
     extraVote: (name) => `${name} carries an extra vote against them today.`,
     cardTaken: (role) => `${role} has been taken from the centre.`,
+    tally: (entries) =>
+      `The town voted: ${entries.map((e) => `${e.name} ${e.votes}`).join(', ')}.`,
     growl: () => 'The bloodhound growled in the night.',
   },
 

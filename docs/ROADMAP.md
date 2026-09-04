@@ -286,7 +286,8 @@ CLAUDE.md only in their own bullets.
    `src/engine/deal.ts`; rerun the table into this document. **Done.**
 4. **Per-player vote record** — an engine outcome for the day's vote, so the tally
    (peer, step 4 below) and later the TV have data. Engine only; the UI is the
-   peer's.
+   peer's. **Done:** `castVote`, `withdrawVote`, `tally`, `leader` in
+   `src/engine/state.ts`; the public `tally` outcome; `STATE_VERSION` 3.
 5. **Balance preview in setup**, from the simulator's numbers.
 
 ### Session B — `pueblo-duerme-60` (main checkout)

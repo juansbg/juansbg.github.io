@@ -16,9 +16,14 @@ import {
   swapSeats,
   moveSeat,
   winner,
+  canVote,
+  castVote,
+  withdrawVote,
+  tally,
+  leader,
   type PlayerSetup,
 } from './state'
-import { STATE_VERSION, type NightAction } from './types'
+import { STATE_VERSION, type GameState, type NightAction } from './types'
 import type { RoleId } from './roles'
 
 const cast = (roles: RoleId[], names?: string[]): PlayerSetup[] =>
@@ -453,5 +458,81 @@ describe('the Associate picks a side', () => {
   it('keeps the choice out of the morning report', () => {
     const state = firstNight('KILLER')
     expect(state.log.filter((o) => o.public)).toEqual([])
+  })
+})
+
+describe('the day’s vote', () => {
+  /** Four alive after a quiet first night, on day one. */
+  const day = (): GameState => {
+    let state = startNight(createGame(cast(['KILLER', 'PLAIN', 'INSPECT', 'GUARD'])))
+    state = recordAction(state, { kind: 'target', roleId: 'GUARD', actor: 3, target: 3 })
+    state = recordAction(state, { kind: 'skip', roleId: 'INSPECT' })
+    state = recordAction(state, { kind: 'skip', roleId: 'KILLER' })
+    return endNight(state)
+  }
+
+  it('records one vote per voter, the latest one', () => {
+    let state = castVote(day(), 1, 0)
+    state = castVote(state, 1, 2)
+    expect(state.votes).toEqual([{ voter: 1, target: 2 }])
+  })
+
+  it('ignores votes that cannot be cast', () => {
+    let state = day()
+    state = castVote(state, 1, 1) // for oneself
+    expect(state.votes).toEqual([])
+    state = { ...state, players: state.players.map((p) => (p.id === 2 ? { ...p, alive: false } : p)) }
+    expect(castVote(state, 2, 0).votes).toEqual([]) // from the dead
+    expect(castVote(state, 1, 2).votes).toEqual([]) // for the dead
+    state = { ...state, players: state.players.map((p) => (p.id === 3 ? { ...p, silencedOnDay: 1 } : p)) }
+    expect(canVote(state, 3)).toBe(false)
+    expect(castVote(state, 3, 0).votes).toEqual([]) // silenced today
+  })
+
+  it('counts, most votes first, with the Raven’s extra', () => {
+    let state = day()
+    state = castVote(state, 1, 0)
+    state = castVote(state, 2, 0)
+    state = castVote(state, 3, 1)
+    state = { ...state, players: state.players.map((p) => (p.id === 2 ? { ...p, extraVotesOnDay: 1 } : p)) }
+    expect(tally(state)).toEqual([
+      { target: 0, votes: 2, voters: [1, 2] },
+      { target: 1, votes: 1, voters: [3] },
+      { target: 2, votes: 1, voters: [] },
+    ])
+    expect(leader(state)).toBe(0)
+  })
+
+  it('has no leader before a vote or on a tie', () => {
+    let state = day()
+    expect(leader(state)).toBeNull()
+    state = castVote(state, 1, 0)
+    state = castVote(state, 0, 1)
+    expect(leader(state)).toBeNull()
+    expect(withdrawVote(state, 0).votes).toEqual([{ voter: 1, target: 0 }])
+    expect(withdrawVote(state, 3)).toBe(state)
+  })
+
+  it('goes into the log ahead of the execution, then clears', () => {
+    let state = castVote(day(), 1, 0)
+    state = castVote(state, 2, 0)
+    state = lynch(state, 0)
+    const tail = state.log.slice(-2)
+    expect(tail[0]).toEqual({
+      type: 'tally', night: 1, day: 1, public: true,
+      votes: [{ voter: 1, target: 0 }, { voter: 2, target: 0 }],
+    })
+    expect(tail[1]).toMatchObject({ type: 'death', target: 0, cause: 'lynch' })
+    expect(state.votes).toEqual([])
+  })
+
+  it('records nothing when the narrator just tapped the name', () => {
+    const state = lynch(day(), 0)
+    expect(state.log.filter((o) => o.type === 'tally')).toHaveLength(0)
+  })
+
+  it('is forgotten at nightfall', () => {
+    const state = startNight(castVote(day(), 1, 0))
+    expect(state.votes).toEqual([])
   })
 })

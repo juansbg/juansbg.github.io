@@ -193,6 +193,17 @@ describe('older saves', () => {
     expect(loaded.session.past[0]!.healUsed).toBe(false)
   })
 
+  it('migrates a version-2 game, which recorded no votes', () => {
+    const game = createGame(cast(['KILLER', 'PLAIN', 'MEDIC']))
+    const v2 = JSON.parse(JSON.stringify(game)) as Record<string, unknown>
+    delete v2['votes']
+    localStorage.setItem(
+      'omerta:v1',
+      JSON.stringify({ version: 2, game: v2, locale: 'en', screen: 'day', revealIndex: 0 }),
+    )
+    expect(load()!.session.current.votes).toEqual([])
+  })
+
   it('drops anything older than that', () => {
     const game = createGame(cast(['KILLER', 'PLAIN']))
     localStorage.setItem(

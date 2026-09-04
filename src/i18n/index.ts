@@ -52,6 +52,14 @@ export const renderOutcome = (
       return t.outcome.growl()
     case 'cardTaken':
       return t.outcome.cardTaken(t.roles[outcome.role].name)
+    case 'tally': {
+      const counts = new Map<number, number>()
+      for (const v of outcome.votes) counts.set(v.target, (counts.get(v.target) ?? 0) + 1)
+      const entries = [...counts.entries()]
+        .sort((a, b) => b[1] - a[1] || a[0] - b[0])
+        .map(([target, votes]) => ({ name: nameOf(players, target), votes }))
+      return t.outcome.tally(entries)
+    }
     // Everything else is either secret (the detective's look, a blocked
     // attack) or bookkeeping the narrator does not read aloud.
     default:
@@ -111,6 +119,8 @@ export const outcomeAccent = (outcome: Outcome): RoleId | 'town' => {
       return 'CONVERT'
     case 'silenced':
       return 'SILENCE'
+    case 'tally':
+      return 'town'
     case 'extraVote':
       return 'EXTRA_VOTE'
     case 'sectSplit':

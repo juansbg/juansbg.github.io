@@ -97,12 +97,15 @@ const slideOf = (
 /**
  * Tonight's public record, split where the night turned into the day: the
  * town's vote is the first thing that happens by daylight, so everything
- * before the first execution was the night's, and it and everything after
- * (the Gunman's answer, a binding following) is the day's.
+ * before the tally (or the execution, if no votes were recorded) was the
+ * night's, and it and everything after (the Gunman's answer, a binding
+ * following) is the day's.
  */
 const tonight = (state: GameState): { night: Outcome[]; day: Outcome[] } => {
   const all = state.log.filter((o) => o.night === state.night && o.public)
-  const cut = all.findIndex((o) => o.type === 'death' && o.cause === 'lynch')
+  const cut = all.findIndex(
+    (o) => o.type === 'tally' || (o.type === 'death' && o.cause === 'lynch'),
+  )
   return cut === -1 ? { night: all, day: [] } : { night: all.slice(0, cut), day: all.slice(cut) }
 }
 

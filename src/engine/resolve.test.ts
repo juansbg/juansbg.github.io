@@ -33,6 +33,7 @@ const stateWith = (
   schedule: [],
   stepIndex: 0,
   pending,
+  votes: [],
   log: [],
   infectionUsed: false,
   healUsed: false,

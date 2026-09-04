@@ -50,6 +50,8 @@ export interface Strings {
     growl: () => string
     /** Takes the display name of the role whose card left the centre. */
     cardTaken: (role: string) => string
+    /** The day's count, most votes first: name and votes against. */
+    tally: (entries: readonly { name: string; votes: number }[]) => string
   }
 
   winner: {
