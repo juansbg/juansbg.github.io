@@ -37,6 +37,8 @@ import {
   save,
   saveRoster,
   type AppState,
+  loadTimer,
+  saveTimer,
 } from './store'
 import {
   advance,
@@ -211,5 +213,20 @@ describe('older saves', () => {
       JSON.stringify({ version: 0, game, locale: 'en', screen: 'night', revealIndex: 0 }),
     )
     expect(load()).toBeNull()
+  })
+})
+
+describe('the discussion timer', () => {
+  it('comes back whole, deadline included', () => {
+    saveTimer({ length: 120, endsAt: 1_700_000_000_000, left: 120 })
+    expect(loadTimer()).toEqual({ length: 120, endsAt: 1_700_000_000_000, left: 120 })
+  })
+
+  it('is null until one is saved, and null again for junk', () => {
+    expect(loadTimer()).toBeNull()
+    localStorage.setItem('omerta:timer', '{"length":"three"}')
+    expect(loadTimer()).toBeNull()
+    localStorage.setItem('omerta:timer', 'not json')
+    expect(loadTimer()).toBeNull()
   })
 })

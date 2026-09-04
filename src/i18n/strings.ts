@@ -201,6 +201,19 @@ export interface Strings {
       nextNight: string
       silencedToday: (name: string) => string
     }
+    /** The discussion countdown on the day screen; its length is set in ⋯. */
+    timer: {
+      /** The eyebrow on the clock while it is idle or running. */
+      label: string
+      paused: string
+      timeUp: string
+      /** Accessible names of the face (tap to start, tap to pause) and the reset. */
+      start: string
+      pause: string
+      reset: string
+      /** A length on the ⋯ row, e.g. "3 min". */
+      minutes: (n: number) => string
+    }
     /**
      * The dawn slideshow: the night's public outcomes, one full screen each,
      * for the narrator to read aloud or hold up to the table.
@@ -239,6 +252,8 @@ export interface Strings {
       endGameConfirm: string
       /** Shown only while the browser is offering to install the app. */
       install: string
+      /** Label of the discussion-timer row; the value is one of TIMER_LENGTHS. */
+      timer: string
     }
     timeline: {
       title: string

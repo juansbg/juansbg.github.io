@@ -3,6 +3,7 @@ import type { GameState } from '../engine/types'
 import { STATE_VERSION } from '../engine/types'
 import type { Locale } from '../i18n'
 import type { Layout } from './screens/night'
+import type { Timer } from './screens/timer'
 
 /**
  * How many moves of history survive a reload.
@@ -169,6 +170,36 @@ export const saveRoster = (names: readonly string[]): void => {
 export const clearRoster = (): void => {
   try {
     localStorage.removeItem(ROSTER_KEY)
+  } catch {
+    // See save().
+  }
+}
+
+const TIMER_KEY = 'omerta:timer'
+
+/**
+ * The discussion timer, whole: its length is the narrator's preference and
+ * survives a reset like the roster does; the deadline is a wall-clock time,
+ * so a countdown started before the app reloaded itself is still counting
+ * when it comes back.
+ */
+export const loadTimer = (): Timer | null => {
+  try {
+    const raw = localStorage.getItem(TIMER_KEY)
+    if (raw === null) return null
+    const parsed = JSON.parse(raw) as Partial<Timer>
+    if (typeof parsed.length !== 'number' || !(parsed.length > 0)) return null
+    const endsAt = typeof parsed.endsAt === 'number' ? parsed.endsAt : null
+    const left = typeof parsed.left === 'number' ? parsed.left : parsed.length
+    return { length: parsed.length, endsAt, left }
+  } catch {
+    return null
+  }
+}
+
+export const saveTimer = (timer: Timer): void => {
+  try {
+    localStorage.setItem(TIMER_KEY, JSON.stringify(timer))
   } catch {
     // See save().
   }

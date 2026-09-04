@@ -179,6 +179,16 @@ Rules:
   the town every move. The day table behind it is plain by default — names,
   the dead, the flagged — and the Roles toggle brings the narrator's board
   back.
+- **The discussion clock.** `.clock` (`src/ui/screens/timer.ts`) sits under
+  the day head: one wide hairline face with a mono eyebrow on the left and
+  the digits on the right in Plex Mono at display size, `tabular-nums`, so
+  the count reads from across the table with the phone propped up; the
+  reset is the usual icon square beside it. Its states are the moves a seat
+  makes: idle is Ash ink, running takes Ledger ink and a stronger hairline,
+  done inverts to a Ledger block with Midnight ink. It never goes red: the
+  clock is not lethal, the vote after it is. Its length is a segmented row
+  in ⋯, label above and four choices across, because four Bebas choices do
+  not fit beside a label on a phone.
 
 ## Motion
 

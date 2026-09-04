@@ -42,10 +42,14 @@ export const swap = (paint: () => void): void => {
   }
 }
 
-/** A short haptic tap where the platform supports it. */
-export const buzz = (ms = 12): void => {
+/**
+ * A short haptic tap where the platform supports it. A pattern is
+ * alternating buzz and rest lengths, for the few moments that deserve more
+ * than a tick: the clock running out, the verdict.
+ */
+export const buzz = (pattern: number | number[] = 12): void => {
   try {
-    navigator.vibrate?.(ms)
+    navigator.vibrate?.(pattern)
   } catch {
     // Unsupported; silence is the correct fallback.
   }

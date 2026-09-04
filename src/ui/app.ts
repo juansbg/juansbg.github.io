@@ -23,13 +23,26 @@ import type { NightAction, PlayerId } from '../engine/types'
 import { detectLocale, renderWinner, strings } from '../i18n'
 import { accentOf } from './accent'
 import { buzz, esc, on, swap } from './dom'
-import { clear, clearRoster, load, loadRoster, save, saveRoster, type AppState } from './store'
+import { clear, clearRoster, load, loadRoster, loadTimer, save, saveRoster, saveTimer, type AppState } from './store'
 import { editorMarkup, MIN_PLAYERS, namesMarkup, rosterMarkup } from './screens/setup'
 import { dealRoles, systemRandom, type Complexity } from '../engine/deal'
 import { dayMarkup, inspectionMarkup, nightMarkup, playerViewMarkup, questionCardMarkup, questionsIntroMarkup } from './screens/night'
 import { circleMarkup } from './screens/circle'
 import { dawnMarkup, dawnSlides, verdictSlides, type Reading, type Slide } from './screens/dawn'
 import { historyMarkup, timelineMarkup } from './screens/timeline'
+import {
+  TIMER_LENGTHS,
+  formatClock,
+  freshTimer,
+  isRunning,
+  pauseTimer,
+  remaining,
+  resetTimer,
+  toggleTimer,
+  viewOf,
+  withLength,
+  type Timer,
+} from './screens/timer'
 import { bindHold, revealMarkup, roleCardMarkup, type RevealPhase } from './screens/reveal'
 
 const appRoot = document.querySelector<HTMLDivElement>('#app')
@@ -82,6 +95,19 @@ type Pending = 'restart' | 'clearNames' | 'finish'
 let confirming: Pending | null = null
 /** The browser's deferred install prompt, when it has offered one. */
 let installPrompt: InstallPromptEvent | null = null
+/**
+ * The discussion clock. Its length is the narrator's preference and its
+ * deadline is wall-clock time, so both come back after a reload; every new
+ * day, verdict and night resets the count, never the length.
+ */
+let timer: Timer = loadTimer() ?? freshTimer()
+/** The interval repainting the digits while the clock runs. */
+let ticker: number | null = null
+
+const setTimer = (next: Timer): void => {
+  timer = next
+  saveTimer(timer)
+}
 
 interface InstallPromptEvent extends Event {
   prompt(): Promise<void>
@@ -233,7 +259,7 @@ function render(entering = false): void {
         ? hunterMarkup()
         : dawn !== null
           ? dawnMarkup(slides, dawn, game.night, state.locale, dawnKind)
-          : dayMarkup(game, state.locale, state.layout, peeking)
+          : dayMarkup(game, state.locale, state.layout, peeking, viewOf(timer, Date.now()))
     if (picking) sheets += pickerMarkup()
   } else {
     body = overMarkup()
@@ -249,6 +275,7 @@ function render(entering = false): void {
 
   root.innerHTML = `<main class="stage"${entering ? ' data-enter' : ''}>${body}</main>${overlay}${chromeMarkup()}`
   bind()
+  syncTicker()
 
   function revealDoneMarkup(): string {
     return `
@@ -402,6 +429,17 @@ function render(entering = false): void {
              </span>
            </div>`
         : '',
+      inPlay
+        ? `<div class="menu__item menu__item--static menu__item--stack">
+             <span class="menu__label">${esc(t.ui.menu.timer)}</span>
+             <span class="menu__segment" role="radiogroup" aria-label="${esc(t.ui.menu.timer)}">
+               ${TIMER_LENGTHS.map(
+                 (n) => `<button class="menu__seg" type="button" role="radio" data-timer-length="${n}"
+                       aria-checked="${timer.length === n}">${esc(t.ui.timer.minutes(n / 60))}</button>`,
+               ).join('')}
+             </span>
+           </div>`
+        : '',
       state.screen === 'day' ? row('data-show-role', t.ui.reveal.showAgain) : '',
       installPrompt ? row('data-install', t.ui.menu.install) : '',
       inPlay ? row('data-finish', t.ui.over.finishNow, '', true) : '',
@@ -503,6 +541,7 @@ function bind(): void {
     showingLog = false
     menuOpen = false
     picked = []
+    setTimer(resetTimer(timer))
     state = boot()
     setState({ session: newSession(createGame([])), screen: 'setup', revealIndex: 0 })
   }
@@ -518,6 +557,7 @@ function bind(): void {
   // End early and see the whole game — v1's flag button.
   function finish(): void {
     buzz()
+    setTimer(resetTimer(timer))
     setState({ screen: 'over' })
   }
 
@@ -910,6 +950,7 @@ function bind(): void {
     picked = []
     const session = revertTo(state.session, index)
     buzz()
+    setTimer(resetTimer(timer))
     setState({ session, screen: session.current.phase === 'day' ? 'day' : 'night' })
   })
 
@@ -942,12 +983,16 @@ function bind(): void {
     showAfterShot = morning.awaitingHunterShot !== null ? 'dawn' : null
     dawnKind = 'dawn'
     dawn = showAfterShot ? null : 0
+    // A new day, a fresh clock; the narrator starts it when the reading ends.
+    setTimer(resetTimer(timer))
     setState({ screen: 'day' })
   })
 
   // ---- Day ----
   on(root, '[data-lynch]', 'click', (_e, el) => {
     buzz()
+    // The vote ends the discussion, whatever the clock says.
+    setTimer(resetTimer(timer))
     mutate((s) => lynch(s, Number(el.dataset.lynch)), {
       night: game.night, kind: 'lynch', target: Number(el.dataset.lynch),
     })
@@ -1013,8 +1058,30 @@ function bind(): void {
   })
 
   on(root, '[data-next-night]', 'click', () => {
+    setTimer(resetTimer(timer))
     mutate(startNight, { night: game.night + 1, kind: 'nightStart' })
     setState({ screen: 'night' })
+  })
+
+  // ---- The discussion timer ----
+  // One face: tap to start, tap to pause, and a tap on a finished clock
+  // starts it over. Repaints are plain — nothing else on the screen moved.
+  on(root, '[data-timer-toggle]', 'click', () => {
+    setTimer(toggleTimer(timer, Date.now()))
+    buzz()
+    setState({}, false)
+  })
+
+  on(root, '[data-timer-reset]', 'click', () => {
+    setTimer(resetTimer(timer))
+    setState({}, false)
+  })
+
+  on(root, '[data-timer-length]', 'click', (_e, el) => {
+    const length = Number(el.dataset.timerLength)
+    if (!(TIMER_LENGTHS as readonly number[]).includes(length)) return
+    setTimer(withLength(timer, length))
+    setState({}, false)
   })
 
   // ---- Revisit a role ----
@@ -1045,6 +1112,40 @@ function bind(): void {
     setState({ session: newSession(createGame([])), screen: 'setup', revealIndex: 0 })
   })
 
+}
+
+/**
+ * Keeps one interval alive exactly while the clock runs. The digits are
+ * repainted in place: rebuilding the screen every second would restart the
+ * crew glow, drop a sheet mid-slide and fight the narrator's thumb.
+ */
+function syncTicker(): void {
+  const running = isRunning(timer) && remaining(timer, Date.now()) > 0
+  if (running && ticker === null) ticker = window.setInterval(tick, 250)
+  if (!running && ticker !== null) {
+    window.clearInterval(ticker)
+    ticker = null
+  }
+}
+
+function tick(): void {
+  const now = Date.now()
+  const seconds = remaining(timer, now)
+  const digits = root.querySelector<HTMLElement>('[data-timer-digits]')
+  const text = formatClock(seconds)
+  if (digits && digits.textContent !== text) digits.textContent = text
+  if (seconds > 0) return
+
+  // Time is up: park the clock at zero and say so. A held role card must
+  // never be rebuilt under a finger, so if the narrator is mid-reveal the
+  // row simply reads "time is up" on the way back to the day.
+  setTimer(pauseTimer(timer, now))
+  buzz([120, 80, 120])
+  if (state.screen === 'day' && !document.body.classList.contains('is-revealing')) {
+    setState({}, false)
+  } else {
+    syncTicker()
+  }
 }
 
 /** Writes the role card in beside the live button — no re-render. */

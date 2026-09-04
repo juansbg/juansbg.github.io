@@ -235,6 +235,17 @@ describe('day screen controls', () => {
     expect(html).toContain('data-sigil="KILLER"')
     expect(html).toContain('data-crew')
   })
+
+  // The clock is the app's, not the game's: the screen paints whatever view
+  // it is handed and none when it is handed nothing.
+  it.each(LOCALES)('carries the discussion clock it is given (%s)', (locale) => {
+    const state = { ...atRole(['KILLER', 'PLAIN', 'INSPECT'], 'KILLER'), phase: 'day' as const }
+    expect(dayMarkup(state, locale)).not.toContain('data-timer')
+    const html = dayMarkup(state, locale, 'circle', false, { phase: 'running', seconds: 125 })
+    expect(html).toContain('data-timer-toggle')
+    expect(html).toContain('2:05')
+    expect(html).toContain(strings(locale).ui.timer.pause)
+  })
 })
 
 /** The same night, with the Family's pick already recorded. */

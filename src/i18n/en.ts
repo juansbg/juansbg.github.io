@@ -209,6 +209,15 @@ export const en: Strings = {
       nextNight: 'Night falls',
       silencedToday: (name) => `${name} cannot speak or vote today`,
     },
+    timer: {
+      label: 'Discussion',
+      paused: 'Paused',
+      timeUp: 'Time is up',
+      start: 'Start the timer',
+      pause: 'Pause the timer',
+      reset: 'Reset the timer',
+      minutes: (n) => `${n} min`,
+    },
     dawn: {
       play: 'Read the night',
       verdict: (day) => `Day ${day} · The town’s verdict`,
@@ -302,6 +311,7 @@ export const en: Strings = {
       restartConfirm: 'Start over? This forgets the current game. The names are kept.',
       endGameConfirm: 'End the game now? You will see the summary and cannot resume play.',
       install: 'Install the app',
+      timer: 'Discussion timer',
     },
     timeline: {
       title: 'Everything that happened',

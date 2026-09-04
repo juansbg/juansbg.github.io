@@ -9,6 +9,7 @@ import { accentOf } from '../accent'
 import { sigilMarkup } from '../sigils'
 import { esc } from '../dom'
 import { circleMarkup, holdersOf, listMarkup, type CircleOptions, type Perspective } from './circle'
+import { timerMarkup, type TimerView } from './timer'
 import { outcomeCardMarkup } from './timeline'
 
 // The target rule is the engine's (engine/targets.ts); re-exported so the
@@ -342,6 +343,7 @@ export const dayMarkup = (
   locale: Locale,
   layout: Layout = 'circle',
   peek = false,
+  timer: TimerView | null = null,
 ): string => {
   const t = strings(locale)
   // Coloured cards, one per public outcome, in the colour of the role that
@@ -381,6 +383,7 @@ export const dayMarkup = (
           <button class="icon-btn" type="button" data-undo aria-label="${esc(t.ui.common.undo)}" title="${esc(t.ui.common.undo)}">↶</button>
         </div>
       </header>
+      ${timer ? timerMarkup(timer, locale) : ''}
       ${questions}
       <h2 class="label">${esc(t.ui.day.report)}</h2>
       <ul class="report report--scroll">${report}</ul>

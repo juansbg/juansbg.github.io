@@ -209,6 +209,15 @@ export const es: Strings = {
       nextNight: 'Cae la noche',
       silencedToday: (name) => `${name} no puede hablar ni votar hoy`,
     },
+    timer: {
+      label: 'Debate',
+      paused: 'En pausa',
+      timeUp: 'Se acabó el tiempo',
+      start: 'Iniciar el tiempo',
+      pause: 'Pausar el tiempo',
+      reset: 'Reiniciar el tiempo',
+      minutes: (n) => `${n} min`,
+    },
     dawn: {
       play: 'Leer la noche',
       verdict: (day) => `Día ${day} · El veredicto del pueblo`,
@@ -302,6 +311,7 @@ export const es: Strings = {
       restartConfirm: '¿Empezar de nuevo? Se olvida esta partida; los nombres se guardan.',
       endGameConfirm: '¿Terminar la partida ya? Verás el resumen y no podrás seguir jugando.',
       install: 'Instalar la app',
+      timer: 'Tiempo de debate',
     },
     timeline: {
       title: 'Todo lo que ha pasado',

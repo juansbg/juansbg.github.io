@@ -103,6 +103,8 @@ body {
 .sheet__title,
 .history__title,
 .asks__label,
+.clock__label,
+.clock__digits,
 .menu__value,
 .seat__n,
 .seat__role,
@@ -153,8 +155,9 @@ body {
 }
 
 /* The day head carries three tools (Roles, replay, undo): at 7vw the Spanish
-   title measures 181px against the 166px left on a 375px phone. 5.5vw is
-   142px. */
+   title measures 181px against the 149px left beside "Papeles" on a 375px
+   phone. At the display floor it still runs a hair over and takes two
+   lines there, which the 48px head holds without growing. */
 .screen--day .screen__head .title {
   font-size: clamp(1.25rem, 5.5vw, 2.5rem);
 }
@@ -878,12 +881,25 @@ body {
 }
 
 /* The morning report scrolls in its own box past a few lines, so a busy
-   night never squeezes the circle below it. */
+   night never squeezes the circle below it. The cap pays for the clock row
+   above it: at 34dvh a four-card morning with a flagged player pushed the
+   circle to its floor and over the button below, at 375×667. The report has
+   already been read from the slideshow by the time anyone looks here. */
 .report--scroll {
   flex: 0 1 auto;
   min-height: 0;
-  max-height: 34dvh;
+  max-height: 26dvh;
   overflow-y: auto;
+}
+
+/* The day table never drops below the circle's own floor (--avail, 9rem):
+   the report above it is the only thing on the screen that may shrink, so
+   on a crowded morning — a flagged player, four cards — it is the report
+   that gives, scrolling behind a line and a half, and not the seats that
+   spill over the button below. Day only: the night screen has no report
+   to give and its own budget. */
+.screen--day .table {
+  min-height: 9rem;
 }
 
 /* Marks on paper: town is ink, not Ash — Ash on Ledger is invisible. */
@@ -1854,12 +1870,100 @@ html[data-dawn] body {
   scale: 1.1;
 }
 
+/* ---------- The discussion timer ---------- */
+
+/* One wide face — tap to start, tap to pause — and the reset in the usual
+   icon square. The digits are mono at display size, so the clock reads
+   from across the table with the phone propped up. Its states are the
+   moves a seat makes: running takes Ledger ink, done inverts to a Ledger
+   block. No red: the clock is not lethal, the vote after it is. */
+.clock {
+  display: flex;
+  gap: var(--space-1);
+}
+
+.clock__face {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-width: 0;
+  min-height: var(--touch);
+  padding: 0 var(--space-3) 0 var(--space-4);
+  border: 1px solid var(--hairline-strong);
+  border-radius: 0;
+  background: transparent;
+  color: var(--fg-2);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    transform var(--dur-instant) var(--ease-out),
+    border-color var(--dur-fast) var(--ease-out),
+    background-color var(--dur-fast) var(--ease-out),
+    color var(--dur-fast) var(--ease-out);
+}
+
+.clock__face:active {
+  transform: translateY(1px);
+  border-color: var(--fg-2);
+}
+
+.clock__label {
+  color: var(--fg-muted);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+}
+
+.clock__digits {
+  font-size: clamp(1.75rem, 8vw, 2.5rem);
+  font-weight: 500;
+  line-height: 1;
+}
+
+.clock[data-phase='running'] .clock__face {
+  border-color: var(--fg-2);
+  color: var(--fg);
+}
+
+.clock[data-phase='done'] .clock__face {
+  border-color: var(--fg);
+  background: var(--fg);
+  color: var(--on-accent);
+}
+
+.clock[data-phase='done'] .clock__label {
+  color: var(--on-accent);
+}
+
+.clock .icon-btn:disabled {
+  border-color: var(--hairline);
+  color: var(--fg-faint);
+  cursor: default;
+}
+
 /* ---------- Menu: segmented select ---------- */
 
 /* Pick one, see it take, close the sheet yourself. A row that slams the menu
    shut on tap leaves the narrator unsure anything happened. */
 .menu__item--static {
   cursor: default;
+}
+
+/* A row whose choices do not fit beside its label: the label sits above and
+   the segment takes the width. */
+.menu__item--stack {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-2);
+  padding-block: var(--space-3);
+}
+
+.menu__item--stack .menu__segment {
+  display: grid;
 }
 
 .menu__segment {
