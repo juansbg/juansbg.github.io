@@ -317,6 +317,8 @@ export const es: Strings = {
       potion: (role, name, kind) => `${role} usa ${kind} con ${name}`,
       acted: (role) => `${role} actúa`,
       became: (role, newRole) => `${role} pasa a ser ${newRole}`,
+      voted: (voter, target) => `${voter} vota a ${target}`,
+      unvoted: (voter) => `${voter} retira su voto`,
     },
   },
 }

@@ -254,6 +254,9 @@ export interface Strings {
       potion: (role: string, name: string, kind: string) => string
       acted: (role: string) => string
       became: (role: string, newRole: string) => string
+      /** A vote by day, and one taken back. */
+      voted: (voter: string, target: string) => string
+      unvoted: (voter: string) => string
     }
   }
 }

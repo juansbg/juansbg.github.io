@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { balanceMarkup, namesMarkup, rosterMarkup, MIN_PLAYERS } from './setup'
 import { LOCALES } from '../../i18n'
-import { historyMarkup, outcomeCardMarkup, timelineMarkup } from './timeline'
+import { describeEntry, historyMarkup, outcomeCardMarkup, timelineMarkup } from './timeline'
 import { strings } from '../../i18n'
 import {
   advance,
@@ -181,5 +181,13 @@ describe('the log', () => {
     const html = timelineMarkup(session, 'en')
     expect(html).toContain('log__row--quiet')
     expect(html).toContain(strings('en').ui.timeline.skipped(strings('en').roles.INSPECT.name))
+  })
+})
+
+describe('a vote in the log', () => {
+  it('names the voter and the target, or the voter alone when withdrawn', () => {
+    const players = createGame(cast(['KILLER', 'PLAIN'], ['Ana', 'Beto'])).players
+    expect(describeEntry({ night: 1, kind: 'vote', voter: 1, target: 0 }, players, 'en')).toBe('Beto votes for Ana')
+    expect(describeEntry({ night: 1, kind: 'vote', voter: 1 }, players, 'es')).toBe('Beto retira su voto')
   })
 })

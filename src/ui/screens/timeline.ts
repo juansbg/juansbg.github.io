@@ -40,6 +40,10 @@ export const describeEntry = (
       return tl.lynch(nameOf(players, entry.target))
     case 'hunterShot':
       return tl.hunterShot(nameOf(players, entry.target))
+    case 'vote':
+      return entry.target === undefined
+        ? tl.unvoted(nameOf(players, entry.voter))
+        : tl.voted(nameOf(players, entry.voter), nameOf(players, entry.target))
     case 'setup':
       return ''
     case 'action': {

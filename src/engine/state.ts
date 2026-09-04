@@ -306,9 +306,12 @@ export interface TimelineEntry {
     | 'nightEnd'
     | 'lynch'
     | 'hunterShot'
+    /** One person's vote by day: `voter` and `target`, or `voter` alone when withdrawn. */
+    | 'vote'
   readonly roleId?: RoleId
   readonly action?: NightAction
   readonly target?: PlayerId
+  readonly voter?: PlayerId
 }
 
 export const newSession = (state: GameState): Session => ({
