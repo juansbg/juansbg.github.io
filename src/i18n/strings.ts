@@ -268,6 +268,12 @@ export interface Strings {
       sound: string
       on: string
       off: string
+      /** The row that turns the screen to the whole room. */
+      table: string
+    }
+    /** The table view: the seating plan for the room, phone on its side. */
+    table: {
+      day: (n: number) => string
     }
     timeline: {
       title: string

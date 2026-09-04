@@ -32,6 +32,8 @@ import { dealRoles, systemRandom, type Complexity } from '../engine/deal'
 import { dayMarkup, inspectionMarkup, nightMarkup, playerViewMarkup, questionCardMarkup, questionsIntroMarkup } from './screens/night'
 import { circleMarkup } from './screens/circle'
 import { dawnMarkup, dawnSlides, verdictSlides, type Reading, type Slide } from './screens/dawn'
+import { tableMarkup } from './screens/table'
+import { tvProjection } from '../room/projections'
 import { historyMarkup, timelineMarkup } from './screens/timeline'
 import {
   TIMER_LENGTHS,
@@ -76,6 +78,12 @@ let showingPlayer = false
 /** The narrator has asked to see roles and colours on this night step. */
 let peeking = false
 let showingLog = false
+/**
+ * The screen is turned to the whole room: the seating plan with the public
+ * overlays, from the same projection a TV would get. Local, never persisted,
+ * and the bar goes with it because the town can see the screen.
+ */
+let tableView = false
 /** The dawn slideshow: which slide is up, or null when the report is a list. */
 let dawn: number | null = null
 /**
@@ -266,6 +274,13 @@ function render(entering = false): void {
           canGoBack: state.revealMode === 'onboarding' && state.revealIndex > 0,
         })
       : revealDoneMarkup()
+  } else if (tableView) {
+    body = tableMarkup(
+      tvProjection(game, state.locale, {
+        reading: dawn !== null ? { kind: dawnKind, index: dawn, slides } : null,
+        timer: state.screen === 'day' ? viewOf(timer, Date.now()) : null,
+      }),
+    )
   } else if (state.screen === 'night') {
     const subject = game.players.find((p) => p.id === inspecting)
     body = subject
@@ -390,6 +405,8 @@ function render(entering = false): void {
     // A slide may be held up to the table; the day screen behind it shows
     // every role, so nothing may lead out of the slideshow but its own Done.
     if (dawn !== null) return ''
+    // The whole room is looking at the screen.
+    if (tableView) return ''
     // A player is looking at the screen: the timeline would show them every
     // move so far, and the menu can end the game.
     if (state.screen === 'night' && showingPlayer && !isNightComplete(game)) return ''
@@ -465,6 +482,7 @@ function render(entering = false): void {
              </span>
            </div>`
         : '',
+      inPlay ? row('data-table', t.ui.menu.table) : '',
       state.screen === 'day' ? row('data-show-role', t.ui.reveal.showAgain) : '',
       row('data-mute', t.ui.menu.sound, sound.muted() ? t.ui.menu.off : t.ui.menu.on),
       installPrompt ? row('data-install', t.ui.menu.install) : '',
@@ -572,6 +590,7 @@ function bind(): void {
     showingPlayer = false
     showingLog = false
     menuOpen = false
+    tableView = false
     picked = []
     leaveDay()
     state = boot()
@@ -943,6 +962,18 @@ function bind(): void {
   on(root, '[data-peek]', 'click', () => {
     peeking = !peeking
     setState({}, false)
+  })
+
+  // ---- The table, for the room ----
+  on(root, '[data-table]', 'click', () => {
+    menuOpen = false
+    tableView = true
+    setState({})
+  })
+
+  on(root, '[data-table-close]', 'click', () => {
+    tableView = false
+    setState({})
   })
 
   // The Associate picks a side on the first night; the pick is a role change

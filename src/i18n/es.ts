@@ -320,6 +320,10 @@ export const es: Strings = {
       sound: 'Sonido',
       on: 'Sí',
       off: 'No',
+      table: 'Mostrar la mesa',
+    },
+    table: {
+      day: (n) => `Día ${n}`,
     },
     timeline: {
       title: 'Todo lo que ha pasado',

@@ -20,7 +20,9 @@ export default defineConfig({
         start_url: '/',
         scope: '/',
         display: 'standalone',
-        orientation: 'portrait',
+        // The table view is used on its side; every other screen is portrait
+        // by layout, not by lock.
+        orientation: 'any',
         background_color: '#000029',
         theme_color: '#000029',
         icons: [

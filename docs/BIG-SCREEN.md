@@ -5,6 +5,26 @@ TV, every player scans a QR code to get their role and to vote, and the big
 screen shows only what the whole town knows. This is the design for it, written
 before anyone builds it. It ends with the decisions the user has to make.
 
+## 0. Decisions taken (2026-09-04)
+
+- **The seating plan is the screen.** Whatever else is shown is an overlay on
+  the circle: dead seats, vote badges, the leader, the timer, and the morning
+  and verdict readings as a card over the table. There is no separate
+  "report" layout on the big screen.
+- **Landscape first.** The narrator will stand a phone or an iPad on its side
+  for this mode, or mirror it to a TV. The table view is designed for a wide
+  screen and degrades to portrait, the opposite of every other screen in the
+  app. The manifest no longer locks the orientation.
+- **Phase 0 comes before the relay:** the table view renders on the
+  narrator's own device from the same projection the TV will receive, toggled
+  from ⋯, with the bar hidden because the town can see it. It needs no
+  network and is the reference rendering for `tv.html`.
+- **The relay runs on Cloudflare** (a Worker and a Durable Object).
+- Decisions 2–5 in section 9 stand at their recommendations until the user
+  says otherwise: the seat page is an option per game, the ballot is sealed
+  with a live count of how many have voted, ties stay with the narrator, and
+  the screen follows the narrator's language.
+
 ## 1. Goals and non-goals
 
 **Goals**
@@ -193,6 +213,10 @@ to keep watching the TV projection.
 
 ## 8. Phases and size
 
+0. **The table view on the narrator's device** (`src/room/projections.ts`,
+   `src/ui/screens/table.ts`, a row in ⋯): the projection and its leak tests,
+   the landscape layout, the overlays. No relay. Small, and everything after
+   it renders through it. **Done.**
 1. **TV view** (room, relay, `tv.html`, the TV projection, the QR): the
    narrator's phone drives, the TV follows. About the size of the PWA sprint
    plus the relay. Ships alone and is worth it alone.

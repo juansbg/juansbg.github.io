@@ -305,7 +305,14 @@ CLAUDE.md only in their own bullets.
 
 ### Then, together
 
-- The big-screen mode, phases 1–3, designed as one piece before either side
-  starts: room protocol, relay, projections. It is the next roadmap document.
+- The big-screen mode, designed in `docs/BIG-SCREEN.md`. **Decided on
+  2026-09-04:** the relay runs on Cloudflare; the seating plan is the screen,
+  with deaths, votes and the readings overlaid on it; the narrator's own phone
+  or iPad in landscape is the first screen, a TV through the relay the second.
+  Phase 0 (the table view on the narrator's device, no relay) is Session A's
+  next build. **Done:** `src/room/projections.ts`, `src/ui/screens/table.ts`,
+  "Show the table" in ⋯.
 - Running statistics.
-- The Cultist's win condition, once the user has decided the rule.
+- **The Cultist stays out for now** (decided 2026-09-04): a pending feature,
+  not planned, until the user chooses a rule for it. The card remains
+  assignable by hand and the split still works; nothing more is built on it.

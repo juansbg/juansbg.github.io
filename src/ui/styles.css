@@ -2319,3 +2319,145 @@ html[data-dawn] body {
   font-size: var(--text-xs);
   text-align: center;
 }
+
+/* ---------- The table, for the room ----------
+   The seating plan takes the middle and everything else has a column of its
+   own beside it, so nothing ever sits on a seat: the caption and the winner
+   on the left, the clock and the way back on the right. Meant for a phone or
+   an iPad on its side, so the circle may grow well past the phone cap and the
+   seats scale with it; upright, the columns become rows. */
+.screen--table {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(9rem, 1fr) minmax(0, 5fr) minmax(9rem, 1fr);
+  grid-template-rows: minmax(0, 1fr);
+  gap: var(--space-3);
+  max-width: none;
+  height: 100%;
+}
+
+.screen--table .table {
+  grid-row: 1;
+  grid-column: 2;
+  height: 100%;
+  min-height: 0;
+}
+
+.screen--table .circle {
+  --avail: max(min(100cqw, 100cqh, 64rem), 9rem);
+}
+
+.tableview__head {
+  grid-row: 1;
+  grid-column: 1;
+  align-self: start;
+}
+
+.tableview__head .label {
+  font-size: var(--text-md);
+}
+
+.tableview__winner {
+  grid-row: 1;
+  grid-column: 1;
+  align-self: end;
+  margin: 0;
+  text-align: left;
+}
+
+.tableview__clock {
+  grid-row: 1;
+  grid-column: 3;
+  align-self: start;
+  justify-self: end;
+  width: 100%;
+}
+
+/* Narrow column: the label sits above the digits. */
+.tableview__clock .clock__face {
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0;
+}
+
+.tableview__close {
+  grid-row: 1;
+  grid-column: 3;
+  align-self: end;
+  justify-self: end;
+}
+
+@media (orientation: portrait) {
+  .screen--table {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto minmax(0, 1fr) auto;
+  }
+
+  .screen--table .table {
+    grid-row: 2;
+    grid-column: 1 / -1;
+  }
+
+  .tableview__head {
+    grid-row: 1;
+    grid-column: 1;
+  }
+
+  .tableview__clock {
+    grid-row: 1;
+    grid-column: 2;
+  }
+
+  .tableview__winner {
+    grid-row: 3;
+    grid-column: 1;
+  }
+
+  .tableview__close {
+    grid-row: 3;
+    grid-column: 2;
+  }
+}
+
+/* The reading, in the middle of the table: the dawn slide's ground and ink,
+   on a card instead of the whole screen. */
+.tableview__card {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  display: grid;
+  gap: var(--space-3);
+  justify-items: center;
+  width: min(86%, 30rem);
+  height: fit-content;
+  margin: auto;
+  padding: var(--space-4);
+  text-align: center;
+  background: var(--bg);
+  border: 1px solid var(--hairline-strong);
+}
+
+.tableview__card .dawn__mark {
+  margin: 0 auto;
+}
+
+.tableview__card[data-lethal] {
+  --fg: var(--midnight);
+  --fg-2: var(--midnight);
+  --fg-muted: color-mix(in oklab, var(--midnight) 78%, var(--vendetta));
+  --hairline-strong: var(--midnight);
+  --accent: var(--midnight);
+  --on-accent: var(--ledger);
+  --role: var(--midnight);
+  --role-fill: var(--midnight);
+  background: var(--vendetta);
+}
+
+.tableview__card[data-lethal][data-accent='occult'] {
+  --role-fill: transparent;
+  --role-ink: var(--midnight);
+}
+
+.tableview__card[data-lethal] .btn:disabled {
+  opacity: 0.35;
+}
