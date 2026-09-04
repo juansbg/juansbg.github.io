@@ -200,6 +200,16 @@ export interface Strings {
       nobody: string
       nextNight: string
       silencedToday: (name: string) => string
+      /** The Votes toggle beside the execution question. */
+      votes: string
+      /** How to record a vote, shown while nobody is armed. */
+      voteHint: string
+      /** A voter is armed: whose pick is awaited. */
+      pickFor: (name: string) => string
+      /** Accessible name of the count row. */
+      tally: string
+      /** The Raven's extra vote in the voters list, which has no voter. */
+      extraVoteMark: string
     }
     /** The discussion countdown on the day screen; its length is set in ⋯. */
     timer: {

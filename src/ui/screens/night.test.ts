@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { dayMarkup, legalTargets, nightMarkup, picksNeeded, playerViewMarkup, questionCardMarkup, questionsIntroMarkup } from './night'
-import { createGame, startNight, type PlayerSetup } from '../../engine/state'
+import { castVote, createGame, startNight, type PlayerSetup } from '../../engine/state'
 import { LOCALES, strings } from '../../i18n'
 import { ROLE_IDS, type RoleId } from '../../engine/roles'
 import type { GameState, NightAction } from '../../engine/types'
@@ -245,6 +245,50 @@ describe('day screen controls', () => {
     expect(html).toContain('data-timer-toggle')
     expect(html).toContain('2:05')
     expect(html).toContain(strings(locale).ui.timer.pause)
+  })
+
+  // Off, a seat executes; on, it votes. The count stays up either way, and
+  // the seat the town points at is marked but not chosen: the tap is still
+  // the narrator's.
+  it.each(LOCALES)('swaps the seats from executing to voting (%s)', (locale) => {
+    const t = strings(locale)
+    const base = { ...atRole(['KILLER', 'PLAIN', 'INSPECT', 'PLAIN'], 'KILLER'), phase: 'day' as const }
+    const state = castVote(castVote(base, 0, 1), 2, 1)
+
+    const executing = dayMarkup(state, locale)
+    expect(executing).toContain('data-voting')
+    expect(executing).toContain(t.ui.day.votes)
+    expect(executing).toContain('data-lynch="1"')
+    expect(executing).not.toContain('data-vote=')
+    expect(executing).toContain('data-leader')
+    expect(executing).toContain('class="seat__votes">2<')
+    expect(executing).toContain('data-tally')
+
+    const voting = dayMarkup(state, locale, 'circle', false, null, { armed: null })
+    expect(voting).toContain(t.ui.day.voteHint)
+    expect(voting).toContain(t.ui.common.done)
+    expect(voting).toContain('data-vote="0"')
+    expect(voting).not.toContain('data-lynch')
+
+    const armed = dayMarkup(state, locale, 'circle', false, null, { armed: 2 })
+    expect(armed).toContain(t.ui.day.pickFor('P2'))
+    expect(armed.match(/<button class="seat"[^>]*data-vote="2"[^>]*>/)?.[0]).toContain('data-selected')
+  })
+
+  it('dims the silenced and the dead as voters, but offers everyone living as a pick', () => {
+    const base = { ...atRole(['KILLER', 'PLAIN', 'INSPECT', 'PLAIN'], 'KILLER'), phase: 'day' as const }
+    const state = {
+      ...base,
+      players: base.players.map((p) =>
+        p.id === 1 ? { ...p, silencedOnDay: base.day } : p.id === 3 ? { ...p, alive: false } : p,
+      ),
+    }
+    const voters = dayMarkup(state, 'en', 'circle', false, null, { armed: null })
+    expect(voters).not.toContain('data-vote="1"')
+    expect(voters).not.toContain('data-vote="3"')
+    const picks = dayMarkup(state, 'en', 'circle', false, null, { armed: 0 })
+    expect(picks).toContain('data-vote="1"')
+    expect(picks).not.toContain('data-vote="3"')
   })
 })
 

@@ -208,6 +208,11 @@ export const es: Strings = {
       nobody: 'Nadie muere hoy',
       nextNight: 'Cae la noche',
       silencedToday: (name) => `${name} no puede hablar ni votar hoy`,
+      votes: 'Votos',
+      voteHint: 'Toca a quien vota y luego a quien elige. Toca otra vez a quien vota para retirarlo.',
+      pickFor: (name) => `${name} vota a…`,
+      tally: 'El recuento',
+      extraVoteMark: '+1',
     },
     timer: {
       label: 'Debate',

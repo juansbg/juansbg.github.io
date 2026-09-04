@@ -2,6 +2,7 @@ import { ROLES, isRoleId, type RoleId } from '../engine/roles'
 import {
   advance,
   canUndo,
+  castVote,
   createGame,
   currentStep,
   endNight,
@@ -16,6 +17,7 @@ import {
   swapSeats,
   moveSeat,
   winner,
+  withdrawVote,
   type PlayerSetup,
   type TimelineEntry,
 } from '../engine/state'
@@ -103,6 +105,19 @@ let installPrompt: InstallPromptEvent | null = null
 let timer: Timer = loadTimer() ?? freshTimer()
 /** The interval repainting the digits while the clock runs. */
 let ticker: number | null = null
+/**
+ * Recording the town's vote: on or off, and the voter whose pick is awaited.
+ * Off, a tap on a seat executes; on, it votes. Every move that leaves the
+ * day turns it off.
+ */
+let voting = false
+let voter: PlayerId | null = null
+
+const leaveDay = (): void => {
+  voting = false
+  voter = null
+  setTimer(resetTimer(timer))
+}
 
 const setTimer = (next: Timer): void => {
   timer = next
@@ -259,7 +274,10 @@ function render(entering = false): void {
         ? hunterMarkup()
         : dawn !== null
           ? dawnMarkup(slides, dawn, game.night, state.locale, dawnKind)
-          : dayMarkup(game, state.locale, state.layout, peeking, viewOf(timer, Date.now()))
+          : dayMarkup(
+              game, state.locale, state.layout, peeking, viewOf(timer, Date.now()),
+              voting ? { armed: voter } : null,
+            )
     if (picking) sheets += pickerMarkup()
   } else {
     body = overMarkup()
@@ -541,7 +559,7 @@ function bind(): void {
     showingLog = false
     menuOpen = false
     picked = []
-    setTimer(resetTimer(timer))
+    leaveDay()
     state = boot()
     setState({ session: newSession(createGame([])), screen: 'setup', revealIndex: 0 })
   }
@@ -557,7 +575,7 @@ function bind(): void {
   // End early and see the whole game — v1's flag button.
   function finish(): void {
     buzz()
-    setTimer(resetTimer(timer))
+    leaveDay()
     setState({ screen: 'over' })
   }
 
@@ -950,7 +968,7 @@ function bind(): void {
     picked = []
     const session = revertTo(state.session, index)
     buzz()
-    setTimer(resetTimer(timer))
+    leaveDay()
     setState({ session, screen: session.current.phase === 'day' ? 'day' : 'night' })
   })
 
@@ -984,7 +1002,7 @@ function bind(): void {
     dawnKind = 'dawn'
     dawn = showAfterShot ? null : 0
     // A new day, a fresh clock; the narrator starts it when the reading ends.
-    setTimer(resetTimer(timer))
+    leaveDay()
     setState({ screen: 'day' })
   })
 
@@ -992,7 +1010,7 @@ function bind(): void {
   on(root, '[data-lynch]', 'click', (_e, el) => {
     buzz()
     // The vote ends the discussion, whatever the clock says.
-    setTimer(resetTimer(timer))
+    leaveDay()
     mutate((s) => lynch(s, Number(el.dataset.lynch)), {
       night: game.night, kind: 'lynch', target: Number(el.dataset.lynch),
     })
@@ -1058,9 +1076,37 @@ function bind(): void {
   })
 
   on(root, '[data-next-night]', 'click', () => {
-    setTimer(resetTimer(timer))
+    leaveDay()
     mutate(startNight, { night: game.night + 1, kind: 'nightStart' })
     setState({ screen: 'night' })
+  })
+
+  // ---- The vote ----
+  // Two taps a vote: the voter, then their pick; the voter again takes it
+  // back. Each lands in the history through mutate(), so undo covers it,
+  // and the mode stays on for the next voter. The engine refuses the dead,
+  // the silenced and self-votes on its own; the seats only dim them.
+  on(root, '[data-voting]', 'click', () => {
+    voting = !voting
+    voter = null
+    setState({}, false)
+  })
+
+  on(root, '[data-vote]', 'click', (_e, el) => {
+    const id = Number(el.dataset.vote)
+    buzz()
+    if (voter === null) {
+      voter = id
+      setState({}, false)
+      return
+    }
+    const who = voter
+    voter = null
+    if (id === who) {
+      mutate((s) => withdrawVote(s, who), { night: game.night, kind: 'vote', voter: who })
+    } else {
+      mutate((s) => castVote(s, who, id), { night: game.night, kind: 'vote', voter: who, target: id })
+    }
   })
 
   // ---- The discussion timer ----

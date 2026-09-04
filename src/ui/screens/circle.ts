@@ -58,6 +58,10 @@ export interface CircleOptions {
   revealTeams?: boolean
   /** Who is set to die tonight, for the Apothecary's step. */
   doomed?: readonly PlayerId[]
+  /** Votes against each seat today, as a badge. Public: the town cast them. */
+  votes?: ReadonlyMap<PlayerId, number>
+  /** The seat the vote points at, marked as the execution's preselection. */
+  leader?: PlayerId | null
   /**
    * Render for a player's eyes rather than the narrator's: no roles, no
    * sigils, no team colour, no question flags, no accent on any seat. Only
@@ -78,7 +82,7 @@ export const circleMarkup = (
   const t = strings(locale)
   const {
     pickAttr, eligible, selected = [], showRoles = false, compact = false, revealTeams = false,
-    perspective,
+    perspective, votes, leader = null,
   } = options
   // The tile has room for one word, not a title: "Bodyguard", not "The
   // Bodyguard"; "Santera", not "La Santera". The sigil above it already says
@@ -100,6 +104,7 @@ export const circleMarkup = (
         : revealTeams && role.team === 'crew' && p.alive
       const self = hidden && perspective.self.includes(p.id)
       const doom = doomed.includes(p.id) && p.alive
+      const count = p.alive ? votes?.get(p.id) ?? 0 : 0
 
       return `
         <button class="seat" type="button"
@@ -115,7 +120,8 @@ export const circleMarkup = (
                 ${!hidden && p.hasQuestion ? 'data-question-flag' : ''}
                 ${crew ? 'data-crew' : ''}
                 ${self ? 'data-self' : ''}
-                ${doom ? 'data-doomed' : ''}>
+                ${doom ? 'data-doomed' : ''}
+                ${!hidden && p.alive && leader === p.id ? 'data-leader' : ''}>
           <span class="seat__n" aria-hidden="true">${String(p.id + 1).padStart(2, '0')}</span>
           ${showRoles && !hidden ? `<span class="seat__sigil">${sigilMarkup(p.roleId)}</span>` : ''}
           <span class="seat__name" style="--len: ${named ? p.name.trim().length : 1}">${named ? esc(p.name) : '—'}</span>
@@ -123,6 +129,7 @@ export const circleMarkup = (
           ${self ? `<span class="seat__you">${esc(t.ui.view.you)}</span>` : ''}
           ${!hidden && p.hasQuestion ? '<span class="seat__flag" aria-hidden="true">?</span>' : ''}
           ${doom ? '<span class="seat__doom" aria-hidden="true">✕</span>' : ''}
+          ${!hidden && count > 0 ? `<span class="seat__votes">${count}</span>` : ''}
         </button>
       `
     })

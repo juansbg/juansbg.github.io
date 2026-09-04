@@ -2,7 +2,7 @@ import { spareCards } from '../../engine/cards'
 import { legalTargets } from '../../engine/targets'
 import { ROLES, type RoleId } from '../../engine/roles'
 import { doomedTonight } from '../../engine/resolve'
-import { currentStep } from '../../engine/state'
+import { currentStep, leader } from '../../engine/state'
 import type { GameState, Player, PlayerId } from '../../engine/types'
 import { strings, type Locale } from '../../i18n'
 import { accentOf } from '../accent'
@@ -10,6 +10,7 @@ import { sigilMarkup } from '../sigils'
 import { esc } from '../dom'
 import { circleMarkup, holdersOf, listMarkup, type CircleOptions, type Perspective } from './circle'
 import { timerMarkup, type TimerView } from './timer'
+import { tallyMarkup, voteChoices, voteCounts, type VoteMode } from './vote'
 import { outcomeCardMarkup } from './timeline'
 
 // The target rule is the engine's (engine/targets.ts); re-exported so the
@@ -344,6 +345,7 @@ export const dayMarkup = (
   layout: Layout = 'circle',
   peek = false,
   timer: TimerView | null = null,
+  voting: VoteMode | null = null,
 ): string => {
   const t = strings(locale)
   // Coloured cards, one per public outcome, in the colour of the role that
@@ -358,6 +360,19 @@ export const dayMarkup = (
       : `<li class="report__card report__card--quiet">${esc(t.phase.quietNight)}</li>`
 
   const living = state.players.filter((p) => p.alive).map((p) => p.id)
+
+  // Recording the vote is two taps a voter and optional; the seats swap from
+  // executing to voting while it is on, and the count stays up either way.
+  const counts = voteCounts(state)
+  const top = leader(state)
+  const armed = voting?.armed ?? null
+  const armedName = state.players.find((p) => p.id === armed)?.name ?? ''
+  const question = voting
+    ? `<p class="label-row__hint">${esc(armed === null ? t.ui.day.voteHint : t.ui.day.pickFor(armedName))}</p>`
+    : `<p class="label">${esc(t.ui.day.whoDies)}</p>`
+  const pickAttr = voting ? 'vote' : 'lynch'
+  const eligible = voting ? voteChoices(state, armed) : living
+  const selected = armed === null ? [] : [armed]
 
   const flagged = state.players.filter((p) => p.alive && p.hasQuestion)
   const questions =
@@ -388,13 +403,17 @@ export const dayMarkup = (
       <h2 class="label">${esc(t.ui.day.report)}</h2>
       <ul class="report report--scroll">${report}</ul>
 
-      <p class="label">${esc(t.ui.day.whoDies)}</p>
+      <div class="label-row">
+        ${question}
+        <button class="icon-btn icon-btn--word" type="button" data-voting aria-pressed="${voting !== null}">${esc(voting ? t.ui.common.done : t.ui.day.votes)}</button>
+      </div>
+      ${tallyMarkup(state, locale)}
       ${
         layout === 'circle'
           ? circleMarkup(state.players, locale, {
-              pickAttr: 'lynch', eligible: living, showRoles: peek, revealTeams: peek,
+              pickAttr, eligible, selected, showRoles: peek, revealTeams: peek, votes: counts, leader: top,
             })
-          : listMarkup(state.players, 'lynch', living)
+          : listMarkup(state.players, pickAttr, eligible, selected)
       }
 
       <div class="actions">

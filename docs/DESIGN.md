@@ -189,6 +189,17 @@ Rules:
   clock is not lethal, the vote after it is. Its length is a segmented row
   in ⋯, label above and four choices across, because four Bebas choices do
   not fit beside a label on a phone.
+- **The vote.** Votes against a seat are a `.seat__votes` badge in the
+  bottom-right corner (the question flag keeps the top), an Ash block with
+  a mono figure; the seat the town points at (`[data-leader]`) takes a
+  Ledger edge and a Ledger badge, one step short of selected, because the
+  narrator's tap is still what executes. While votes are being recorded the
+  armed voter is selected (inverted) and the how-to replaces the mono
+  question with a Plex sentence. The count (`.tally`) is a wrapping row of
+  figure · name · voters: the figure in a hairline box that inverts for the
+  leader, the name in Bebas, the voters in muted Plex; the Raven's extra is
+  a bare +1. No red anywhere in it: a vote is the town's, and only the
+  execution it leads to is lethal.
 
 ## Motion
 

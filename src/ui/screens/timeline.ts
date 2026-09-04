@@ -79,7 +79,7 @@ export const describeEntry = (
 /** The accent an entry should carry: its role's side, or the town for a lynching. */
 const entryAccent = (entry: TimelineEntry): Accent => {
   if (entry.roleId) return accentOf(entry.roleId)
-  if (entry.kind === 'lynch') return 'town'
+  if (entry.kind === 'lynch' || entry.kind === 'vote') return 'town'
   if (entry.kind === 'hunterShot') return accentOf('AVENGE')
   return 'system'
 }
@@ -90,6 +90,7 @@ const entryGlyph = (entry: TimelineEntry): string => {
     case 'nightStart': return '☾'
     case 'nightEnd': return '☀'
     case 'lynch': return '⚖'
+    case 'vote': return '✓'
     case 'hunterShot': return '✦'
     case 'action':
       return entry.action?.kind === 'skip' ? '·' : '●'
