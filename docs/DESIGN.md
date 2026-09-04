@@ -201,6 +201,26 @@ Rules:
   a bare +1. No red anywhere in it: a vote is the town's, and only the
   execution it leads to is lethal.
 
+## Sound
+
+Three cues and nothing decorative, all synthesised in `src/ui/sound.ts` so
+the offline shell carries no audio files:
+
+- **The night** is a low wind — noise through a low-pass whose cutoff drifts
+  every fourteen seconds — over two sines at 55 Hz a hair apart, so they
+  beat slowly. It fades in over 2.5 s when a night screen appears and out
+  over 1.5 s with the morning. It sits under the narrator's voice; it never
+  competes with it.
+- **The verdict** is one drum: a sine falling from 150 to 45 Hz under a short
+  burst of noise around 200 Hz. Once, on the tap that executes.
+- **A chosen seat** is a 25 ms triangle blip at 1.8 kHz: a pen on paper, not
+  a beep. Also on a vote and on the Gunman's shot.
+
+Nothing plays before the first tap on the page, and a mute in ⋯ turns all of
+it off at the source: muted, no audio context is ever created. Haptics are
+separate — a 12 ms tap on most moves, a three-beat pattern on the verdict and
+when the clock runs out — and stop entirely under `prefers-reduced-motion`.
+
 ## Motion
 
 Film cuts, not app fades. A page is turned, not dissolved. Nothing bounces

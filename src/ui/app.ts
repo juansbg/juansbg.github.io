@@ -25,6 +25,7 @@ import type { NightAction, PlayerId } from '../engine/types'
 import { detectLocale, renderWinner, strings } from '../i18n'
 import { accentOf } from './accent'
 import { buzz, esc, on, swap } from './dom'
+import { sound, unlockOnGesture } from './sound'
 import { clear, clearRoster, load, loadRoster, loadTimer, save, saveRoster, saveTimer, type AppState } from './store'
 import { editorMarkup, MIN_PLAYERS, namesMarkup, rosterMarkup } from './screens/setup'
 import { dealRoles, systemRandom, type Complexity } from '../engine/deal'
@@ -128,6 +129,10 @@ interface InstallPromptEvent extends Event {
   prompt(): Promise<void>
 }
 
+// Audio cannot start outside a gesture; the first tap opens it and later
+// ones wake it after iOS has put it to sleep.
+unlockOnGesture()
+
 window.addEventListener('beforeinstallprompt', (event) => {
   event.preventDefault()
   installPrompt = event as InstallPromptEvent
@@ -213,6 +218,8 @@ function render(entering = false): void {
   document.documentElement.lang = state.locale
   document.documentElement.dataset.phase =
     state.screen === 'night' ? 'night' : state.screen === 'day' ? 'day' : 'neutral'
+  // The wind and the drone under the whole night, off with the morning.
+  sound.night(state.screen === 'night')
 
   // The slideshow only exists on the day screen; anything that leaves it
   // (undo, rewind, next night, restart) drops the slide with it.
@@ -459,6 +466,7 @@ function render(entering = false): void {
            </div>`
         : '',
       state.screen === 'day' ? row('data-show-role', t.ui.reveal.showAgain) : '',
+      row('data-mute', t.ui.menu.sound, sound.muted() ? t.ui.menu.off : t.ui.menu.on),
       installPrompt ? row('data-install', t.ui.menu.install) : '',
       inPlay ? row('data-finish', t.ui.over.finishNow, '', true) : '',
       restartable ? row('data-reset', t.ui.common.restart, '', true) : '',
@@ -515,6 +523,12 @@ function bind(): void {
     picking = false
     editing = null
     confirming = null
+    setState({}, false)
+  })
+
+  // See it take, close the sheet yourself — like the layout row.
+  on(root, '[data-mute]', 'click', () => {
+    sound.setMuted(!sound.muted())
     setState({}, false)
   })
 
@@ -826,6 +840,7 @@ function bind(): void {
     const id = Number(el.dataset.target)
     const kind = ROLES[roleId].target.kind
     buzz()
+    sound.tick()
 
     if (kind === 'player') {
       picked = []
@@ -1008,7 +1023,8 @@ function bind(): void {
 
   // ---- Day ----
   on(root, '[data-lynch]', 'click', (_e, el) => {
-    buzz()
+    buzz([120, 80, 120])
+    sound.drum()
     // The vote ends the discussion, whatever the clock says.
     leaveDay()
     mutate((s) => lynch(s, Number(el.dataset.lynch)), {
@@ -1028,6 +1044,8 @@ function bind(): void {
   })
 
   on(root, '[data-shoot]', 'click', (_e, el) => {
+    buzz()
+    sound.tick()
     mutate((s) => hunterShot(s, Number(el.dataset.shoot)), {
       night: game.night, kind: 'hunterShot', target: Number(el.dataset.shoot),
     })
@@ -1095,6 +1113,7 @@ function bind(): void {
   on(root, '[data-vote]', 'click', (_e, el) => {
     const id = Number(el.dataset.vote)
     buzz()
+    sound.tick()
     if (voter === null) {
       voter = id
       setState({}, false)
@@ -1103,6 +1122,11 @@ function bind(): void {
     const who = voter
     voter = null
     if (id === who) {
+      // Nothing to take back is not a move: no history entry for it.
+      if (!game.votes.some((v) => v.voter === who)) {
+        setState({}, false)
+        return
+      }
       mutate((s) => withdrawVote(s, who), { night: game.night, kind: 'vote', voter: who })
     } else {
       mutate((s) => castVote(s, who, id), { night: game.night, kind: 'vote', voter: who, target: id })

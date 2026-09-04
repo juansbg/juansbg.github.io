@@ -264,6 +264,10 @@ export interface Strings {
       install: string
       /** Label of the discussion-timer row; the value is one of TIMER_LENGTHS. */
       timer: string
+      /** The mute row: label, and its value either way. */
+      sound: string
+      on: string
+      off: string
     }
     timeline: {
       title: string

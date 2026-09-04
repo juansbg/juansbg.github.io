@@ -49,6 +49,8 @@ export const swap = (paint: () => void): void => {
  */
 export const buzz = (pattern: number | number[] = 12): void => {
   try {
+    // Reduced motion covers the phone shaking as much as the screen.
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return
     navigator.vibrate?.(pattern)
   } catch {
     // Unsupported; silence is the correct fallback.

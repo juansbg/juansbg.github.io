@@ -317,6 +317,9 @@ export const es: Strings = {
       endGameConfirm: '¿Terminar la partida ya? Verás el resumen y no podrás seguir jugando.',
       install: 'Instalar la app',
       timer: 'Tiempo de debate',
+      sound: 'Sonido',
+      on: 'Sí',
+      off: 'No',
     },
     timeline: {
       title: 'Todo lo que ha pasado',

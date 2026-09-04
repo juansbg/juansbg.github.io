@@ -8,11 +8,13 @@ import type { Timer } from './screens/timer'
 /**
  * How many moves of history survive a reload.
  *
- * Each snapshot is a whole GameState (~1.5 KB for eight players), so this
+ * Each snapshot is a whole GameState (~2 KB for eight players), so this
  * bounds the save at well under localStorage's budget while keeping a full
- * game's worth of log and rewind.
+ * game's worth of log and rewind. It was 80 until the vote became a move:
+ * a twelve-player table voting every day is a dozen snapshots a day on top
+ * of the night's, and the first nights fell out of the log by day five.
  */
-export const HISTORY_LIMIT = 80
+export const HISTORY_LIMIT = 200
 
 /** Which screen the app is on. Derived from phase, except for the reveal. */
 export type Screen = 'setup' | 'reveal' | 'night' | 'day' | 'over'

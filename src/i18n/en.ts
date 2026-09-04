@@ -317,6 +317,9 @@ export const en: Strings = {
       endGameConfirm: 'End the game now? You will see the summary and cannot resume play.',
       install: 'Install the app',
       timer: 'Discussion timer',
+      sound: 'Sound',
+      on: 'On',
+      off: 'Off',
     },
     timeline: {
       title: 'Everything that happened',
