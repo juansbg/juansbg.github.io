@@ -291,7 +291,26 @@ function publish(): void {
   publishSeats()
 }
 
+// A room's table is the people who join it. The names remembered from the
+// last game are for an evening without phones; with a room open and no game
+// yet, they would sit in the lobby as players nobody can find.
+if (room !== null && state.screen === 'setup' && state.session.current.players.length === 0) names = []
 if (room !== null) connectRoom()
+
+/**
+ * A new game in the same room: this phone forgets who sat where and says
+ * hello with a fresh key, so every player's page joins again by name and the
+ * lobby fills from the phones that are actually there.
+ */
+function rekeyRoom(): void {
+  if (room === null) return
+  guests.clear()
+  narratorKeys = null
+  void makeKeys().then((keys) => {
+    narratorKeys = keys
+    link?.send({ kind: 'hello', pub: keys.pub })
+  })
+}
 /** The dawn slideshow: which slide is up, or null when the report is a list. */
 let dawn: number | null = null
 /**
@@ -886,8 +905,10 @@ function bind(): void {
 
   function reset(): void {
     // Forget the game, keep the people: the names come back on the next screen.
+    // With a room open the people are whoever joins it, so the list starts empty.
     clear()
-    names = loadRoster()
+    names = room === null ? loadRoster() : []
+    rekeyRoom()
     editing = null
     singleTarget = null
     inspecting = null
@@ -1324,8 +1345,10 @@ function bind(): void {
         saveRoom(room)
         connectRoom()
         // Before the game, the room is a lobby: turn this screen to it at
-        // once, so a stood-up phone or a mirrored iPad shows the code.
+        // once, so a stood-up phone or a mirrored iPad shows the code. The
+        // table is whoever joins; names typed for a phoneless evening step aside.
         if (state.screen === 'setup') {
+          if (state.session.current.players.length === 0) names = []
           roomOpen = false
           tableView = true
         }

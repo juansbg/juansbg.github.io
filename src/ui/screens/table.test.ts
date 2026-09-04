@@ -96,6 +96,15 @@ describe('the table for the room', () => {
     expect(mine).toContain('data-table-proceed')
     expect(mine).not.toContain('seat__name')
     expect(tableMarkup(p, false)).not.toContain('data-table-proceed')
+    // Three at the table is not a game yet: the button says so instead of doing nothing.
+    expect(mine).toMatch(/data-table-proceed disabled/)
+    expect(mine).toContain(strings('en').ui.setup.minPlayers(4))
+    const four = tvProjection(fresh, 'en', {
+      join: 'https://site/seat.html#room=AB2CD',
+      roster: [{ name: 'Ana', joined: true }, { name: 'Beto', joined: true }, { name: 'Caro', joined: true }, { name: 'Dani', joined: true }],
+    })
+    expect(tableMarkup(four)).not.toMatch(/data-table-proceed disabled/)
+    expect(tableMarkup(four)).toContain(strings('en').ui.table.proceed)
   })
 
   it('shows the clock by day', () => {

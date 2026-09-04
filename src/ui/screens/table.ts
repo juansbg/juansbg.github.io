@@ -4,6 +4,7 @@ import type { TvProjection, TvSeat } from '../../room/projections'
 import { esc } from '../dom'
 import { qrSvg } from '../../room/qr'
 import { circleMarkup } from './circle'
+import { MIN_PLAYERS } from './setup'
 import { timerMarkup } from './timer'
 
 /**
@@ -115,6 +116,7 @@ const readingMarkup = (p: TvProjection, controls: boolean): string => {
 const lobbyMarkup = (p: TvProjection, controls: boolean, t: ReturnType<typeof strings>): string => {
   const code = p.join === null ? null : new URLSearchParams(p.join.split('#')[1] ?? '').get('room')
   const joined = p.roster.filter((r) => r.joined).length
+  const enough = p.roster.length >= MIN_PLAYERS
   const names = p.roster
     .map(
       (r) => `<li class="lobby__name"${r.joined ? ' data-joined' : ''}>${esc(r.name)}${
@@ -135,7 +137,9 @@ const lobbyMarkup = (p: TvProjection, controls: boolean, t: ReturnType<typeof st
         ${
           controls
             ? `<div class="actions">
-                 <button class="btn btn--primary" type="button" data-table-proceed>${esc(t.ui.table.proceed)}</button>
+                 <button class="btn btn--primary" type="button" data-table-proceed${enough ? '' : ' disabled'}>${esc(
+                   enough ? t.ui.table.proceed : t.ui.setup.minPlayers(MIN_PLAYERS),
+                 )}</button>
                </div>`
             : ''
         }
