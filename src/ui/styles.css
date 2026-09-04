@@ -195,7 +195,7 @@ body {
    the menu, a toggle — and must not replay them: the table would bounce into
    place on every tap. Sheets and the dawn slides are not in this list; they
    are new things each time. */
-.stage:not([data-enter]) :is(.screen, .seat, .card, .report__card, .name-chip) {
+.stage:not([data-enter]) :is(.screen, .seat, .card, .report__card, .name-chip, .paper__article) {
   animation-name: none;
 }
 
@@ -1901,10 +1901,34 @@ html[data-dawn] body {
   color: var(--on-newsprint);
 }
 
+/* The nameplate carries the register ticks: the one ornament, and only on
+   things that represent a record, which a newspaper is. */
 .paper__masthead {
-  padding-bottom: var(--space-2);
+  position: relative;
+  padding: var(--space-3) var(--space-3) var(--space-2);
   border-bottom: 3px double var(--on-newsprint);
   text-align: center;
+}
+
+.paper__masthead::before,
+.paper__masthead::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  width: var(--mark);
+  height: var(--mark);
+  border: 0 solid var(--on-newsprint);
+  pointer-events: none;
+}
+
+.paper__masthead::before {
+  left: 0;
+  border-width: 1px 0 0 1px;
+}
+
+.paper__masthead::after {
+  right: 0;
+  border-width: 1px 1px 0 0;
 }
 
 .paper__name {
@@ -1925,12 +1949,24 @@ html[data-dawn] body {
   font-variant-numeric: tabular-nums;
 }
 
+/* The dateline sits between two hairlines, the way a nameplate is ruled. */
 .paper__edition {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: center;
+  gap: var(--space-3);
   margin: var(--space-2) 0 0;
   color: var(--on-newsprint-muted);
   font-size: var(--text-xs);
   letter-spacing: var(--track-label);
   text-transform: uppercase;
+}
+
+.paper__edition::before,
+.paper__edition::after {
+  content: '';
+  height: 1px;
+  background: var(--newsprint-rule);
 }
 
 .paper__banner {
@@ -1968,11 +2004,78 @@ html[data-dawn] body {
   break-inside: avoid;
   padding: var(--space-2) 0 var(--space-3);
   border-bottom: 1px solid var(--newsprint-rule);
+  animation: line-in var(--dur-base) var(--ease-out) both;
+  animation-delay: calc(var(--i, 0) * 40ms);
+}
+
+/* The mark beside the headline is the report's: the cause's sigil in the
+   side's colour. On newsprint the town's mark is ink, as on paper — Ash
+   on Ash is nothing — and the muted marks take the muted ink. */
+.paper__head {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-2);
+}
+
+.paper__title {
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.paper__mark {
+  margin-top: 0.1em;
+}
+
+/* In a column the mark steps down with the headline. */
+.paper__columns .paper__mark {
+  width: 1.75rem;
+  height: 1.75rem;
+}
+
+.paper__columns .paper__mark .sigil {
+  width: 1rem;
+  height: 1rem;
+}
+
+.paper [data-accent='town'] {
+  --role: var(--midnight);
+  --role-fill: var(--midnight);
+  --role-ink: var(--newsprint);
+}
+
+.paper [data-accent='occult'] {
+  --role: var(--midnight);
+  --role-fill: transparent;
+  --role-ink: var(--midnight);
+}
+
+.paper [data-accent='system'] {
+  --role: var(--on-newsprint-muted);
+  --role-ink: var(--on-newsprint-muted);
+}
+
+/* The dead are struck from the page the way they are struck from the
+   report: a Vendetta rule through the name, never red type. */
+.paper__struck {
+  text-decoration: line-through;
+  text-decoration-color: var(--lethal);
+  text-decoration-thickness: 3px;
 }
 
 .paper__lead .paper__article {
   padding: 0;
   border-bottom: 0;
+}
+
+.paper__lead .paper__mark {
+  width: 2.5rem;
+  height: 2.5rem;
+  margin-top: 0.15em;
+}
+
+.paper__lead .paper__mark .sigil {
+  width: 1.5rem;
+  height: 1.5rem;
 }
 
 .paper__eyebrow,
@@ -1992,6 +2095,37 @@ html[data-dawn] body {
   margin-top: var(--space-1);
   letter-spacing: 0;
   text-transform: none;
+}
+
+/* The side under an investigation carries the cast list's square: solid
+   Vendetta for the Family, hollow ink for the town. */
+.paper__note--side {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+}
+
+.paper__note--side::before {
+  content: '';
+  flex: none;
+  width: 0.6rem;
+  height: 0.6rem;
+  border: 1px solid var(--on-newsprint);
+}
+
+.paper__note--side[data-side='crew']::before {
+  border-color: var(--lethal);
+  background: var(--lethal);
+}
+
+/* The count under a verdict is a ballot: ruled, tabular, in ink. */
+.paper__note--count {
+  margin-top: var(--space-2);
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--on-newsprint);
+  color: var(--on-newsprint);
 }
 
 .paper__headline {
@@ -2165,6 +2299,26 @@ html[data-dawn] body {
 
 .stage--tv .paper__lead .paper__dek {
   font-size: 1.5rem;
+}
+
+.stage--tv .paper__mark {
+  width: 2.5rem;
+  height: 2.5rem;
+}
+
+.stage--tv .paper__lead .paper__mark {
+  width: 3.5rem;
+  height: 3.5rem;
+}
+
+.stage--tv .paper__mark .sigil {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.stage--tv .paper__lead .paper__mark .sigil {
+  width: 2.25rem;
+  height: 2.25rem;
 }
 
 /* The drawn page, shown for a long press where there is no share sheet. */

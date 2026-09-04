@@ -211,14 +211,21 @@ Rules:
   execution it leads to is lethal.
 
 - **The town's paper.** `.paper` (`src/ui/screens/paper.ts`) is newsprint:
-  the app's name as a masthead in Bebas at the hero size over a double rule
-  and a mono dateline, then articles. An article is a headline in Bebas, a
-  dek in Plex, an optional mono note (the count under a verdict, the side
-  under an investigation) and *scribbles*: three or four hairlines of
-  varying length standing in for body copy, the way a page is mocked up,
-  never lorem ipsum. The lead runs across the top at the display size, and
-  under a Vendetta rule when it is a death; the rest set in two columns
-  with a hairline between, at the label size, and never break mid-piece.
+  the app's name as a masthead in Bebas at the hero size over a double
+  rule, with the register ticks in its top corners (a newspaper is a
+  record) and a mono dateline between two hairlines, then articles. An
+  article is the report's mark beside a headline in Bebas — the cause's
+  sigil in the side's colour, the scales for the town, a pilcrow for a
+  breadcrumb, nothing on a colour piece; on newsprint the town's mark is
+  ink, as on paper — then a dek in Plex, an optional note (the count under
+  a verdict as a ruled mono box; the side under an investigation with the
+  cast list's square, solid Vendetta or hollow ink) and *scribbles*: three
+  or four hairlines of varying length standing in for body copy, the way a
+  page is mocked up, never lorem ipsum. A dead name in a headline is struck
+  through in Vendetta, as it is on the report. The lead runs across the
+  top at the display size, and under a Vendetta rule when it is a death;
+  the rest set in two columns with a hairline between, at the label size,
+  and never break mid-piece. Articles enter like the report's lines, once.
   The daily edition (`.paper--daily`, from the ¶ beside ▶ on the day head)
   is a full screen with its own Done and no bar. The final edition on the
   game-over screen is the same page with the winner as a balanced Bebas

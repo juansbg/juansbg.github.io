@@ -1,8 +1,10 @@
 import { ROLES, type RoleId } from '../../engine/roles'
 import { revealedDead, winner } from '../../engine/state'
 import type { DeathCause, GameState, Outcome, Player, PlayerId } from '../../engine/types'
-import { renderOutcome, renderWinner, strings, type Locale } from '../../i18n'
+import { outcomeAccent, renderOutcome, renderWinner, strings, type Locale } from '../../i18n'
+import { accentOf, outcomeAccentOf, type Accent } from '../accent'
 import { esc } from '../dom'
+import { sigilMarkup } from '../sigils'
 import { deathLines } from './dawn'
 
 /**
@@ -39,6 +41,16 @@ export interface Article {
   dek: string
   /** A mono line under the dek: the count on a verdict, the side on an investigation. */
   note: string | null
+  /**
+   * The mark beside the headline, as on the report and the dawn slides: the
+   * sigil of the role that caused it, the town's scales, or the pilcrow of
+   * a breadcrumb. Markup, not text. Colour pieces carry none.
+   */
+  mark: string | null
+  /** Whose side the mark is coloured by. */
+  accent: Accent | null
+  /** The dead, to strike through in the headline as the report does. */
+  subject: string | null
 }
 
 export interface Edition {
@@ -107,6 +119,13 @@ const colourIndex = (n: number, size: number): number => (n * 7 + 3) % size
 const nameIn = (players: readonly Pick<Player, 'id' | 'name'>[], id: PlayerId): string =>
   players.find((p) => p.id === id)?.name ?? '?'
 
+/** The mark an outcome carries everywhere else: its cause's sigil, the scales, or the pilcrow. */
+const markOf = (o: Outcome): string => {
+  const source = outcomeAccent(o)
+  if (source !== 'town') return sigilMarkup(source)
+  return o.type === 'clue' ? '¶' : '⚖'
+}
+
 /** One morning's articles, in page order: deaths, the verdict, events, investigations, clues, colour. */
 export const editionOf = (src: EditionSource, locale: Locale): Edition => {
   const t = strings(locale)
@@ -136,6 +155,9 @@ export const editionOf = (src: EditionSource, locale: Locale): Edition => {
       headline: p.headline[o.cause](who),
       dek: bank[o.cause][lines.get(o) ?? 0]?.(who) ?? '',
       note: verdict ? count : null,
+      mark: markOf(o),
+      accent: outcomeAccentOf(o),
+      subject: who,
     }
   }
 
@@ -152,7 +174,17 @@ export const editionOf = (src: EditionSource, locale: Locale): Edition => {
       default: return null
     }
     const dek = renderOutcome(o, src.players, locale)
-    return dek === null ? null : { kind: o.type === 'clue' ? 'clue' : 'event', eyebrow: null, headline, dek, note: null }
+    if (dek === null) return null
+    return {
+      kind: o.type === 'clue' ? 'clue' : 'event',
+      eyebrow: null,
+      headline,
+      dek,
+      note: null,
+      mark: markOf(o),
+      accent: outcomeAccentOf(o),
+      subject: null,
+    }
   }
 
   // Each investigation runs once: the edition after the death, not every
@@ -180,6 +212,9 @@ export const editionOf = (src: EditionSource, locale: Locale): Edition => {
       headline: line(name(r.id)),
       dek: trade ? `${card} ${p.tradeLine(trade)}` : card,
       note: p.side[ROLES[r.roleId].team],
+      mark: sigilMarkup(r.roleId),
+      accent: accentOf(r.roleId),
+      subject: null,
     })
   }
   for (const o of todays) {
@@ -194,7 +229,12 @@ export const editionOf = (src: EditionSource, locale: Locale): Edition => {
   const wanted = articles.length === 0 ? Math.max(1, colourCount(src.day)) : colourCount(src.day)
   for (let k = 0; k < wanted; k++) {
     const piece = p.colour[colourIndex(before + k, p.colour.length)]
-    if (piece) articles.push({ kind: 'colour', eyebrow: null, headline: piece.headline, dek: piece.dek, note: null })
+    if (piece) {
+      articles.push({
+        kind: 'colour', eyebrow: null, headline: piece.headline, dek: piece.dek, note: null,
+        mark: null, accent: null, subject: null,
+      })
+    }
   }
 
   const [lead = null, ...rest] = articles
@@ -235,12 +275,34 @@ const scribblesMarkup = (i: number): string =>
     .map((w) => `<i class="paper__scribble" style="--w: ${w}"></i>`)
     .join('')}</span>`
 
+/** The headline with the dead struck through, as the report strikes a killing's name. */
+const headlineMarkup = (a: Article): string => {
+  const text = esc(a.headline)
+  if (a.subject === null) return text
+  const struck = `<s class="paper__struck">${esc(a.subject)}</s>`
+  return text.split(esc(a.subject)).join(struck)
+}
+
+const noteMarkup = (a: Article): string => {
+  if (a.note === null) return ''
+  if (a.kind === 'investigation') {
+    return `<p class="paper__note paper__note--side" data-side="${a.accent === 'crew' ? 'crew' : 'town'}">${esc(a.note)}</p>`
+  }
+  if (a.kind === 'verdict') return `<p class="paper__note paper__note--count">${esc(a.note)}</p>`
+  return `<p class="paper__note">${esc(a.note)}</p>`
+}
+
 const articleMarkup = (a: Article, i: number): string => `
-  <article class="paper__article" data-kind="${a.kind}">
-    ${a.eyebrow ? `<p class="paper__eyebrow">${esc(a.eyebrow)}</p>` : ''}
-    <h3 class="paper__headline">${esc(a.headline)}</h3>
+  <article class="paper__article" data-kind="${a.kind}"${a.accent ? ` data-accent="${a.accent}"` : ''} style="--i: ${i}">
+    <header class="paper__head">
+      ${a.mark ? `<span class="mark paper__mark" aria-hidden="true">${a.mark}</span>` : ''}
+      <div class="paper__title">
+        ${a.eyebrow ? `<p class="paper__eyebrow">${esc(a.eyebrow)}</p>` : ''}
+        <h3 class="paper__headline">${headlineMarkup(a)}</h3>
+      </div>
+    </header>
     <p class="paper__dek">${esc(a.dek)}</p>
-    ${a.note ? `<p class="paper__note">${esc(a.note)}</p>` : ''}
+    ${noteMarkup(a)}
     ${scribblesMarkup(i)}
   </article>`
 
@@ -359,15 +421,19 @@ export const paperOf = (state: GameState, locale: Locale): Paper => {
 export const paperMarkup = (state: GameState, locale: Locale): string => {
   const t = strings(locale)
   const paper = paperOf(state, locale)
-  const [lead = null, ...rest] = paper.stories.map(
-    (s): Article => ({
+  const [lead = null, ...rest] = paper.stories.map((s): Article => {
+    const cause: Outcome = { type: 'death', night: s.night, target: -1, cause: s.cause, public: true }
+    return {
       kind: s.cause === 'lynch' ? 'verdict' : 'death',
       eyebrow: t.ui.timeline.nightStart(s.night),
       headline: t.ui.paper.headline[s.cause](s.name),
       dek: s.line,
       note: null,
-    }),
-  )
+      mark: markOf(cause),
+      accent: outcomeAccentOf(cause),
+      subject: s.name,
+    }
+  })
   const cast = paper.cast
     .map(
       (c) => `

@@ -70,7 +70,8 @@ describe('the morning paper', () => {
     expect(html).toContain(t.roles.KILLER.name)
     expect(html).toContain('data-crew')
     expect(html).toContain('data-dead')
-    expect(html).not.toContain('KILLER')
+    // The cause sigils are the report's; no id appears anywhere else.
+    expect(html.replace(/ data-sigil="[A-Z_]+"/g, '')).not.toContain('KILLER')
     expect(html).toContain('Beto')
   })
 })
@@ -175,12 +176,20 @@ describe('the daily edition', () => {
     let state = lynch(loudNight(), 0)
     state = endNight({ ...startNight(state), stepIndex: 99 })
     const t = strings(locale)
+    // A sigil names the cause of a public outcome, as on the report; it is
+    // not a player's role, so it is stripped before the ids are checked.
+    const bare = (html: string): string => html.replace(/ data-sigil="[A-Z_]+"/g, '')
     const html = editionMarkup(edition(state, 2, locale), locale)
     // Beto and Ana are named; the living hold a Detective and an Arsonist and two citizens.
     expect(html).toContain(t.roles.KILLER.name)
     expect(html).not.toContain(t.roles.INSPECT.name)
     expect(html).not.toContain(t.roles.SILENCE.name)
-    for (const id of ROLE_IDS) expect(html).not.toContain(`"${id}"`)
+    for (const id of ROLE_IDS) expect(bare(html)).not.toContain(`"${id}"`)
+    // The investigations carry the revealed roles' sigils and no other.
+    const sigils = [...html.matchAll(/data-sigil="([A-Z_]+)"/g)].map((m) => m[1])
+    expect(sigils).toEqual(['KILLER', 'PLAIN'])
+    // The dead are struck through in their headlines.
+    expect(editionMarkup(edition(state, 1, locale), locale)).toContain('<s class="paper__struck">Beto</s>')
     // Day one carries nobody's role at all; the Family is named only as the
     // cause of the hit, which the dawn line already told the town.
     const first = editionMarkup(edition(state, 1, locale), locale)
