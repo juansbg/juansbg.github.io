@@ -41,6 +41,13 @@ export default defineConfig({
   ],
   build: {
     target: 'es2022',
+    // The TV is its own page: it never loads the narrator's handlers.
+    rollupOptions: {
+      input: {
+        main: 'index.html',
+        tv: 'tv.html',
+      },
+    },
   },
   test: {
     // The engine is pure and has no DOM, so the default node environment is

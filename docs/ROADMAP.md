@@ -311,7 +311,8 @@ CLAUDE.md only in their own bullets.
   or iPad in landscape is the first screen, a TV through the relay the second.
   Phase 0 (the table view on the narrator's device, no relay) is Session A's
   next build. **Done:** `src/room/projections.ts`, `src/ui/screens/table.ts`,
-  "Show the table" in ⋯.
+  "Show the table" in ⋯. **Phase 1 built** (`relay/`, `src/room/client.ts`,
+  `tv.html`, "Big screen" in ⋯): waiting on a Cloudflare login to deploy.
 - Running statistics.
 - **The Cultist stays out for now** (decided 2026-09-04): a pending feature,
   not planned, until the user chooses a rule for it. The card remains

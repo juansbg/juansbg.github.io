@@ -46,7 +46,7 @@ export interface TvProjection {
   /** Public outcomes only. */
   log: Outcome[]
   reading: TvReading | null
-  timer: TimerView | null
+  timer: TvTimer | null
   /** Votes against each seat today, most first. Counts only. */
   tally: { target: PlayerId; votes: number }[]
   /** Who the count points at, or null on a tie or before a vote. */
@@ -56,9 +56,15 @@ export interface TvProjection {
   winner: Winner
 }
 
+/** The clock as the screen should show it: a snapshot, plus the deadline so a
+ * screen can count down by itself between projections. */
+export interface TvTimer extends TimerView {
+  endsAt: number | null
+}
+
 export interface TvContext {
   reading?: TvReading | null
-  timer?: TimerView | null
+  timer?: TvTimer | null
 }
 
 export const tvProjection = (

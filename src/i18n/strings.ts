@@ -284,10 +284,33 @@ export interface Strings {
       off: string
       /** The row that turns the screen to the whole room. */
       table: string
+      /** The row that opens the room sheet: a code and a QR for a TV. */
+      bigScreen: string
     }
     /** The table view: the seating plan for the room, phone on its side. */
     table: {
       day: (n: number) => string
+    }
+    /** The room sheet on the narrator's phone. */
+    room: {
+      intro: string
+      relay: string
+      open: string
+      opening: string
+      close: string
+      code: string
+      scan: string
+      noTv: string
+      tvs: (n: number) => string
+      reconnecting: string
+      failed: string
+    }
+    /** The TV page, before and between projections. */
+    tv: {
+      title: string
+      noRoom: string
+      waiting: string
+      reconnecting: string
     }
     timeline: {
       title: string

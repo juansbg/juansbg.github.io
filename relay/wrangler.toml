@@ -1,0 +1,19 @@
+# The relay: one Worker, one Durable Object per room. See docs/BIG-SCREEN.md §5.
+#
+#   npm run relay:dev      local, no account needed (Miniflare)
+#   npm run relay:deploy   needs `npx wrangler login` once on this machine
+#
+# The free plan runs Durable Objects on SQLite storage, hence new_sqlite_classes.
+name = "omerta-relay"
+main = "src/index.ts"
+compatibility_date = "2026-09-01"
+
+[durable_objects]
+bindings = [{ name = "ROOM", class_name = "Room" }]
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["Room"]
+
+[observability]
+enabled = true

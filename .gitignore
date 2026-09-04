@@ -6,3 +6,6 @@ dist/
 Pueblo_duerme_Guion_DOS.pdf
 
 .DS_Store
+
+# wrangler state
+.wrangler/

@@ -82,7 +82,7 @@ describe('the table for the room', () => {
   })
 
   it('shows the clock by day', () => {
-    const html = tableMarkup(tvProjection(morning(), 'en', { timer: { phase: 'running', seconds: 90 } }))
+    const html = tableMarkup(tvProjection(morning(), 'en', { timer: { phase: 'running', seconds: 90, endsAt: null } }))
     expect(html).toContain('data-timer-digits')
     expect(html).toContain('1:30')
   })

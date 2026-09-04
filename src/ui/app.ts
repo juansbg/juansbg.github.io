@@ -32,7 +32,20 @@ import { dealRoles, systemRandom, type Complexity } from '../engine/deal'
 import { dayMarkup, inspectionMarkup, nightMarkup, playerViewMarkup, questionCardMarkup, questionsIntroMarkup } from './screens/night'
 import { dawnMarkup, dawnSlides, verdictSlides, type Reading, type Slide } from './screens/dawn'
 import { tableMarkup } from './screens/table'
-import { tvProjection } from '../room/projections'
+import { tvProjection, type TvProjection } from '../room/projections'
+import {
+  NarratorLink,
+  loadRelay,
+  loadRoom,
+  normalizeRelay,
+  openRoom,
+  saveRelay,
+  saveRoom,
+  tvUrl,
+  type LinkStatus,
+  type Room,
+} from '../room/client'
+import { qrSvg } from '../room/qr'
 import { timelineMarkup } from './screens/timeline'
 import { paperMarkup, sharePaper, type ShareResult } from './screens/paper'
 import {
@@ -84,6 +97,52 @@ let showingLog = false
  * and the bar goes with it because the town can see the screen.
  */
 let tableView = false
+/**
+ * The room on the relay, when one is open: a TV joins it with the code and
+ * receives the same projection the table view renders, after every paint.
+ * The room survives a reload (`omerta:room`); the socket does not, so the
+ * link is rebuilt at boot. Nothing secret is ever published: see projections.ts.
+ */
+let room: Room | null = loadRoom()
+let link: NarratorLink | null = null
+/** The room sheet is up. */
+let roomOpen = false
+let roomStatus: LinkStatus = 'closed'
+/** Screens on the room, as the relay reports them. */
+let tvs = 0
+let roomBusy = false
+let roomError = false
+
+function connectRoom(): void {
+  if (room === null) return
+  link?.close()
+  link = new NarratorLink(room, {
+    onStatus: (status) => {
+      roomStatus = status
+      if (roomOpen) setState({}, false)
+    },
+    onMessage: (message) => {
+      if (message.kind === 'tvs') tvs = message.count
+      else if (message.kind === 'present') tvs = message.tvs
+      else return
+      if (roomOpen) setState({}, false)
+    },
+  })
+}
+
+/** What the room sees right now: the table view and the TV render the same thing. */
+function projectionNow(): TvProjection {
+  return tvProjection(state.session.current, state.locale, {
+    reading: dawn !== null ? { kind: dawnKind, index: dawn, slides: currentSlides() } : null,
+    timer: state.screen === 'day' ? { ...viewOf(timer, Date.now()), endsAt: timer.endsAt } : null,
+  })
+}
+
+function publish(): void {
+  link?.publish(projectionNow())
+}
+
+if (room !== null) connectRoom()
 /** The dawn slideshow: which slide is up, or null when the report is a list. */
 let dawn: number | null = null
 /**
@@ -281,12 +340,7 @@ function render(entering = false): void {
         })
       : revealDoneMarkup()
   } else if (tableView) {
-    body = tableMarkup(
-      tvProjection(game, state.locale, {
-        reading: dawn !== null ? { kind: dawnKind, index: dawn, slides } : null,
-        timer: state.screen === 'day' ? viewOf(timer, Date.now()) : null,
-      }),
-    )
+    body = tableMarkup(projectionNow())
   } else if (state.screen === 'night') {
     const subject = game.players.find((p) => p.id === inspecting)
     body = subject
@@ -318,11 +372,14 @@ function render(entering = false): void {
   if (showingLog) overlay += timelineMarkup(state.session, state.locale)
   if (menuOpen) overlay += menuMarkup()
   if (confirming !== null) overlay += confirmMarkup(confirming)
+  if (roomOpen) overlay += roomMarkup()
   if (paperShot !== null) overlay += shotMarkup(paperShot)
 
   root.innerHTML = `<main class="stage"${entering ? ' data-enter' : ''}>${body}</main>${overlay}${chromeMarkup()}`
   bind()
   syncTicker()
+  // The TV follows every paint; the link sends one message per frame at most.
+  publish()
 
   function revealDoneMarkup(): string {
     return `
@@ -431,6 +488,49 @@ function render(entering = false): void {
   }
 
   /**
+   * The room: a code and a QR while one is open, the relay address and a
+   * button before. The secret never appears; the QR carries only the code.
+   */
+  function roomMarkup(): string {
+    const r = t.ui.room
+    let body: string
+    if (room !== null) {
+      const url = tvUrl(room, location.origin)
+      const status = roomStatus !== 'open' ? r.reconnecting : tvs > 0 ? r.tvs(tvs) : r.noTv
+      body = `
+        <p class="title room__code" aria-label="${esc(r.code)}">${esc(room.code)}</p>
+        <div class="room__qr" aria-hidden="true">${qrSvg(url)}</div>
+        <p class="room__hint">${esc(r.scan)}</p>
+        <p class="room__url">${esc(url)}</p>
+        <p class="room__status" data-room-status>${esc(status)}</p>
+        <button class="btn btn--ghost" type="button" data-room-close>${esc(r.close)}</button>
+      `
+    } else {
+      body = `
+        <p class="confirm__question">${esc(r.intro)}</p>
+        <label class="field">
+          <span class="field__label">${esc(r.relay)}</span>
+          <input class="field__input" type="url" data-relay value="${esc(loadRelay())}"
+                 placeholder="https://…workers.dev" autocapitalize="off" autocorrect="off" spellcheck="false">
+        </label>
+        ${roomError ? `<p class="notice">${esc(r.failed)}</p>` : ''}
+        <button class="btn btn--primary" type="button" data-room-open${roomBusy ? ' disabled' : ''}>${esc(roomBusy ? r.opening : r.open)}</button>
+      `
+    }
+    return `
+      <div class="sheet" data-sheet>
+        <div class="sheet__panel room" role="dialog" aria-modal="true" aria-label="${esc(t.ui.menu.bigScreen)}">
+          <div class="sheet__head">
+            <span class="sheet__handle" aria-hidden="true"></span>
+            <p class="sheet__title">${esc(t.ui.menu.bigScreen)}</p>
+          </div>
+          ${body}
+        </div>
+      </div>
+    `
+  }
+
+  /**
    * One question, two answers. The destructive one carries the same label
    * as the row that opened it, so the narrator confirms the thing they tapped.
    */
@@ -505,6 +605,7 @@ function render(entering = false): void {
              </span>
            </div>`
         : '',
+      row('data-room', t.ui.menu.bigScreen, room?.code ?? ''),
       inPlay ? row('data-table', t.ui.menu.table) : '',
       state.screen === 'day' ? row('data-show-role', t.ui.reveal.showAgain) : '',
       row('data-mute', t.ui.menu.sound, sound.muted() ? t.ui.menu.off : t.ui.menu.on),
@@ -564,6 +665,7 @@ function bind(): void {
     picking = false
     editing = null
     confirming = null
+    roomOpen = false
     closeShot()
     setState({}, false)
   })
@@ -1008,6 +1110,52 @@ function bind(): void {
   on(root, '[data-table-close]', 'click', () => {
     tableView = false
     setState({})
+  })
+
+  // ---- The room, for a TV ----
+  on(root, '[data-room]', 'click', () => {
+    menuOpen = false
+    roomOpen = true
+    roomError = false
+    setState({}, false)
+  })
+
+  on(root, '[data-room-open]', 'click', () => {
+    if (roomBusy) return
+    const field = root.querySelector<HTMLInputElement>('[data-relay]')
+    const relay = normalizeRelay(field?.value ?? loadRelay())
+    if (relay === '') {
+      roomError = true
+      setState({}, false)
+      return
+    }
+    saveRelay(relay)
+    roomBusy = true
+    roomError = false
+    setState({}, false)
+    void openRoom(relay)
+      .then((opened) => {
+        room = opened
+        saveRoom(room)
+        connectRoom()
+      })
+      .catch(() => {
+        roomError = true
+      })
+      .then(() => {
+        roomBusy = false
+        setState({}, false)
+      })
+  })
+
+  on(root, '[data-room-close]', 'click', () => {
+    link?.close()
+    link = null
+    room = null
+    tvs = 0
+    roomStatus = 'closed'
+    saveRoom(null)
+    setState({}, false)
   })
 
   // The Associate picks a side on the first night; the pick is a role change

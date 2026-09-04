@@ -77,7 +77,7 @@ describe('the projection for the whole town', () => {
 
   it('is plain JSON that survives a round trip', () => {
     const state = lynch(secretNight(), 0)
-    const p = tvProjection(state, 'es', { timer: { phase: 'running', seconds: 42 } })
+    const p = tvProjection(state, 'es', { timer: { phase: 'running', seconds: 42, endsAt: null } })
     expect(JSON.parse(JSON.stringify(p))).toEqual(p)
     expect(p.players.find((s) => s.id === 0)?.alive).toBe(false)
   })

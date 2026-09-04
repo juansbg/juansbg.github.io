@@ -2697,3 +2697,81 @@ html[data-dawn] body {
 .tableview__card[data-lethal] .btn:disabled {
   opacity: 0.35;
 }
+
+/* ---------- The room: a code and a QR for the screen ---------- */
+.room {
+  text-align: center;
+}
+
+.room__code {
+  margin: 0;
+  font-size: clamp(3rem, 18vw, 5rem);
+  letter-spacing: 0.18em;
+  line-height: 1;
+}
+
+.room__qr {
+  display: grid;
+  place-items: center;
+}
+
+/* The library draws black on white; the palette says Midnight on Ledger. */
+.room__qr svg {
+  width: min(60vw, 16rem);
+  height: auto;
+  padding: var(--space-2);
+  background: var(--ledger);
+}
+
+.room__qr svg rect {
+  fill: var(--ledger);
+}
+
+.room__qr svg path {
+  fill: var(--midnight);
+}
+
+.room__hint,
+.room__status {
+  margin: 0;
+  color: var(--fg-muted);
+  font-size: var(--text-sm);
+}
+
+.room__url {
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  word-break: break-all;
+}
+
+.room .field {
+  text-align: left;
+}
+
+/* ---------- The TV page ---------- */
+.stage--tv {
+  padding: var(--space-4);
+}
+
+.tv__code {
+  letter-spacing: 0.18em;
+}
+
+.tv__status {
+  position: fixed;
+  right: var(--space-3);
+  bottom: var(--space-3);
+  margin: 0;
+  color: var(--fg-muted);
+  font-size: var(--text-xs);
+}
+
+/* A TV has no hands: the clock is a display there. */
+.stage--tv .clock__face {
+  pointer-events: none;
+}
+
+.stage--tv [data-timer-reset] {
+  display: none;
+}
