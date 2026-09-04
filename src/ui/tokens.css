@@ -44,6 +44,15 @@
   --on-paper-muted: color-mix(in oklab, var(--midnight) 62%, var(--ledger));
   --paper-rule: color-mix(in oklab, var(--midnight) 18%, var(--ledger));
 
+  /* Newsprint: the town's own paper, daily and final. Ash a shade dimmer,
+     Midnight ink, and on it red is only ever a rule. It is the one job Ash
+     has as a surface, so the narrator's report (Ledger) and the town's
+     gossip sheet are told apart at a glance. */
+  --newsprint: color-mix(in oklab, var(--ash) 92%, var(--midnight));
+  --on-newsprint: var(--midnight);
+  --on-newsprint-muted: color-mix(in oklab, var(--midnight) 60%, var(--ash));
+  --newsprint-rule: color-mix(in oklab, var(--midnight) 24%, var(--ash));
+
   /* Ink — Ledger speaks, Ash annotates, the rest recede. */
   --fg: var(--ledger);
   --fg-2: var(--ash);

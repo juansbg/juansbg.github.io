@@ -113,3 +113,29 @@ describe('the table for the room', () => {
     expect(html).toContain('1:30')
   })
 })
+
+describe('the paper on the table', () => {
+  it('shows the open edition instead of the seats, with no controls and no unrevealed role', () => {
+    // Beto dies on night 1; on day 2 the paper names him, and the phone has it open.
+    let state = morning()
+    state = startNight(state)
+    state = recordAction(state, { kind: 'target', roleId: 'GUARD', actor: 3, target: 2 })
+    state = recordAction(state, { kind: 'skip', roleId: 'INSPECT' })
+    state = recordAction(state, { kind: 'skip', roleId: 'KILLER' })
+    state = endNight(state)
+    for (const locale of LOCALES) {
+      const t = strings(locale)
+      const closed = tableMarkup(tvProjection(state, locale))
+      expect(closed).toContain('data-table')
+      expect(closed).not.toContain('data-paper')
+      const open = tableMarkup(tvProjection(state, locale, { paper: 2 }), false)
+      expect(open).toContain('data-paper')
+      expect(open).toContain(t.ui.paper.daily(2))
+      expect(open).toContain('Beto')
+      expect(open).toContain(t.roles.PLAIN.name)
+      expect(open).not.toContain('data-paper-close')
+      expect(open).not.toContain('data-table')
+      for (const id of ['KILLER', 'INSPECT', 'GUARD'] as const) expect(open).not.toContain(t.roles[id].name)
+    }
+  })
+})

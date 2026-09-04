@@ -56,7 +56,7 @@ import { makeKeys, seal, sharedKey, type KeyPair } from '../room/crypto'
 import { seatProjection, waitingSeat, type SeatProjection } from '../room/projections'
 import { qrSvg } from '../room/qr'
 import { timelineMarkup } from './screens/timeline'
-import { paperMarkup, sharePaper, type ShareResult } from './screens/paper'
+import { dailyMarkup, edition, paperMarkup, sharePaper, type ShareResult } from './screens/paper'
 import {
   TIMER_LENGTHS,
   formatClock,
@@ -282,6 +282,8 @@ function projectionNow(): TvProjection {
     sealed: !votesRevealed,
     join: room === null ? null : seatUrl(room, location.origin),
     roster: lobbyRoster(),
+    // The TV shows the paper while the phone does.
+    paper: paperOpen && state.screen === 'day' ? state.session.current.day : null,
   })
 }
 
@@ -320,6 +322,12 @@ let dawn: number | null = null
 let showAfterShot: Reading | null = null
 /** Which reading is up: the morning's, or the town's verdict. */
 let dawnKind: Reading = 'dawn'
+/**
+ * The day's edition of the paper is up, full screen. Like a reading it is a
+ * dead end with its own Done and no bar, because the phone may be facing
+ * the town while it is read.
+ */
+let paperOpen = false
 const currentSlides = (): Slide[] =>
   (dawnKind === 'verdict' ? verdictSlides : dawnSlides)(state.session.current, state.locale)
 /** The overflow sheet behind the ⋯ button. */
@@ -465,7 +473,10 @@ function render(entering = false): void {
 
   // The slideshow only exists on the day screen; anything that leaves it
   // (undo, rewind, next night, restart) drops the slide with it.
-  if (state.screen !== 'day' || game.awaitingHunterShot !== null) dawn = null
+  if (state.screen !== 'day' || game.awaitingHunterShot !== null) {
+    dawn = null
+    paperOpen = false
+  }
   const slides = dawn === null ? [] : currentSlides()
   const slide = dawn === null ? null : slides[Math.min(dawn, slides.length - 1)] ?? null
   if (slide) document.documentElement.dataset.dawn = slide.lethal ? 'lethal' : 'calm'
@@ -526,7 +537,9 @@ function render(entering = false): void {
         ? hunterMarkup()
         : dawn !== null
           ? dawnMarkup(slides, dawn, game.night, state.locale, dawnKind)
-          : dayMarkup(
+          : paperOpen
+            ? dailyMarkup(edition(game, game.day, state.locale), state.locale)
+            : dayMarkup(
               game, state.locale, state.layout, peeking, viewOf(timer, Date.now()),
               voting ? { armed: voter } : null,
             )
@@ -639,6 +652,8 @@ function render(entering = false): void {
     // A slide may be held up to the table; the day screen behind it shows
     // every role, so nothing may lead out of the slideshow but its own Done.
     if (dawn !== null) return ''
+    // The paper, likewise: the phone may be facing the town.
+    if (paperOpen) return ''
     // The whole room is looking at the screen.
     if (tableView) return ''
     // A player is looking at the screen: the timeline would show them every
@@ -1527,6 +1542,19 @@ function bind(): void {
   on(root, '[data-dawn-close]', 'click', () => {
     dawn = null
     setState({}, false)
+  })
+
+  // ---- The paper ----
+  // The day's edition, full screen; a scene of its own, so it enters.
+  on(root, '[data-paper-open]', 'click', () => {
+    paperOpen = true
+    buzz()
+    setState({})
+  })
+
+  on(root, '[data-paper-close]', 'click', () => {
+    paperOpen = false
+    setState({})
   })
 
   on(root, '[data-next-night]', 'click', () => {

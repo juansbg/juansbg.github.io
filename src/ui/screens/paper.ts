@@ -1,24 +1,294 @@
-import { ROLES } from '../../engine/roles'
-import { winner } from '../../engine/state'
-import type { GameState, Outcome, Player } from '../../engine/types'
+import { ROLES, type RoleId } from '../../engine/roles'
+import { revealedDead, winner } from '../../engine/state'
+import type { DeathCause, GameState, Outcome, Player, PlayerId } from '../../engine/types'
 import { renderOutcome, renderWinner, strings, type Locale } from '../../i18n'
 import { esc } from '../dom'
 import { deathLines } from './dawn'
 
 /**
- * The morning paper: the whole game as a front page.
+ * The town's paper.
  *
- * v1's end-of-game view listed every public outcome by night, and it was
- * the one thing people liked. This is that list set as newsprint: the
- * winner as the banner, every death as a headline with the line the town
- * was read at dawn, who was who, and the record night by night. The same
- * page is drawn onto a canvas for the share sheet, so what leaves the phone
- * is what was on it.
+ * One newspaper, printed every morning and once more when the game ends.
+ * The daily edition (`edition`) sets the night's public outcomes as a page of
+ * short articles in the paper's own voice: the dead by name with the line
+ * the town was read at dawn, the verdict with its count, the fire, the mark,
+ * the growl, a card gone from the centre; a day after a death the police
+ * name what the dead were; and zero to two colour pieces that never name a
+ * trade, a person or a role, so nothing on the page can be mistaken for a
+ * clue that is not one. The paper never lies: every article about the game
+ * is built from the log, and `paper.test.ts` holds the colour bank to it.
+ *
+ * The final edition (`paperOf`) is the whole game as a front page — v1's
+ * end-of-game list, the one thing people liked, set as newsprint: the winner
+ * as the banner, every death a headline, who was who, and the record night
+ * by night. The same page is drawn onto a canvas for the share sheet, so
+ * what leaves the phone is what was on it.
  */
+
+// ---------------------------------------------------------------------------
+// The daily edition
+// ---------------------------------------------------------------------------
+
+export type ArticleKind = 'death' | 'verdict' | 'event' | 'investigation' | 'clue' | 'colour'
+
+export interface Article {
+  kind: ArticleKind
+  /** A mono line over the headline: the night, on the final page. */
+  eyebrow: string | null
+  headline: string
+  dek: string
+  /** A mono line under the dek: the count on a verdict, the side on an investigation. */
+  note: string | null
+}
+
+export interface Edition {
+  masthead: string
+  dateline: string
+  day: number
+  /** The first article, across the top of the page. */
+  lead: Article | null
+  /** The rest, in two columns. */
+  rest: Article[]
+}
+
+/** A dead player the investigation rule has already made public. */
+export interface Revealed {
+  id: PlayerId
+  roleId: RoleId
+  trade: number | null
+}
+
+/**
+ * What an edition is built from: public facts only, in the shape the TV
+ * projection carries them, so the phone and a screen on the relay set the
+ * same page from the same data.
+ */
+export interface EditionSource {
+  day: number
+  players: readonly Pick<Player, 'id' | 'name'>[]
+  /** Public outcomes; anything else in here is ignored. */
+  log: readonly Outcome[]
+  revealed: readonly Revealed[]
+}
+
+type Death = Extract<Outcome, { type: 'death' }>
+const isDeath = (o: Outcome): o is Death => o.type === 'death'
+
+/**
+ * The investigation rule is the engine's `revealedDead`: a player who died
+ * on night N or day N may be named for what they were from the morning of
+ * day N + 1. That list is cumulative, and it is what the projection carries
+ * for the TV; the paper prints each investigation once, in the edition of
+ * day N + 1 and never again, which `editionOf` decides from the death's
+ * night in the log. Nothing new is written for it.
+ */
+export const revealedBy = (state: GameState): Revealed[] =>
+  revealedDead(state).map((p) => ({ id: p.id, roleId: p.roleId, trade: p.trade }))
+
+/** How many colour pieces each day gets, cycling; seeded by the day, never drawn. */
+const COLOUR_BY_DAY = [2, 1, 2, 0, 1] as const
+const colourCount = (day: number): number => COLOUR_BY_DAY[(day - 1) % COLOUR_BY_DAY.length] ?? 1
+
+/** Whether the day's edition has anything to say about the game. */
+const newsOn = (log: readonly Outcome[], day: number): boolean =>
+  log.some((o) => o.public && (o.night === day || (isDeath(o) && o.night === day - 1)))
+
+/** A quiet night with no colour scheduled still gets a page: one piece. */
+const colourWanted = (log: readonly Outcome[], day: number): number =>
+  newsOn(log, day) ? colourCount(day) : Math.max(1, colourCount(day))
+
+/**
+ * Which piece of the bank the n-th colour article of the game gets. A stride
+ * coprime with the bank walks every piece once before any repeats, so no
+ * game short of thirty pieces reads the same council notice twice.
+ */
+const colourIndex = (n: number, size: number): number => (n * 7 + 3) % size
+
+const nameIn = (players: readonly Pick<Player, 'id' | 'name'>[], id: PlayerId): string =>
+  players.find((p) => p.id === id)?.name ?? '?'
+
+/** One morning's articles, in page order: deaths, the verdict, events, investigations, clues, colour. */
+export const editionOf = (src: EditionSource, locale: Locale): Edition => {
+  const t = strings(locale)
+  const p = t.ui.paper
+  const bank = t.ui.dawn.death
+  const name = (id: PlayerId): string => nameIn(src.players, id)
+  const log = src.log.filter((o) => o.public)
+  // The whole log, so a death keeps the line it was given at dawn.
+  const lines = deathLines(log, (cause) => bank[cause].length)
+
+  // The day's record splits where the night turned into the day, as the
+  // dawn reading does: the town's vote is the first thing that happens by
+  // daylight, so the verdict and what it dragged along come after the night.
+  const todays = log.filter((o) => o.night === src.day)
+  const cut = todays.findIndex((o) => o.type === 'tally' || (isDeath(o) && o.cause === 'lynch'))
+  const night = cut === -1 ? todays : todays.slice(0, cut)
+  const daytime = cut === -1 ? [] : todays.slice(cut)
+  const tallied = daytime.find((o) => o.type === 'tally')
+  const count = tallied ? renderOutcome(tallied, src.players, locale) : null
+
+  const deathArticle = (o: Death): Article => {
+    const who = name(o.target)
+    const verdict = o.cause === 'lynch'
+    return {
+      kind: verdict ? 'verdict' : 'death',
+      eyebrow: null,
+      headline: p.headline[o.cause](who),
+      dek: bank[o.cause][lines.get(o) ?? 0]?.(who) ?? '',
+      note: verdict ? count : null,
+    }
+  }
+
+  const eventArticle = (o: Outcome): Article | null => {
+    let headline: string
+    switch (o.type) {
+      case 'silenced': headline = p.event.silenced(name(o.target)); break
+      case 'extraVote': headline = p.event.extraVote(name(o.target)); break
+      case 'growl': headline = p.event.growl; break
+      case 'cardTaken': headline = p.event.cardTaken(t.roles[o.role].name); break
+      // The breadcrumb: the engine's line, nameless by construction, under a
+      // headline that says only that somebody talked.
+      case 'clue': headline = p.event.clue[o.night % p.event.clue.length] ?? ''; break
+      default: return null
+    }
+    const dek = renderOutcome(o, src.players, locale)
+    return dek === null ? null : { kind: o.type === 'clue' ? 'clue' : 'event', eyebrow: null, headline, dek, note: null }
+  }
+
+  // Each investigation runs once: the edition after the death, not every
+  // edition the dead stay dead.
+  const diedOn = (id: PlayerId): number | null => log.find((o) => isDeath(o) && o.target === id)?.night ?? null
+  const investigated = src.revealed.filter((r) => diedOn(r.id) === src.day - 1)
+
+  const articles: Article[] = []
+  for (const o of night) if (isDeath(o)) articles.push(deathArticle(o))
+  for (const o of daytime) if (isDeath(o)) articles.push(deathArticle(o))
+  for (const o of todays) {
+    if (o.type === 'clue') continue
+    const article = eventArticle(o)
+    if (article) articles.push(article)
+  }
+  for (const r of investigated) {
+    const options = p.investigation[r.roleId]
+    const line = options[(r.id * 3 + src.day) % options.length]
+    if (!line) continue
+    const trade = r.trade === null ? null : t.tradesNamed[r.trade]
+    const card = p.cardOn(name(r.id), t.roles[r.roleId].name)
+    articles.push({
+      kind: 'investigation',
+      eyebrow: null,
+      headline: line(name(r.id)),
+      dek: trade ? `${card} ${p.tradeLine(trade)}` : card,
+      note: p.side[ROLES[r.roleId].team],
+    })
+  }
+  for (const o of todays) {
+    if (o.type !== 'clue') continue
+    const article = eventArticle(o)
+    if (article) articles.push(article)
+  }
+
+  // Colour: the n-th piece of the game, counting what earlier days used.
+  let before = 0
+  for (let d = 1; d < src.day; d++) before += colourWanted(log, d)
+  const wanted = articles.length === 0 ? Math.max(1, colourCount(src.day)) : colourCount(src.day)
+  for (let k = 0; k < wanted; k++) {
+    const piece = p.colour[colourIndex(before + k, p.colour.length)]
+    if (piece) articles.push({ kind: 'colour', eyebrow: null, headline: piece.headline, dek: piece.dek, note: null })
+  }
+
+  const [lead = null, ...rest] = articles
+  return { masthead: t.appName, dateline: p.daily(src.day), day: src.day, lead, rest }
+}
+
+/** The edition of a day, from the narrator's own state. */
+export const edition = (state: GameState, day: number, locale: Locale): Edition =>
+  editionOf(
+    {
+      day,
+      players: state.players,
+      log: state.log.filter((o) => o.public),
+      revealed: revealedBy(state),
+    },
+    locale,
+  )
+
+// ---------------------------------------------------------------------------
+// The page
+// ---------------------------------------------------------------------------
+
+/**
+ * The scribbles under an article: the body copy of a page that is mocked up
+ * rather than written, three or four hairlines of varying length. Never
+ * lorem ipsum. The pattern is picked by position so a page does not look
+ * ruled.
+ */
+const SCRIBBLES: readonly (readonly number[])[] = [
+  [1, 0.94, 0.98, 0.58],
+  [1, 0.9, 0.42],
+  [0.96, 1, 0.9, 0.7],
+  [1, 0.97, 0.62],
+]
+
+const scribblesMarkup = (i: number): string =>
+  `<span class="paper__scribbles" aria-hidden="true">${(SCRIBBLES[i % SCRIBBLES.length] ?? [])
+    .map((w) => `<i class="paper__scribble" style="--w: ${w}"></i>`)
+    .join('')}</span>`
+
+const articleMarkup = (a: Article, i: number): string => `
+  <article class="paper__article" data-kind="${a.kind}">
+    ${a.eyebrow ? `<p class="paper__eyebrow">${esc(a.eyebrow)}</p>` : ''}
+    <h3 class="paper__headline">${esc(a.headline)}</h3>
+    <p class="paper__dek">${esc(a.dek)}</p>
+    ${a.note ? `<p class="paper__note">${esc(a.note)}</p>` : ''}
+    ${scribblesMarkup(i)}
+  </article>`
+
+const mastheadMarkup = (name: string, dateline: string): string => `
+  <header class="paper__masthead">
+    <p class="paper__name">${esc(name)}</p>
+    <p class="paper__edition">${esc(dateline)}</p>
+  </header>`
+
+/** The lead across the top, the rest in two columns. */
+const pageMarkup = (lead: Article | null, rest: readonly Article[]): string => `
+  ${lead ? `<div class="paper__lead">${articleMarkup(lead, 0)}</div>` : ''}
+  ${rest.length > 0 ? `<div class="paper__columns">${rest.map((a, i) => articleMarkup(a, i + 1)).join('')}</div>` : ''}`
+
+/** A morning edition as the page. */
+export const editionMarkup = (e: Edition, locale: Locale): string => {
+  const t = strings(locale)
+  return `
+    <article class="paper paper--daily" data-paper data-edition="${e.day}" aria-label="${esc(t.ui.paper.title)}">
+      ${mastheadMarkup(e.masthead, e.dateline)}
+      ${pageMarkup(e.lead, e.rest)}
+    </article>
+  `
+}
+
+/**
+ * The edition as a full screen, with its own Done. The bar is not rendered
+ * while it is up (`app.ts`): the phone may be facing the town. Without
+ * `controls` it is what a TV shows while the phone shows the paper.
+ */
+export const dailyMarkup = (e: Edition, locale: Locale, controls = true): string => {
+  const t = strings(locale)
+  return `
+    <section class="screen screen--paper" data-daily>
+      ${editionMarkup(e, locale)}
+      ${controls ? `<div class="actions"><button class="btn btn--primary" type="button" data-paper-close>${esc(t.ui.common.done)}</button></div>` : ''}
+    </section>
+  `
+}
+
+// ---------------------------------------------------------------------------
+// The final edition
+// ---------------------------------------------------------------------------
 
 export interface Story {
   night: number
   name: string
+  cause: DeathCause
   line: string
   crew: boolean
 }
@@ -39,9 +309,6 @@ export interface Paper {
   record: { title: string; lines: string[] }[]
 }
 
-const nameOf = (players: readonly Player[], id: number): string =>
-  players.find((p) => p.id === id)?.name ?? '?'
-
 export const paperOf = (state: GameState, locale: Locale): Paper => {
   const t = strings(locale)
   const bank = t.ui.dawn.death
@@ -49,13 +316,14 @@ export const paperOf = (state: GameState, locale: Locale): Paper => {
   const isCrew = (roleId: Player['roleId']): boolean => ROLES[roleId].team === 'crew'
 
   const stories: Story[] = state.log
-    .filter((o): o is Extract<Outcome, { type: 'death' }> => o.type === 'death' && o.public)
+    .filter((o): o is Death => o.type === 'death' && o.public)
     .map((o) => {
-      const name = nameOf(state.players, o.target)
+      const name = nameIn(state.players, o.target)
       const victim = state.players.find((p) => p.id === o.target)
       return {
         night: o.night,
         name,
+        cause: o.cause,
         line: bank[o.cause][lines.get(o) ?? 0]?.(name) ?? '',
         crew: victim ? isCrew(victim.roleId) : false,
       }
@@ -87,20 +355,19 @@ export const paperOf = (state: GameState, locale: Locale): Paper => {
   }
 }
 
-/** The front page as it appears on the game-over screen. */
+/** The front page as it appears on the game-over screen: the same paper, final edition. */
 export const paperMarkup = (state: GameState, locale: Locale): string => {
   const t = strings(locale)
   const paper = paperOf(state, locale)
-  const stories = paper.stories
-    .map(
-      (s) => `
-        <li class="paper__story">
-          <span class="paper__night">N${s.night}</span>
-          <h3 class="paper__headline">${esc(s.name)}</h3>
-          <p class="paper__line">${esc(s.line)}</p>
-        </li>`,
-    )
-    .join('')
+  const [lead = null, ...rest] = paper.stories.map(
+    (s): Article => ({
+      kind: s.cause === 'lynch' ? 'verdict' : 'death',
+      eyebrow: t.ui.timeline.nightStart(s.night),
+      headline: t.ui.paper.headline[s.cause](s.name),
+      dek: s.line,
+      note: null,
+    }),
+  )
   const cast = paper.cast
     .map(
       (c) => `
@@ -124,12 +391,9 @@ export const paperMarkup = (state: GameState, locale: Locale): string => {
 
   return `
     <article class="paper" data-paper aria-label="${esc(t.ui.paper.title)}">
-      <header class="paper__masthead">
-        <p class="paper__name">${esc(paper.masthead)}</p>
-        <p class="paper__edition">${esc(paper.edition)}</p>
-      </header>
+      ${mastheadMarkup(paper.masthead, paper.edition)}
       <h2 class="paper__banner">${esc(paper.banner)}</h2>
-      ${stories ? `<ul class="paper__stories">${stories}</ul>` : ''}
+      ${pageMarkup(lead, rest)}
       <section class="paper__section">
         <h3 class="paper__label">${esc(t.ui.paper.whoWasWho)}</h3>
         <ul class="paper__cast">${cast}</ul>
@@ -149,11 +413,12 @@ export const paperMarkup = (state: GameState, locale: Locale): string => {
 const WIDTH = 1080
 const MARGIN = 72
 const COLUMN = WIDTH - MARGIN * 2
-const LEDGER = '#f7f6f2'
+/** `--newsprint` resolved: Ash with a little Midnight. The canvas cannot read a token. */
+const NEWSPRINT = '#c7c3b4'
 const MIDNIGHT = '#000029'
 const VENDETTA = '#ff0f0f'
-const MUTED = '#62627a'
-const RULE = '#cfcfd4'
+const MUTED = '#4f4f62'
+const RULE = '#9c9a90'
 
 const BEBAS = '"Bebas Neue", Impact, "Arial Narrow", sans-serif'
 const PLEX = '"IBM Plex Sans", system-ui, sans-serif'
@@ -323,7 +588,7 @@ export const paperImage = async (state: GameState, locale: Locale): Promise<Blob
   canvas.height = height
   const ctx = canvas.getContext('2d')
   if (!ctx) return null
-  ctx.fillStyle = LEDGER
+  ctx.fillStyle = NEWSPRINT
   ctx.fillRect(0, 0, WIDTH, height)
   paint(ctx, paper, t, false)
   return new Promise((resolve) => canvas.toBlob((blob) => resolve(blob), 'image/png'))

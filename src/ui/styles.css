@@ -82,6 +82,8 @@ body {
 .reveal__hold,
 .inspect__role,
 .dawn__name,
+.paper__headline,
+.paper__banner,
 .mark,
 .log__revert {
   font-family: var(--font-display);
@@ -1898,23 +1900,25 @@ html[data-dawn] body {
   text-transform: uppercase;
 }
 
-/* ---------- The morning paper ---------- */
+/* ---------- The town's paper ---------- */
 
-/* The whole game as a front page: Ledger paper, Midnight ink, and on paper
-   red is only ever a rule or a strike. It scrolls inside its own box; the
-   masthead is the app's name set as a newspaper's. */
+/* Newsprint: Ash a shade dimmer, Midnight ink, and on it red is only ever
+   a rule or a strike. The daily edition and the final one are the same
+   paper; the narrator's own report stays Ledger, so the two are told apart
+   at a glance. It scrolls inside its own box; the masthead is the app's
+   name set as a newspaper's. */
 .paper {
   flex: 1 1 0;
   min-height: 0;
   overflow-y: auto;
   padding: var(--space-5) var(--space-4) var(--space-6);
-  background: var(--paper);
-  color: var(--on-paper);
+  background: var(--newsprint);
+  color: var(--on-newsprint);
 }
 
 .paper__masthead {
   padding-bottom: var(--space-2);
-  border-bottom: 3px double var(--on-paper);
+  border-bottom: 3px double var(--on-newsprint);
   text-align: center;
 }
 
@@ -1928,7 +1932,8 @@ html[data-dawn] body {
 }
 
 .paper__edition,
-.paper__night,
+.paper__eyebrow,
+.paper__note,
 .paper__label,
 .paper__role {
   font-family: var(--font-mono);
@@ -1937,7 +1942,7 @@ html[data-dawn] body {
 
 .paper__edition {
   margin: var(--space-2) 0 0;
-  color: var(--on-paper-muted);
+  color: var(--on-newsprint-muted);
   font-size: var(--text-xs);
   letter-spacing: var(--track-label);
   text-transform: uppercase;
@@ -1953,40 +1958,91 @@ html[data-dawn] body {
   text-wrap: balance;
 }
 
-.paper__stories {
-  display: grid;
-  gap: 0;
-  margin: 0;
+/* An article is a headline and a dek, then scribbles: the body copy of a
+   page mocked up rather than written. The lead runs across the top; the
+   rest set in two columns with a rule between, and never break mid-piece. */
+.paper__lead {
+  padding: var(--space-4) 0 var(--space-3);
+  border-bottom: 1px solid var(--on-newsprint);
+}
+
+/* A death leads the daily under a Vendetta rule: on paper red is a rule,
+   never type. The final edition already has its rule under the banner. */
+.paper--daily .paper__lead:has(> [data-kind='death'], > [data-kind='verdict']) {
+  border-bottom: 3px solid var(--lethal);
+}
+
+.paper__columns {
+  columns: 2;
+  column-gap: var(--space-4);
+  column-rule: 1px solid var(--newsprint-rule);
+  padding-top: var(--space-1);
+}
+
+.paper__article {
+  break-inside: avoid;
+  padding: var(--space-2) 0 var(--space-3);
+  border-bottom: 1px solid var(--newsprint-rule);
+}
+
+.paper__lead .paper__article {
   padding: 0;
-  list-style: none;
+  border-bottom: 0;
 }
 
-.paper__story {
-  display: grid;
-  grid-template-columns: 2.5rem 1fr;
-  grid-template-rows: auto auto;
-  column-gap: var(--space-2);
-  padding: var(--space-3) 0;
-  border-bottom: 1px solid var(--paper-rule);
-}
-
-.paper__night {
-  grid-row: 1 / span 2;
-  padding-top: 0.35em;
-  color: var(--on-paper-muted);
+.paper__eyebrow,
+.paper__note {
+  margin: 0;
+  color: var(--on-newsprint-muted);
   font-size: var(--text-xs);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+}
+
+.paper__eyebrow {
+  margin-bottom: var(--space-1);
+}
+
+.paper__note {
+  margin-top: var(--space-1);
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .paper__headline {
   margin: 0;
   font-size: var(--text-lg);
-  line-height: 1;
+  line-height: 0.95;
+  text-wrap: balance;
 }
 
-.paper__line {
+.paper__lead .paper__headline {
+  font-size: var(--text-xl);
+  line-height: 0.92;
+}
+
+.paper__dek {
   margin: var(--space-1) 0 0;
   font-size: var(--text-sm);
-  line-height: 1.35;
+  line-height: 1.3;
+  text-wrap: pretty;
+}
+
+.paper__columns .paper__dek {
+  font-size: var(--text-xs);
+}
+
+.paper__scribbles {
+  display: grid;
+  gap: 0.3rem;
+  margin-top: var(--space-2);
+}
+
+.paper__scribble {
+  display: block;
+  width: calc(var(--w, 1) * 100%);
+  height: 2px;
+  background: var(--newsprint-rule);
 }
 
 .paper__section {
@@ -1996,8 +2052,8 @@ html[data-dawn] body {
 .paper__label {
   margin: 0 0 var(--space-2);
   padding-bottom: var(--space-1);
-  border-bottom: 1px solid var(--on-paper);
-  color: var(--on-paper-muted);
+  border-bottom: 1px solid var(--on-newsprint);
+  color: var(--on-newsprint-muted);
   font-size: var(--text-xs);
   font-weight: 500;
   letter-spacing: var(--track-label);
@@ -2036,7 +2092,7 @@ html[data-dawn] body {
   align-self: center;
   width: 0.6rem;
   height: 0.6rem;
-  border: 1px solid var(--on-paper);
+  border: 1px solid var(--on-newsprint);
 }
 
 .paper__who {
@@ -2053,7 +2109,7 @@ html[data-dawn] body {
 }
 
 .paper__role {
-  color: var(--on-paper-muted);
+  color: var(--on-newsprint-muted);
   font-size: var(--text-xs);
   text-transform: uppercase;
 }
@@ -2069,7 +2125,7 @@ html[data-dawn] body {
   font-family: var(--font-display);
   font-size: var(--text-display-min);
   letter-spacing: var(--track-display);
-  color: var(--on-paper);
+  color: var(--on-newsprint);
 }
 
 .paper__entry {
@@ -2079,7 +2135,21 @@ html[data-dawn] body {
 }
 
 .paper__entry--quiet {
-  color: var(--on-paper-muted);
+  color: var(--on-newsprint-muted);
+}
+
+/* The day's edition as a screen: the page takes the height, Done under it. */
+.screen--paper {
+  gap: var(--space-3);
+}
+
+/* On a TV the page is a broadsheet: wider, three columns, nothing to tap. */
+.stage--tv .screen--paper {
+  max-width: 64rem;
+}
+
+.stage--tv .paper__columns {
+  columns: 3;
 }
 
 /* The drawn page, shown for a long press where there is no share sheet. */

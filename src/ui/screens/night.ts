@@ -395,6 +395,7 @@ export const dayMarkup = (
         <div class="screen__tools">
           <button class="icon-btn icon-btn--word" type="button" data-peek aria-pressed="${peek}">${esc(peek ? t.ui.night.hideRoles : t.ui.night.showRoles)}</button>
           <button class="icon-btn" type="button" data-dawn-play aria-label="${esc(t.ui.dawn.play)}" title="${esc(t.ui.dawn.play)}">▶</button>
+          <button class="icon-btn" type="button" data-paper-open aria-label="${esc(t.ui.paper.open)}" title="${esc(t.ui.paper.open)}">¶</button>
           <button class="icon-btn" type="button" data-undo aria-label="${esc(t.ui.common.undo)}" title="${esc(t.ui.common.undo)}">↶</button>
         </div>
       </header>

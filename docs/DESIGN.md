@@ -50,8 +50,13 @@ the side. `--glyph-dim` is the only derived state, for the dead.
   `--surface`, `--surface-raised`; `--surface-sunken` steps down. `--bg-day`
   is Midnight with Ash for the daytime ground.
 - **Paper** is Ledger with Midnight ink (`--paper`, `--on-paper`,
-  `--paper-rule`). Used for the morning report, the held role card, and the
-  end-of-game history. Nothing else.
+  `--paper-rule`). Used for the morning report and the held role card.
+  Nothing else.
+- **Newsprint** is Ash a shade dimmer with Midnight ink (`--newsprint`,
+  `--on-newsprint`, `--on-newsprint-muted`, `--newsprint-rule`). It is the
+  one job Ash has as a surface: the town's paper, daily and final, so the
+  narrator's report (Ledger) and the town's gossip sheet are told apart at a
+  glance. On it red is a rule or a strike, never type.
 - **Ink**: `--fg` Ledger, `--fg-2` Ash, `--fg-muted`, `--fg-faint`.
 - **Lines**: `--hairline` (22% Ash), `--hairline-strong` (48% Ash).
 - **Vendetta states**: `--lethal`, `--lethal-dim`, `--lethal-glow`. The only
@@ -205,15 +210,24 @@ Rules:
   a bare +1. No red anywhere in it: a vote is the town's, and only the
   execution it leads to is lethal.
 
-- **The morning paper.** `.paper` (`src/ui/screens/paper.ts`) is the
-  game-over screen: Ledger paper, Midnight ink, the app's name as a masthead
-  in Bebas at the hero size over a double rule, a mono dateline, the winner
-  as a balanced Bebas banner over a thick Vendetta rule, then every death as
-  a headline (night in mono, name in Bebas, the dawn line in Plex), who was
-  who as a two-column list where the Family carries a solid Vendetta square,
-  the town a hollow one, and the dead a Vendetta strike, and the record
-  night by night in Plex. Red on paper stays a rule or a strike. The shared
-  image is the same page drawn on a canvas with the same faces and colours.
+- **The town's paper.** `.paper` (`src/ui/screens/paper.ts`) is newsprint:
+  the app's name as a masthead in Bebas at the hero size over a double rule
+  and a mono dateline, then articles. An article is a headline in Bebas, a
+  dek in Plex, an optional mono note (the count under a verdict, the side
+  under an investigation) and *scribbles*: three or four hairlines of
+  varying length standing in for body copy, the way a page is mocked up,
+  never lorem ipsum. The lead runs across the top at the display size, and
+  under a Vendetta rule when it is a death; the rest set in two columns
+  with a hairline between, at the label size, and never break mid-piece.
+  The daily edition (`.paper--daily`, from the ¶ beside ▶ on the day head)
+  is a full screen with its own Done and no bar. The final edition on the
+  game-over screen is the same page with the winner as a balanced Bebas
+  banner over a thick Vendetta rule, every death as an article with the
+  night as its eyebrow, who was who as a two-column list where the Family
+  carries a solid Vendetta square, the town a hollow one, and the dead a
+  Vendetta strike, and the record night by night in Plex. Red on newsprint
+  stays a rule or a strike. The shared image is the same page drawn on a
+  canvas with the same faces and colours.
 
 ## Sound
 

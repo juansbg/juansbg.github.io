@@ -23,7 +23,7 @@ export const detectLocale = (languages: readonly string[]): Locale => {
   return 'es'
 }
 
-const nameOf = (players: readonly Player[], id: PlayerId): string =>
+const nameOf = (players: readonly Pick<Player, 'id' | 'name'>[], id: PlayerId): string =>
   players.find((p) => p.id === id)?.name ?? '?'
 
 /**
@@ -36,7 +36,7 @@ const nameOf = (players: readonly Player[], id: PlayerId): string =>
  */
 export const renderOutcome = (
   outcome: Outcome,
-  players: readonly Player[],
+  players: readonly Pick<Player, 'id' | 'name'>[],
   locale: Locale,
 ): string | null => {
   const t = strings(locale)

@@ -281,6 +281,43 @@ export interface Strings {
       cannotShare: string
       /** Over the image shown where the browser has no share sheet for files. */
       holdHint: string
+      /** Accessible name of the button on the day screen that opens the day's edition. */
+      open: string
+      /** The dateline of a morning edition. */
+      daily: (day: number) => string
+      /** A side, as the paper names it on an investigation. */
+      side: { town: string; crew: string }
+      /**
+       * The headline over a death, short enough for Bebas in a column; the
+       * dek under it is the line the town was read at dawn.
+       */
+      headline: Record<DeathCause, (name: string) => string>
+      /** Headlines over the public events; the dek is the report line. */
+      event: {
+        silenced: (name: string) => string
+        extraVote: (name: string) => string
+        growl: string
+        cardTaken: (role: string) => string
+        /** Over a breadcrumb: says only that somebody talked, picked by night. */
+        clue: readonly string[]
+      }
+      /**
+       * The investigation: a day after a death the police name what the
+       * dead were. A bank per role, two or three deep, picked by seat and
+       * day; the Family's reveals are the town's good news and read so.
+       */
+      investigation: Record<RoleId, readonly ((name: string) => string)[]>
+      /** The dek under an investigation: the card, by its display name. */
+      cardOn: (name: string, role: string) => string
+      /** …and, for a citizen, the trade the town may now put a name to (`tradesNamed`). */
+      tradeLine: (trade: string) => string
+      /**
+       * Colour, zero to two pieces an edition, seeded by day: council
+       * business, the weather, a lost dog. Never a trade, a person or a
+       * role word, so nothing here can be read as a clue (`paper.test.ts`
+       * checks the bank against the role names and the trades).
+       */
+      colour: readonly { headline: string; dek: string }[]
     }
     /** The overflow sheet behind the ⋯ button in the bottom bar. */
     menu: {

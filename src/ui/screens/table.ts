@@ -4,6 +4,7 @@ import type { TvProjection, TvSeat } from '../../room/projections'
 import { esc } from '../dom'
 import { qrSvg } from '../../room/qr'
 import { circleMarkup } from './circle'
+import { dailyMarkup, editionOf } from './paper'
 import { MIN_PLAYERS } from './setup'
 import { timerMarkup } from './timer'
 
@@ -52,6 +53,13 @@ export const tableMarkup = (p: TvProjection, controls = true): string => {
         : ''
   const line = over ? (renderWinner(p.winner, p.locale) ?? '') : ''
   const votes = new Map(p.tally.map((e) => [e.target, e.votes]))
+
+  // The paper is open on the phone: the room reads the same edition, set
+  // from the projection's public facts, with no Done of its own.
+  if (p.paper !== null) {
+    const e = editionOf({ day: p.paper, players: p.players, log: p.log, revealed: p.revealed }, p.locale)
+    return dailyMarkup(e, p.locale, false)
+  }
 
   return `
     <section class="screen screen--table" data-table data-phase="${p.phase}">
