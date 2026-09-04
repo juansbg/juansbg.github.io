@@ -302,6 +302,10 @@ export type Winner = 'town' | 'crew' | 'lovers' | 'martyr' | null
  * can be true at once and the individual one takes precedence.
  */
 export const winner = (state: GameState): Winner => {
+  // Nobody has won a game in which nothing has happened: before the first
+  // night the roster may hold no Family at all (names only, or not yet
+  // dealt), and the crew count below would read that as the town's victory.
+  if (state.night === 0 && state.log.length === 0) return null
   const living = state.players.filter((p) => p.alive)
 
   // The martyr wins the moment the town executes him — including when that

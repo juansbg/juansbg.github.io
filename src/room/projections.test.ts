@@ -118,6 +118,13 @@ describe('the projection for the whole town', () => {
     expect(tvProjection(state, 'en', { sealed: false }).tally).toHaveLength(1)
   })
 
+  it('shows no winner to the room or a seat before the first night', () => {
+    const state = createGame(cast(['PLAIN', 'PLAIN', 'PLAIN', 'PLAIN']))
+    expect(tvProjection(state, 'en').winner).toBeNull()
+    expect(seatProjection(state, 0, 'en', { dealt: false })!.winner).toBeNull()
+    expect(tvProjection(createGame([]), 'en').winner).toBeNull()
+  })
+
   it('is plain JSON that survives a round trip', () => {
     const state = lynch(secretNight(), 0)
     const p = tvProjection(state, 'es', { timer: { phase: 'running', seconds: 42, endsAt: null } })

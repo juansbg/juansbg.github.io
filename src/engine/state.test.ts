@@ -163,6 +163,13 @@ describe('win conditions', () => {
   it('reports no winner while the game is live', () => {
     expect(winner(createGame(cast(['KILLER', 'PLAIN', 'INSPECT', 'GUARD'])))).toBeNull()
   })
+
+  it('reports no winner before the first night, however the roster looks', () => {
+    // Names only, or dealt nothing yet: no Family is not a town win, it is setup.
+    expect(winner(createGame([]))).toBeNull()
+    expect(winner(createGame(cast(['PLAIN', 'PLAIN', 'PLAIN', 'PLAIN'])))).toBeNull()
+    expect(winner(createGame(cast(['KILLER', 'KILLER', 'PLAIN'])))).toBeNull()
+  })
 })
 
 describe('the Cazador', () => {
