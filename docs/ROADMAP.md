@@ -312,7 +312,9 @@ CLAUDE.md only in their own bullets.
   Phase 0 (the table view on the narrator's device, no relay) is Session A's
   next build. **Done:** `src/room/projections.ts`, `src/ui/screens/table.ts`,
   "Show the table" in ⋯. **Phase 1 built** (`relay/`, `src/room/client.ts`,
-  `tv.html`, "Big screen" in ⋯): waiting on a Cloudflare login to deploy.
+  `tv.html`, "Big screen" in ⋯): the relay is deployed at
+  `https://omerta-relay.jsblanco-gomez.workers.dev`, shut until the `ROOM_KEY`
+  secret is set (see docs/BIG-SCREEN.md §5).
 - Running statistics.
 - **The Cultist stays out for now** (decided 2026-09-04): a pending feature,
   not planned, until the user chooses a rule for it. The card remains

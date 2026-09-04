@@ -228,9 +228,9 @@ to keep watching the TV projection.
 1. **TV view** (room, relay, `tv.html`, the TV projection, the QR): the
    narrator's phone drives, the TV follows. About the size of the PWA sprint
    plus the relay. Ships alone and is worth it alone. **Built** (2026-09-04);
-   the relay runs locally and passes its smoke test, and deploys with
-   `npm run relay:deploy` once the machine is logged in to Cloudflare. The
-   TV's address is then the default relay (`VITE_RELAY_URL` in the build).
+   the relay is deployed at `https://omerta-relay.jsblanco-gomez.workers.dev`
+   (`npm run relay:deploy`, the machine is logged in) and `VITE_RELAY_URL` in
+   `.env` makes it the app's default.
 2. **Seat cards** (`seat.html`, the seat projection, encryption, the join
    flow): pass-the-phone becomes optional. About the size of the reveal
    sprint.
