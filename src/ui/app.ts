@@ -22,7 +22,7 @@ import {
   type TimelineEntry,
 } from '../engine/state'
 import type { NightAction, PlayerId } from '../engine/types'
-import { detectLocale, renderWinner, strings } from '../i18n'
+import { detectLocale, strings } from '../i18n'
 import { accentOf } from './accent'
 import { buzz, esc, on, swap } from './dom'
 import { sound, unlockOnGesture } from './sound'
@@ -30,11 +30,11 @@ import { clear, clearRoster, load, loadRoster, loadTimer, save, saveRoster, save
 import { editorMarkup, MIN_PLAYERS, namesMarkup, rosterMarkup } from './screens/setup'
 import { dealRoles, systemRandom, type Complexity } from '../engine/deal'
 import { dayMarkup, inspectionMarkup, nightMarkup, playerViewMarkup, questionCardMarkup, questionsIntroMarkup } from './screens/night'
-import { circleMarkup } from './screens/circle'
 import { dawnMarkup, dawnSlides, verdictSlides, type Reading, type Slide } from './screens/dawn'
 import { tableMarkup } from './screens/table'
 import { tvProjection } from '../room/projections'
-import { historyMarkup, timelineMarkup } from './screens/timeline'
+import { timelineMarkup } from './screens/timeline'
+import { paperMarkup, sharePaper, type ShareResult } from './screens/paper'
 import {
   TIMER_LENGTHS,
   formatClock,
@@ -114,6 +114,12 @@ let installPrompt: InstallPromptEvent | null = null
 let timer: Timer = loadTimer() ?? freshTimer()
 /** The interval repainting the digits while the clock runs. */
 let ticker: number | null = null
+/** The paper is being drawn for the share sheet; the button waits. */
+let sharing = false
+/** No canvas to draw the paper on at all. */
+let shareNotice = false
+/** The paper as an image, shown where the browser has no share sheet for files. */
+let paperShot: string | null = null
 /**
  * Recording the town's vote: on or off, and the voter whose pick is awaited.
  * Off, a tap on a seat executes; on, it votes. Every move that leaves the
@@ -312,6 +318,7 @@ function render(entering = false): void {
   if (showingLog) overlay += timelineMarkup(state.session, state.locale)
   if (menuOpen) overlay += menuMarkup()
   if (confirming !== null) overlay += confirmMarkup(confirming)
+  if (paperShot !== null) overlay += shotMarkup(paperShot)
 
   root.innerHTML = `<main class="stage"${entering ? ' data-enter' : ''}>${body}</main>${overlay}${chromeMarkup()}`
   bind()
@@ -353,16 +360,16 @@ function render(entering = false): void {
   }
 
   function overMarkup(): string {
-    const line = renderWinner(winner(game), state.locale) ?? ''
-    // The whole game as coloured cards, night by night: v1's finishGame view.
+    // The whole game as a front page: the winner as the banner, every death
+    // a headline, who was who, the record night by night. v1's finishGame
+    // view, set as newsprint, and the same page goes out through Share.
     return `
       <section class="screen screen--over">
         <h1 class="title title--sm">${esc(t.ui.over.title)}</h1>
-        ${line ? `<p class="winner">${esc(line)}</p>` : ''}
-        ${circleMarkup(game.players, state.locale, { showRoles: true, revealTeams: true, compact: true })}
-        <h2 class="label">${esc(t.ui.over.history)}</h2>
-        ${historyMarkup(game, state.locale)}
-        <div class="actions">
+        ${paperMarkup(game, state.locale)}
+        ${shareNotice ? `<p class="notice">${esc(t.ui.paper.cannotShare)}</p>` : ''}
+        <div class="actions actions--row">
+          <button class="btn btn--ghost" type="button" data-share${sharing ? ' disabled' : ''}>${esc(t.ui.paper.share)}</button>
           <button class="btn btn--primary" type="button" data-restart>${esc(t.ui.over.playAgain)}</button>
         </div>
       </section>
@@ -442,6 +449,22 @@ function render(entering = false): void {
             <button class="btn btn--ghost" type="button" data-confirm-cancel>${esc(t.ui.common.cancel)}</button>
             <button class="btn btn--danger" type="button" data-confirm-ok>${esc(copy.action)}</button>
           </div>
+        </div>
+      </div>
+    `
+  }
+
+  /** The paper as an image, for a long press where there is no share sheet. */
+  function shotMarkup(url: string): string {
+    return `
+      <div class="sheet" data-sheet>
+        <div class="sheet__panel sheet__panel--tall" role="dialog" aria-modal="true" aria-label="${esc(t.ui.paper.title)}">
+          <div class="sheet__head">
+            <span class="sheet__handle" aria-hidden="true"></span>
+            <p class="sheet__title">${esc(t.ui.paper.holdHint)}</p>
+          </div>
+          <div class="shot"><img class="shot__img" src="${esc(url)}" alt="${esc(t.ui.paper.title)}"></div>
+          <button class="btn btn--ghost" type="button" data-shot-close>${esc(t.ui.common.close)}</button>
         </div>
       </div>
     `
@@ -541,8 +564,19 @@ function bind(): void {
     picking = false
     editing = null
     confirming = null
+    closeShot()
     setState({}, false)
   })
+
+  on(root, '[data-shot-close]', 'click', () => {
+    closeShot()
+    setState({}, false)
+  })
+
+  function closeShot(): void {
+    if (paperShot !== null) URL.revokeObjectURL(paperShot)
+    paperShot = null
+  }
 
   // See it take, close the sheet yourself — like the layout row.
   on(root, '[data-mute]', 'click', () => {
@@ -1207,7 +1241,29 @@ function bind(): void {
     setState({ screen: 'reveal', revealIndex: 0, revealMode: 'single', revealReturnTo: 'day' })
   })
 
+  // The front page as an image, through the share sheet where there is
+  // one, saved where there is not. Drawing takes a moment on a phone, so
+  // the button waits rather than letting a second tap queue a second sheet.
+  on(root, '[data-share]', 'click', () => {
+    if (sharing) return
+    sharing = true
+    shareNotice = false
+    buzz()
+    setState({}, false)
+    void sharePaper(game, state.locale)
+      .catch((): ShareResult => ({ kind: 'unavailable' }))
+      .then((result) => {
+        sharing = false
+        shareNotice = result.kind === 'unavailable'
+        if (result.kind === 'shown') paperShot = result.url
+        if (state.screen === 'over') setState({}, false)
+        else closeShot()
+      })
+  })
+
   on(root, '[data-restart]', 'click', () => {
+    shareNotice = false
+    closeShot()
     clear()
     names = loadRoster()
     setState({ session: newSession(createGame([])), screen: 'setup', revealIndex: 0 })

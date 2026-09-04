@@ -1859,6 +1859,211 @@ html[data-dawn] body {
   text-transform: uppercase;
 }
 
+/* ---------- The morning paper ---------- */
+
+/* The whole game as a front page: Ledger paper, Midnight ink, and on paper
+   red is only ever a rule or a strike. It scrolls inside its own box; the
+   masthead is the app's name set as a newspaper's. */
+.paper {
+  flex: 1 1 0;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--space-5) var(--space-4) var(--space-6);
+  background: var(--paper);
+  color: var(--on-paper);
+}
+
+.paper__masthead {
+  padding-bottom: var(--space-2);
+  border-bottom: 3px double var(--on-paper);
+  text-align: center;
+}
+
+.paper__name {
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-hero);
+  letter-spacing: 0.06em;
+  line-height: 0.9;
+  text-transform: uppercase;
+}
+
+.paper__edition,
+.paper__night,
+.paper__label,
+.paper__role {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+.paper__edition {
+  margin: var(--space-2) 0 0;
+  color: var(--on-paper-muted);
+  font-size: var(--text-xs);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+}
+
+.paper__banner {
+  margin: var(--space-4) 0 0;
+  padding-bottom: var(--space-3);
+  border-bottom: 4px solid var(--lethal);
+  font-size: var(--text-xl);
+  line-height: 0.95;
+  text-align: center;
+  text-wrap: balance;
+}
+
+.paper__stories {
+  display: grid;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.paper__story {
+  display: grid;
+  grid-template-columns: 2.5rem 1fr;
+  grid-template-rows: auto auto;
+  column-gap: var(--space-2);
+  padding: var(--space-3) 0;
+  border-bottom: 1px solid var(--paper-rule);
+}
+
+.paper__night {
+  grid-row: 1 / span 2;
+  padding-top: 0.35em;
+  color: var(--on-paper-muted);
+  font-size: var(--text-xs);
+}
+
+.paper__headline {
+  margin: 0;
+  font-size: var(--text-lg);
+  line-height: 1;
+}
+
+.paper__line {
+  margin: var(--space-1) 0 0;
+  font-size: var(--text-sm);
+  line-height: 1.35;
+}
+
+.paper__section {
+  margin-top: var(--space-5);
+}
+
+.paper__label {
+  margin: 0 0 var(--space-2);
+  padding-bottom: var(--space-1);
+  border-bottom: 1px solid var(--on-paper);
+  color: var(--on-paper-muted);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+}
+
+.paper__cast {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+  gap: var(--space-1) var(--space-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.paper__casting {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  min-height: 1.75rem;
+}
+
+/* The Family's mark on paper: a Vendetta square, never red type. */
+.paper__casting[data-crew]::before {
+  content: '';
+  flex: none;
+  align-self: center;
+  width: 0.6rem;
+  height: 0.6rem;
+  background: var(--lethal);
+}
+
+.paper__casting:not([data-crew])::before {
+  content: '';
+  flex: none;
+  align-self: center;
+  width: 0.6rem;
+  height: 0.6rem;
+  border: 1px solid var(--on-paper);
+}
+
+.paper__who {
+  font-family: var(--font-display);
+  font-size: var(--text-display-min);
+  letter-spacing: var(--track-display);
+  text-transform: uppercase;
+}
+
+.paper__casting[data-dead] .paper__who {
+  text-decoration: line-through;
+  text-decoration-color: var(--lethal);
+  text-decoration-thickness: 2px;
+}
+
+.paper__role {
+  color: var(--on-paper-muted);
+  font-size: var(--text-xs);
+  text-transform: uppercase;
+}
+
+.paper__record {
+  margin: 0;
+}
+
+.paper__record .paper__label {
+  margin-top: var(--space-3);
+  border-bottom: 0;
+  padding-bottom: 0;
+  font-family: var(--font-display);
+  font-size: var(--text-display-min);
+  letter-spacing: var(--track-display);
+  color: var(--on-paper);
+}
+
+.paper__entry {
+  margin: 0 0 var(--space-1);
+  font-size: var(--text-sm);
+  line-height: 1.35;
+}
+
+.paper__entry--quiet {
+  color: var(--on-paper-muted);
+}
+
+/* The drawn page, shown for a long press where there is no share sheet. */
+.shot {
+  min-height: 0;
+  overflow-y: auto;
+  border: 1px solid var(--hairline);
+}
+
+.shot__img {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+
+/* A line under the page when the browser cannot draw it. */
+.notice {
+  margin: 0;
+  color: var(--fg-2);
+  font-size: var(--text-xs);
+  text-align: center;
+}
+
 /* ---------- Rearranging seats ---------- */
 
 .btn--ghost[data-on] {

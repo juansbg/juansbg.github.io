@@ -307,6 +307,15 @@ export const en: Strings = {
       finishNow: 'End the game',
       history: 'The whole game',
     },
+    paper: {
+      title: 'The morning paper',
+      edition: (nights, players) =>
+        `Final edition · ${nights} ${nights === 1 ? 'night' : 'nights'} · ${players} at the table`,
+      whoWasWho: 'Who was who',
+      share: 'Share the paper',
+      cannotShare: 'This browser cannot draw the page. A screenshot will do.',
+      holdHint: 'Press and hold the image to save or share it',
+    },
     menu: {
       more: 'More',
       language: 'Language',

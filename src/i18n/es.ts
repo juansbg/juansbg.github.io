@@ -307,6 +307,15 @@ export const es: Strings = {
       finishNow: 'Terminar la partida',
       history: 'Toda la partida',
     },
+    paper: {
+      title: 'El periódico de la mañana',
+      edition: (nights, players) =>
+        `Última edición · ${nights} ${nights === 1 ? 'noche' : 'noches'} · ${players} en la mesa`,
+      whoWasWho: 'Quién era quién',
+      share: 'Compartir el periódico',
+      cannotShare: 'Este navegador no puede dibujar la página. Una captura de pantalla sirve.',
+      holdHint: 'Mantén pulsada la imagen para guardarla o compartirla',
+    },
     menu: {
       more: 'Más',
       language: 'Idioma',

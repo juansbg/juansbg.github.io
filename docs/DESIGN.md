@@ -201,6 +201,16 @@ Rules:
   a bare +1. No red anywhere in it: a vote is the town's, and only the
   execution it leads to is lethal.
 
+- **The morning paper.** `.paper` (`src/ui/screens/paper.ts`) is the
+  game-over screen: Ledger paper, Midnight ink, the app's name as a masthead
+  in Bebas at the hero size over a double rule, a mono dateline, the winner
+  as a balanced Bebas banner over a thick Vendetta rule, then every death as
+  a headline (night in mono, name in Bebas, the dawn line in Plex), who was
+  who as a two-column list where the Family carries a solid Vendetta square,
+  the town a hollow one, and the dead a Vendetta strike, and the record
+  night by night in Plex. Red on paper stays a rule or a strike. The shared
+  image is the same page drawn on a canvas with the same faces and colours.
+
 ## Sound
 
 Three cues and nothing decorative, all synthesised in `src/ui/sound.ts` so

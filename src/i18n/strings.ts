@@ -249,6 +249,18 @@ export interface Strings {
       finishNow: string
       history: string
     }
+    /** The game-over front page, on screen and as the shared image. */
+    paper: {
+      title: string
+      /** The dateline under the masthead: how many nights, how many at the table. */
+      edition: (nights: number, players: number) => string
+      whoWasWho: string
+      share: string
+      /** There was no canvas to draw the page on. */
+      cannotShare: string
+      /** Over the image shown where the browser has no share sheet for files. */
+      holdHint: string
+    }
     /** The overflow sheet behind the ⋯ button in the bottom bar. */
     menu: {
       /** Accessible name of the ⋯ button. */
