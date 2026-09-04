@@ -2,6 +2,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { bindHold, revealMarkup, roleCardMarkup, type RevealPhase } from './reveal'
 import { strings, LOCALES } from '../../i18n'
+import { esc } from '../dom'
 import type { Player } from '../../engine/types'
 import type { RoleId } from '../../engine/roles'
 
@@ -83,6 +84,26 @@ describe('the revealed card', () => {
 
   it('marks a crew member as crew', () => {
     expect(roleCardMarkup(player('KILLER'), 'en')).toContain(strings('en').ui.reveal.teamCrew)
+  })
+
+  // The rules for first-timers are the role's own detail, the text the
+  // narrator reads to a player who flagged a question, so the two cannot
+  // drift. They live on the held card only.
+  it.each(LOCALES)('carries the fuller rules under the brief, and nowhere before the hold (%s)', (locale) => {
+    const t = strings(locale)
+    for (const roleId of Object.keys(t.roles) as RoleId[]) {
+      const card = roleCardMarkup(player(roleId), locale)
+      expect(card, `${locale}/${roleId}`).toContain(t.ui.reveal.howItPlays)
+      // Names and apostrophes are escaped on the way in, so compare escaped.
+      expect(card, `${locale}/${roleId}`).toContain(esc(t.roles[roleId].detail))
+      for (const phase of ['handoff', 'confirm'] as const) {
+        const before = revealMarkup({
+          player: player(roleId), position: 1, total: 6, phase, locale, mode: 'onboarding', canGoBack: false,
+        })
+        expect(before, `${locale}/${roleId}/${phase}`).not.toContain(esc(t.roles[roleId].detail))
+        expect(before, `${locale}/${roleId}/${phase}`).not.toContain(t.ui.reveal.howItPlays)
+      }
+    }
   })
 
   it('is not present in the confirm screen it is injected into', () => {

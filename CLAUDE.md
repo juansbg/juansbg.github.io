@@ -139,6 +139,8 @@ src/
 
 The same screen serves the mid-game "show a role again" flow in `single` mode, selected by player id from a picker.
 
+The held card is also the rules card. Under the brief it carries the role's fuller `detail`, the same text the narrator reads to a player who flagged a question, under a "How it plays" heading; nothing role-shaped exists outside the hold, so a first-timer holds longer, and the card scrolls inside the stage on a short phone. `reveal.test.ts` checks that the detail is on the card and not in the handoff or confirm markup.
+
 Two rules the whole design rests on:
 
 1. **The engine never produces a user-visible string.** It emits structured outcomes (`{type: 'kill', roleId: 'LOB', targetId: 3, blockedBy: 'PRO'}`) and the UI renders sentences at display time. v1 could never be translated because it stored rendered Spanish fragments on each event and *rewrote them mid-resolution* (`"Ha muerto "` → `"Han intentado matar a "`) to signal a blocked kill — the sentence was carrying game state.

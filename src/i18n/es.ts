@@ -152,6 +152,7 @@ export const es: Strings = {
       questionsIntro: 'Estas personas tienen una duda sobre su papel. Enséñales su carta en privado, una a una.',
       showRoleTo: (name) => `Enséñale su papel a ${name}`,
       clearFlag: 'Ya está claro',
+      howItPlays: 'Cómo se juega',
     },
     night: {
       stepCounter: (current, total) => `${current} de ${total}`,

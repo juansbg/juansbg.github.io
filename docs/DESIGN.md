@@ -163,7 +163,11 @@ Rules:
   reveal.
 - **The held role card.** Paper for every role alike, with the side in mono
   text. A colour-coded card would tell the table the side before the reader.
-  The same rule applies to the across-the-room inspect card.
+  The same rule applies to the across-the-room inspect card. Under the
+  brief, past a paper rule, the rules for first-timers: a mono eyebrow and
+  the role's fuller text at reading size, left-aligned because it is
+  sentences, not a label. The card scrolls within its stage on a short
+  phone; the page does not.
 - **The dawn slideshow.** `.screen--dawn` (`src/ui/screens/dawn.ts`) shows
   the night's public outcomes one full screen at a time. It starts by itself
   when the night ends and replays from the ▶ on the day screen. A death sets

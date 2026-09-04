@@ -106,6 +106,12 @@ export const revealMarkup = (props: RevealProps): string => {
  * Deliberately carries no team colour or accent: it is the same paper for
  * every role, so the glow of the phone across the table gives nothing away.
  * The side is stated in text, to the one person holding it.
+ *
+ * Under the brief, the rules: the role's fuller `detail`, the same text the
+ * narrator reads to a player who flagged a question, so the two never
+ * drift. It lives on the held card and nowhere else, because the hold is
+ * the only time a role may be on screen; a first-timer simply holds
+ * longer. The card scrolls inside the stage if the phone is short.
  */
 export const roleCardMarkup = (player: Player, locale: Locale): string => {
   const t = strings(locale)
@@ -121,6 +127,10 @@ export const roleCardMarkup = (player: Player, locale: Locale): string => {
       <h2 class="reveal__role">${esc(roleStrings.name)}</h2>
       <p class="reveal__team" data-team="${role.team}">${esc(team)}</p>
       <p class="reveal__prompt">${esc(roleStrings.brief)}</p>
+      <section class="reveal__rules">
+        <h3 class="reveal__label">${esc(t.ui.reveal.howItPlays)}</h3>
+        <p class="reveal__detail">${esc(roleStrings.detail)}</p>
+      </section>
     </div>
   `
 }

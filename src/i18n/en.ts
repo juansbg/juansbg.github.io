@@ -152,6 +152,7 @@ export const en: Strings = {
       questionsIntro: 'These players have a question about their role. Show each their card privately, one at a time.',
       showRoleTo: (name) => `Show ${name} their role`,
       clearFlag: 'All clear now',
+      howItPlays: 'How it plays',
     },
     night: {
       stepCounter: (current, total) => `${current} of ${total}`,
