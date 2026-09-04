@@ -1,3 +1,4 @@
+import { mix, seeded } from './rng'
 import { isCrewRole } from './roles'
 import type { DeathCause, GameState, NightAction, Outcome, Player, PlayerId } from './types'
 
@@ -217,6 +218,16 @@ export const resolveNight = (state: GameState): Resolution => {
   // announcement describes who is sitting beside him once the night is over.
   if (growls(players)) outcomes.push({ type: 'growl', night, public: true })
 
+  // ---- The paper's breadcrumb ------------------------------------------
+  // Rolled from the seed and the night, so the dry run for the Apothecary,
+  // an undo and a reload all roll the same. Only the direct victims count as
+  // "where it happened"; a lover's heartbreak has no address.
+  const victims = outcomes
+    .filter((o): o is Extract<Outcome, { type: 'death' }> => o.type === 'death' && (o.cause === 'killers' || o.cause === 'rogue'))
+    .map((o) => o.target)
+  const clue = rollClue(state.seed, night, players, victims)
+  if (clue !== null) outcomes.push(clue)
+
   return {
     players,
     outcomes,
@@ -253,14 +264,66 @@ export const doomedTonight = (state: GameState): PlayerId[] =>
  * circle.
  */
 export const growls = (players: readonly Player[]): boolean => {
+  const tamer = players.find((p) => p.alive && p.roleId === 'SENSE')
+  return tamer !== undefined && crewNextDoor(players, tamer.id)
+}
+
+/**
+ * Is one of this seat's living neighbours on the crew? The Bloodhound's
+ * question, asked of any seat: the paper asks it of a citizen.
+ */
+export const crewNextDoor = (players: readonly Player[], id: PlayerId): boolean => {
   const living = players.filter((p) => p.alive)
-  const tamerIndex = living.findIndex((p) => p.roleId === 'SENSE')
-  if (tamerIndex === -1 || living.length < 2) return false
-
-  const left = living[(tamerIndex - 1 + living.length) % living.length]!
-  const right = living[(tamerIndex + 1) % living.length]!
-
+  const index = living.findIndex((p) => p.id === id)
+  if (index === -1 || living.length < 2) return false
+  const left = living[(index - 1 + living.length) % living.length]!
+  const right = living[(index + 1) % living.length]!
   return isCrewRole(left.roleId) || isCrewRole(right.roleId)
+}
+
+/** Houses between two seats, the short way round the circle, the dead included. */
+export const doorsBetween = (a: PlayerId, b: PlayerId, seats: number): number => {
+  const d = Math.abs(a - b)
+  return Math.min(d, seats - d)
+}
+
+/** How often the paper gets a breadcrumb: most nights nobody died, some nights someone did. */
+export const CLUE_CHANCE_QUIET = 0.6
+export const CLUE_CHANCE_LOUD = 0.25
+
+/**
+ * One breadcrumb a night at most, through a living citizen's trade, never
+ * their name (docs/GAZETTE.md §3). Everything it says is computed from the
+ * players as the night leaves them, so it is true by construction; the test
+ * in the simulator holds it to that over thousands of games.
+ */
+export const rollClue = (
+  seed: number,
+  night: number,
+  players: readonly Player[],
+  victims: readonly PlayerId[],
+): Extract<Outcome, { type: 'clue' }> | null => {
+  const random = seeded(mix(seed, night, 0x636c7565))
+  const chance = victims.length > 0 ? CLUE_CHANCE_LOUD : CLUE_CHANCE_QUIET
+  if (random() >= chance) return null
+
+  const holders = players.filter((p) => p.alive && p.trade !== null)
+  if (holders.length === 0) return null
+  const holder = holders[Math.floor(random() * holders.length)]!
+  const trade = holder.trade as number
+
+  if (victims.length > 0 && random() < 0.4) {
+    const victim = victims[Math.floor(random() * victims.length)]!
+    const doors = doorsBetween(holder.id, victim, players.length)
+    return { type: 'clue', night, trade, clue: { kind: 'doors', doors }, public: true }
+  }
+  return {
+    type: 'clue',
+    night,
+    trade,
+    clue: { kind: 'neighbour', crew: crewNextDoor(players, holder.id) },
+    public: true,
+  }
 }
 
 /**

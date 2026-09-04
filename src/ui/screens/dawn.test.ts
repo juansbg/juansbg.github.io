@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest'
 import { dawnMarkup, dawnSlides, deathLines, pickLine, verdictSlides } from './dawn'
 import { LOCALES, strings } from '../../i18n'
-import { castVote, createGame, endNight, lynch, recordAction, startNight, type PlayerSetup } from '../../engine/state'
+import { quietGame } from '../../engine/testing'
+import { castVote, endNight, lynch, recordAction, startNight, type PlayerSetup } from '../../engine/state'
 import type { DeathCause, GameState, Outcome } from '../../engine/types'
 import type { RoleId } from '../../engine/roles'
 
@@ -12,7 +13,7 @@ const CAUSES: DeathCause[] = ['killers', 'rogue', 'poison', 'lynch', 'heartbreak
 
 /** One night: the Family kills Beto, the detective looks at Caro. */
 const bloodyNight = (): GameState => {
-  let state = createGame(cast(['KILLER', 'PLAIN', 'INSPECT'], ['Ana', 'Beto', 'Caro']))
+  let state = quietGame(cast(['KILLER', 'PLAIN', 'INSPECT'], ['Ana', 'Beto', 'Caro']))
   state = startNight(state)
   state = recordAction(state, { kind: 'target', roleId: 'INSPECT', actor: 2, target: 2 })
   state = recordAction(state, { kind: 'target', roleId: 'KILLER', actor: 0, target: 1 })
@@ -98,7 +99,7 @@ describe('the dawn slides', () => {
   })
 
   it('shows one quiet slide when nothing public happened', () => {
-    let state = createGame(cast(['KILLER', 'PLAIN', 'GUARD'], ['Ana', 'Beto', 'Caro']))
+    let state = quietGame(cast(['KILLER', 'INSPECT', 'GUARD'], ['Ana', 'Beto', 'Caro']))
     state = startNight(state)
     state = recordAction(state, { kind: 'target', roleId: 'GUARD', actor: 2, target: 1 })
     state = recordAction(state, { kind: 'target', roleId: 'KILLER', actor: 0, target: 1 })
@@ -137,7 +138,7 @@ describe('the dawn markup', () => {
   })
 
   it('escapes the name', () => {
-    let state = createGame(cast(['KILLER', 'PLAIN'], ['Ana', '<b>x</b>']))
+    let state = quietGame(cast(['KILLER', 'PLAIN'], ['Ana', '<b>x</b>']))
     state = startNight(state)
     state = recordAction(state, { kind: 'target', roleId: 'KILLER', actor: 0, target: 1 })
     state = endNight(state)

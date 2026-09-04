@@ -1,5 +1,8 @@
 import type { Strings } from './strings'
 
+const cap = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1)
+const doors = (n: number): string => (n === 1 ? 'one door' : `${n} doors`)
+
 export const en: Strings = {
   appName: 'Omertà',
   locale: 'en',
@@ -52,6 +55,15 @@ export const en: Strings = {
     'Printer', 'Pianist', 'Seamstress', 'Chimney sweep', 'Carpenter', 'Tobacconist',
   ],
 
+  tradesNamed: [
+    'the baker', 'the tailor', 'the butcher', 'the barber',
+    'the florist', 'the fishmonger', 'the cobbler', 'the blacksmith',
+    'the innkeeper', 'the grocer', 'the milkman', 'the postman',
+    'the schoolteacher', 'the nurse', 'the priest', 'the gravedigger',
+    'the locksmith', 'the watchmaker', 'the printer', 'the pianist',
+    'the seamstress', 'the chimney sweep', 'the carpenter', 'the tobacconist',
+  ],
+
   phase: {
     nightFalls: 'The city sleeps',
     nightFallsBody: 'Everyone close your eyes.',
@@ -83,6 +95,27 @@ export const en: Strings = {
     tally: (entries) =>
       `The town voted: ${entries.map((e) => `${e.name} ${e.votes}`).join(', ')}.`,
     growl: () => 'The bloodhound growled in the night.',
+    // The paper's breadcrumbs. Newsprint voice, nobody named, every line true.
+    clue: {
+      neighbour: [
+        (t) => `${cap(t)} heard footsteps next door in the small hours, and no light came on.`,
+        (t) => `${cap(t)} swears somebody let themselves into the house next door long after midnight.`,
+        (t) => `${cap(t)} says the dog next door did not bark last night. It always barks at strangers.`,
+        (t) => `A window beside ${t}'s stayed lit until dawn, and nobody in that house keeps hours like that.`,
+      ],
+      quiet: [
+        (t) => `${cap(t)} slept badly and heard nothing next door but snoring.`,
+        (t) => `${cap(t)} keeps an ear on the street and vouches for both neighbours' lights going out at ten.`,
+        (t) => `${cap(t)} says the houses on either side were as quiet as the grave.`,
+        (t) => `${cap(t)} reports nothing at all from next door, which in this town is news.`,
+      ],
+      doors: [
+        (t, n) => `${cap(t)} counts ${doors(n)} between the shop and the house where it happened.`,
+        (t, n) => `From ${t}'s window it is ${doors(n)} to the house with the black crêpe this morning.`,
+        (t, n) => `${cap(t)} paced it out: ${doors(n)} from the shop to the scene.`,
+        (t, n) => `The police took ${t}'s statement: ${doors(n)} away, and nothing seen.`,
+      ],
+    },
   },
 
   winner: {

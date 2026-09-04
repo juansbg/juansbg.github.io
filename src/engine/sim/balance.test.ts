@@ -1,6 +1,8 @@
+import { crewNextDoor, doorsBetween } from '../resolve'
+import type { Outcome } from '../types'
 import { describe, expect, it } from 'vitest'
-import { COMPLEXITIES } from '../deal'
-import { playMany } from './play'
+import { COMPLEXITIES, dealRoles, type Complexity } from '../deal'
+import { playGame, playMany } from './play'
 import { POLICIES, type PolicyName } from './policies'
 import { seeded } from './rng'
 import { seedFor } from './report'
@@ -52,5 +54,37 @@ describe('every table', () => {
         expect(share(s.crew, s), `${label} crew wins`).toBeGreaterThanOrEqual(15)
       }
     }
+  })
+})
+
+describe('the paper’s breadcrumbs, over many games', () => {
+  it('are true of the game every single time', () => {
+    const random = seeded(2026)
+    let clues = 0
+    for (let i = 0; i < 300; i++) {
+      const roles = dealRoles(5 + (i % 11), COMPLEXITIES[i % 3] as Complexity, random)
+      playGame(roles, POLICIES.detective, random, (state) => {
+        const night = state.night
+        const tonight = state.log.filter((o) => o.night === night)
+        const victims = tonight
+          .filter((o): o is Extract<Outcome, { type: 'death' }> => o.type === 'death' && (o.cause === 'killers' || o.cause === 'rogue'))
+          .map((o) => o.target)
+        for (const o of tonight) {
+          if (o.type !== 'clue') continue
+          clues += 1
+          const holder = state.players.find((p) => p.trade === o.trade)
+          expect(holder, 'a clue names a trade someone holds').toBeDefined()
+          expect(holder!.alive, 'a clue comes from the living').toBe(true)
+          const c = o.clue
+          if (c.kind === 'neighbour') {
+            expect(c.crew).toBe(crewNextDoor(state.players, holder!.id))
+          } else {
+            expect(victims.some((v) => doorsBetween(holder!.id, v, state.players.length) === c.doors)).toBe(true)
+          }
+        }
+        expect(tonight.filter((o) => o.type === 'clue').length).toBeLessThanOrEqual(1)
+      })
+    }
+    expect(clues).toBeGreaterThan(100)
   })
 })

@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { paperMarkup, paperOf } from './paper'
-import { createGame, endNight, lynch, recordAction, startNight, type PlayerSetup } from '../../engine/state'
+import { quietGame } from '../../engine/testing'
+import { endNight, lynch, recordAction, startNight, type PlayerSetup } from '../../engine/state'
 import { LOCALES, strings } from '../../i18n'
 import type { GameState, NightAction } from '../../engine/types'
 import type { RoleId } from '../../engine/roles'
@@ -10,7 +11,7 @@ const setup = (roles: RoleId[], names: string[]): PlayerSetup[] =>
 
 /** Two nights: the Family kills Beto, the town hangs Ana, the Family kills Caro. */
 const played = (): GameState => {
-  let s = startNight(createGame(setup(['KILLER', 'PLAIN', 'INSPECT', 'PLAIN', 'PLAIN'], ['Ana', 'Beto', 'Caro', 'Dani', 'Elena'])))
+  let s = startNight(quietGame(setup(['KILLER', 'PLAIN', 'INSPECT', 'PLAIN', 'PLAIN'], ['Ana', 'Beto', 'Caro', 'Dani', 'Elena'])))
   const hit = (target: number): NightAction => ({ kind: 'target', roleId: 'KILLER', actor: 0, target })
   s = { ...s, stepIndex: s.schedule.indexOf('KILLER') }
   s = recordAction(s, hit(1))

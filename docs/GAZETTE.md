@@ -198,7 +198,9 @@ type Clue =
    theirs.*
 3. **Clues** (engine outcome, seed, generation, the property test, the
    simulator delta) and their articles. *Session A for the engine, B for the
-   articles.*
+   articles.* **Engine side built** (2026-09-04): `clue` outcomes with
+   `neighbour` and `doors`, rendered lines in both languages, the
+   truthfulness test; `held` left out until decided.
 4. **Tuning** with the simulator; the frequency dial and `held` decided on
    numbers. *Together.*
 

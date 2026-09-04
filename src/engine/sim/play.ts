@@ -57,10 +57,14 @@ const settle = (state: GameState, policies: Policies, random: Random): GameState
 
 const over = (state: GameState): boolean => winner(state) !== null || nobodyAlive(state)
 
+/** Called with the state every morning, for tests that check what a night produced. */
+export type Observer = (state: GameState) => void
+
 export const playGame = (
   roles: readonly RoleId[],
   policies: Policies,
   random: Random,
+  observe: Observer = () => {},
 ): GameResult => {
   let g = createGame(roles.map((roleId, i) => ({ name: `P${i}`, roleId })), random)
   let overOnFirstMorning = false
@@ -74,7 +78,9 @@ export const playGame = (
       if (roleId === null) break
       g = recordAction(g, policies.night(g, roleId, random))
     }
-    g = settle(endNight(g), policies, random)
+    g = endNight(g)
+    observe(g)
+    g = settle(g, policies, random)
     if (over(g)) {
       overOnFirstMorning = g.night === 1
       break

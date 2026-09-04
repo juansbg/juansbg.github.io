@@ -1,5 +1,8 @@
 import type { Strings } from './strings'
 
+const cap = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1)
+const doors = (n: number): string => (n === 1 ? 'una puerta' : `${n} puertas`)
+
 export const es: Strings = {
   appName: 'Omertà',
   locale: 'es',
@@ -52,6 +55,15 @@ export const es: Strings = {
     'Impresor', 'Pianista', 'Costurera', 'Deshollinador', 'Carpintero', 'Estanquero',
   ],
 
+  tradesNamed: [
+    'el panadero', 'el sastre', 'el carnicero', 'el barbero',
+    'la florista', 'el pescadero', 'el zapatero', 'el herrero',
+    'el posadero', 'el tendero', 'el lechero', 'el cartero',
+    'el maestro', 'la enfermera', 'el cura', 'el sepulturero',
+    'el cerrajero', 'el relojero', 'el impresor', 'el pianista',
+    'la costurera', 'el deshollinador', 'el carpintero', 'el estanquero',
+  ],
+
   phase: {
     nightFalls: 'La ciudad duerme',
     nightFallsBody: 'Que todos cierren los ojos.',
@@ -83,6 +95,27 @@ export const es: Strings = {
     tally: (entries) =>
       `El pueblo votó: ${entries.map((e) => `${e.name} ${e.votes}`).join(', ')}.`,
     growl: () => 'El sabueso ha gruñido esta noche.',
+    // Las migas del periódico. Voz de gacetilla, nadie con nombre, todo cierto.
+    clue: {
+      neighbour: [
+        (t) => `${cap(t)} oyó pasos en la casa de al lado de madrugada, y no se encendió ninguna luz.`,
+        (t) => `${cap(t)} jura que alguien entró en la casa de al lado mucho después de medianoche.`,
+        (t) => `${cap(t)} dice que el perro de al lado no ladró anoche. Y siempre ladra a los desconocidos.`,
+        (t) => `Una ventana pegada a la de ${t} estuvo encendida hasta el alba, y en esa casa nadie trasnocha.`,
+      ],
+      quiet: [
+        (t) => `${cap(t)} durmió mal y de al lado no oyó más que ronquidos.`,
+        (t) => `${cap(t)} vigila la calle y da fe de que las luces de ambos vecinos se apagaron a las diez.`,
+        (t) => `${cap(t)} dice que las casas de los dos lados estuvieron calladas como tumbas.`,
+        (t) => `${cap(t)} no tiene nada que contar de al lado, que en este pueblo ya es noticia.`,
+      ],
+      doors: [
+        (t, n) => `${cap(t)} cuenta ${doors(n)} entre la tienda y la casa donde ocurrió.`,
+        (t, n) => `Desde la ventana de ${t} hay ${doors(n)} hasta la casa del crespón negro.`,
+        (t, n) => `${cap(t)} lo midió a pasos: ${doors(n)} desde la tienda hasta el lugar.`,
+        (t, n) => `La policía tomó declaración a ${t}: ${doors(n)} de distancia, y nada visto.`,
+      ],
+    },
   },
 
   winner: {

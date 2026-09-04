@@ -24,6 +24,7 @@ import {
   type PlayerSetup,
 } from './state'
 import { TRADE_COUNT } from './state'
+import { quietGame } from './testing'
 import { STATE_VERSION, type GameState, type NightAction } from './types'
 import type { RoleId } from './roles'
 
@@ -434,7 +435,7 @@ describe('the Godfather can decline', () => {
 
 describe('the Associate picks a side', () => {
   const firstNight = (newRole: RoleId) => {
-    let state = startNight(createGame(cast(['PICK_SIDE', 'KILLER', 'PLAIN', 'INSPECT'])))
+    let state = startNight(quietGame(cast(['PICK_SIDE', 'KILLER', 'PLAIN', 'INSPECT'])))
     expect(state.schedule[0]).toBe('PICK_SIDE')
     state = recordAction(state, { kind: 'chooseRole', roleId: 'PICK_SIDE', newRole })
     state = recordAction(state, { kind: 'skip', roleId: 'INSPECT' })

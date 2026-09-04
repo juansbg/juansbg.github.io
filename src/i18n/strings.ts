@@ -40,6 +40,8 @@ export interface Strings {
    * not a description of the person: the word's gender is the word's.
    */
   trades: readonly string[]
+  /** The same trades with their article, lower case, for the middle of a sentence. */
+  tradesNamed: readonly string[]
 
   phase: {
     nightFalls: string
@@ -58,6 +60,17 @@ export interface Strings {
     cardTaken: (role: string) => string
     /** The day's count, most votes first: name and votes against. */
     tally: (entries: readonly { name: string; votes: number }[]) => string
+    /**
+     * The paper's breadcrumbs, by kind: a bank per kind, one line picked by
+     * night, each taking the trade with its article ("the baker"). `neighbour`
+     * says someone from the Family lives next door; `quiet` says nobody does;
+     * `doors` gives the distance to where it happened.
+     */
+    clue: {
+      neighbour: readonly ((trade: string) => string)[]
+      quiet: readonly ((trade: string) => string)[]
+      doors: readonly ((trade: string, doors: number) => string)[]
+    }
   }
 
   winner: {

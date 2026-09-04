@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest'
 import { LOCALES, detectLocale, morningReport, renderOutcome, strings } from './index'
 import { ROLE_IDS } from '../engine/roles'
+import { quietGame } from '../engine/testing'
 import {
   TRADE_COUNT,
-  createGame,
   endNight,
   recordAction,
   startNight,
@@ -20,6 +20,28 @@ describe('string tables', () => {
       const trades = strings(locale).trades
       expect(trades.length, locale).toBe(TRADE_COUNT)
       expect(new Set(trades).size, locale).toBe(TRADE_COUNT)
+      expect(strings(locale).tradesNamed.length, locale).toBe(TRADE_COUNT)
+    }
+  })
+
+  it('render every breadcrumb with the trade and never a name', () => {
+    const players = quietGame(setup(['PLAIN', 'KILLER', 'PLAIN'], ['Ana', 'Beto', 'Caro'])).players
+    for (const locale of LOCALES) {
+      const t = strings(locale)
+      const clues = [
+        { kind: 'neighbour' as const, crew: true },
+        { kind: 'neighbour' as const, crew: false },
+        { kind: 'doors' as const, doors: 1 },
+        { kind: 'doors' as const, doors: 3 },
+      ]
+      for (const clue of clues) {
+        for (let night = 1; night <= 4; night++) {
+          const line = renderOutcome({ type: 'clue', night, trade: 0, clue, public: true }, players, locale)
+          expect(line, `${locale}/${clue.kind}/${night}`).toContain(t.tradesNamed[0]!.slice(4))
+          expect(line).not.toContain('Ana')
+          expect(line).not.toContain('Beto')
+        }
+      }
     }
   })
 
@@ -80,7 +102,7 @@ describe('detectLocale', () => {
 
 describe('rendering the morning report', () => {
   const playedNight = () => {
-    let state = createGame(
+    let state = quietGame(
       setup(['KILLER', 'PLAIN', 'GUARD', 'INSPECT'], ['Ana', 'Beto', 'Caro', 'Ana']),
     )
     state = startNight(state)
@@ -117,7 +139,7 @@ describe('rendering the morning report', () => {
   })
 
   it('says so when nothing public happened', () => {
-    let state = createGame(setup(['KILLER', 'PLAIN', 'GUARD']))
+    let state = quietGame(setup(['KILLER', 'INSPECT', 'GUARD']))
     state = startNight(state)
     state = recordAction(state, { kind: 'target', roleId: 'GUARD', actor: 2, target: 1 })
     state = recordAction(state, { kind: 'target', roleId: 'KILLER', actor: 0, target: 1 })
@@ -227,7 +249,7 @@ describe('role details', () => {
 
 describe('the card taken from the centre', () => {
   it('is read aloud by card, in both languages', () => {
-    let state = createGame(setup(['SWAP', 'KILLER', 'PLAIN', 'INSPECT']))
+    let state = quietGame(setup(['SWAP', 'KILLER', 'PLAIN', 'INSPECT']))
     state = startNight(state)
     state = recordAction(state, { kind: 'chooseRole', roleId: 'SWAP', newRole: 'GUARD' })
     state = recordAction(state, { kind: 'skip', roleId: 'INSPECT' })
@@ -244,7 +266,7 @@ describe('the card taken from the centre', () => {
 
 describe('the tally', () => {
   it('reads most votes first, in both languages', () => {
-    const players = createGame(setup(['KILLER', 'PLAIN', 'INSPECT'], ['Ana', 'Beto', 'Caro'])).players
+    const players = quietGame(setup(['KILLER', 'PLAIN', 'INSPECT'], ['Ana', 'Beto', 'Caro'])).players
     const outcome = {
       type: 'tally' as const, night: 1, day: 1, public: true as const,
       votes: [{ voter: 0, target: 1 }, { voter: 2, target: 1 }, { voter: 1, target: 0 }],

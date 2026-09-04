@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { doomedTonight, resolveNight } from './resolve'
+import { crewNextDoor, doomedTonight, doorsBetween, resolveNight, rollClue } from './resolve'
 import type { GameState, NightAction, Outcome, Player } from './types'
 import { STATE_VERSION } from './types'
 import type { RoleId } from './roles'
@@ -444,5 +444,81 @@ describe('the Chameleon', () => {
       stateWith(['PICK_SIDE', 'KILLER', 'PLAIN'], [{ kind: 'chooseRole', roleId: 'PICK_SIDE', newRole: 'KILLER' }]),
     )
     expect(outcomes.find((o) => o.type === 'cardTaken')).toBeUndefined()
+  })
+})
+
+describe('the paper’s breadcrumb', () => {
+  const seats = (roles: RoleId[]): Player[] =>
+    roles.map((r, i) => ({ ...makePlayer(i, r), trade: r === 'PLAIN' ? i : null }))
+
+  it('rolls the same for the same seed and night, and differently across nights', () => {
+    const players = seats(['PLAIN', 'KILLER', 'PLAIN', 'INSPECT', 'PLAIN', 'PLAIN', 'PLAIN'])
+    const a = rollClue(7, 1, players, [])
+    const b = rollClue(7, 1, players, [])
+    expect(a).toEqual(b)
+    const rolls = [1, 2, 3, 4, 5, 6, 7, 8].map((night) => JSON.stringify(rollClue(7, night, players, [])))
+    expect(new Set(rolls).size).toBeGreaterThan(1)
+  })
+
+  it('names a trade, never a seat, and only a living citizen’s', () => {
+    const players = seats(['PLAIN', 'KILLER', 'PLAIN', 'INSPECT', 'PLAIN'])
+    players[0]!.alive = false
+    for (let seed = 0; seed < 200; seed++) {
+      const clue = rollClue(seed, 1, players, [])
+      if (clue === null) continue
+      expect(clue).not.toHaveProperty('target')
+      const holder = players.find((p) => p.trade === clue.trade)!
+      expect(holder.alive).toBe(true)
+      expect(holder.roleId).toBe('PLAIN')
+    }
+  })
+
+  it('tells the truth about the neighbours and the doors', () => {
+    const players = seats(['PLAIN', 'KILLER', 'PLAIN', 'INSPECT', 'PLAIN', 'PLAIN'])
+    let seen = 0
+    for (let seed = 0; seed < 400; seed++) {
+      const clue = rollClue(seed, 2, players, [3])
+      if (clue === null) continue
+      seen += 1
+      const holder = players.find((p) => p.trade === clue.trade)!
+      if (clue.clue.kind === 'neighbour') {
+        expect(clue.clue.crew).toBe(crewNextDoor(players, holder.id))
+      } else {
+        expect(clue.clue.doors).toBe(doorsBetween(holder.id, 3, players.length))
+        expect(clue.clue.doors).toBeGreaterThan(0)
+      }
+    }
+    expect(seen).toBeGreaterThan(0)
+  })
+
+  it('is rarer on a night with a death, and never appears without a citizen', () => {
+    const players = seats(['PLAIN', 'KILLER', 'PLAIN', 'INSPECT', 'PLAIN', 'PLAIN'])
+    const count = (victims: number[]): number => {
+      let n = 0
+      for (let seed = 0; seed < 1000; seed++) if (rollClue(seed, 1, players, victims) !== null) n += 1
+      return n
+    }
+    const quiet = count([])
+    const loud = count([3])
+    expect(quiet).toBeGreaterThan(500)
+    expect(loud).toBeLessThan(quiet)
+    expect(loud).toBeGreaterThan(150)
+    const noCitizens = seats(['KILLER', 'INSPECT', 'GUARD'])
+    for (let seed = 0; seed < 50; seed++) expect(rollClue(seed, 1, noCitizens, [])).toBeNull()
+  })
+
+  it('lands in the night’s outcomes as a public fact', () => {
+    // Enough seeds that one of them rolls a clue on a quiet night.
+    let found = false
+    for (let seed = 0; seed < 20 && !found; seed++) {
+      const state = stateWith(['PLAIN', 'KILLER', 'PLAIN', 'GUARD'], [{ kind: 'skip', roleId: 'KILLER' }], { seed })
+      state.players = state.players.map((p) => ({ ...p, trade: p.roleId === 'PLAIN' ? p.id : null }))
+      const clue = resolveNight(state).outcomes.find((o) => o.type === 'clue')
+      if (clue) {
+        found = true
+        expect(clue.public).toBe(true)
+      }
+    }
+    expect(found).toBe(true)
   })
 })

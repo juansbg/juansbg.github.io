@@ -79,7 +79,8 @@ const slideOf = (
 ): Slide | null => {
   const t = strings(locale)
   const source = outcomeAccent(outcome)
-  const mark = source === 'town' ? '⚖' : sigilMarkup(source)
+  // The town's mark is the scales; the paper's breadcrumb is set in type.
+  const mark = source !== 'town' ? sigilMarkup(source) : outcome.type === 'clue' ? '¶' : '⚖'
   const accent = outcomeAccentOf(outcome)
 
   if (outcome.type === 'death') {

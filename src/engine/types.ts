@@ -137,8 +137,21 @@ export type Outcome =
   | { type: 'roleChanged'; night: number; target: PlayerId; to: RoleId; public: false }
   /** The Chameleon took a card from the centre; the table learns which, not who. */
   | { type: 'cardTaken'; night: number; role: RoleId; public: true }
+  /**
+   * The paper's breadcrumb: something a citizen noticed, told through their
+   * trade and never their name. True of the game by construction
+   * (resolve.ts, rollClue) and rolled from the seed, so an undo repeats it.
+   */
+  | { type: 'clue'; night: number; trade: number; clue: Clue; public: true }
   /** Who voted for whom before the town executed someone. Raw votes; the Raven's extra is its own outcome. */
   | { type: 'tally'; night: number; day: number; votes: Vote[]; public: true }
+
+/** What a clue says. Each kind is a fact the resolver can check. */
+export type Clue =
+  /** Someone from the Family lives next door to this trade's holder — or nobody does. */
+  | { kind: 'neighbour'; crew: boolean }
+  /** Tonight's victim lived this many doors from the holder, round the circle. */
+  | { kind: 'doors'; doors: number }
 
 export type DeathCause =
   | 'killers'

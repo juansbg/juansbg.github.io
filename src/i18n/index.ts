@@ -60,6 +60,16 @@ export const renderOutcome = (
         .map(([target, votes]) => ({ name: nameOf(players, target), votes }))
       return t.outcome.tally(entries)
     }
+    case 'clue': {
+      const trade = t.tradesNamed[outcome.trade] ?? '?'
+      const c = outcome.clue
+      const bank = c.kind === 'doors' ? t.outcome.clue.doors : c.crew ? t.outcome.clue.neighbour : t.outcome.clue.quiet
+      const line = bank[outcome.night % bank.length]
+      if (line === undefined) return null
+      return c.kind === 'doors'
+        ? (line as (trade: string, doors: number) => string)(trade, c.doors)
+        : (line as (trade: string) => string)(trade)
+    }
     // Everything else is either secret (the detective's look, a blocked
     // attack) or bookkeeping the narrator does not read aloud.
     default:
@@ -120,6 +130,8 @@ export const outcomeAccent = (outcome: Outcome): RoleId | 'town' => {
     case 'silenced':
       return 'SILENCE'
     case 'tally':
+      return 'town'
+    case 'clue':
       return 'town'
     case 'extraVote':
       return 'EXTRA_VOTE'
