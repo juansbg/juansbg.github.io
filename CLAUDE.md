@@ -78,7 +78,7 @@ The project is being rebuilt. The roadmap is six sprints; **all six are done.** 
 | v1 | `legacy/v1/` | **Frozen.** The 2021 vanilla-JS app. No longer deployed; kept as the draft of the rules (see below). Do not modify. |
 | v2 | `legacy/v2/` | **Frozen.** An abandoned 2022 jQuery rewrite that never got a night loop. Kept only for its CSS circle technique. |
 
-The full roadmap, including what each sprint delivers and why, lives at `~/.claude/plans/rustling-cooking-church.md`.
+The v3 roadmap, including what each sprint delivered and why, lives at `~/.claude/plans/rustling-cooking-church.md`. **What comes next is `docs/ROADMAP.md`**: the simulation results, the fixes they led to, the planned features, and which session is building what.
 
 ## Working in this repo
 
