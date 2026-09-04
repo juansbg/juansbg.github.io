@@ -2143,13 +2143,43 @@ html[data-dawn] body {
   gap: var(--space-3);
 }
 
-/* On a TV the page is a broadsheet: wider, three columns, nothing to tap. */
+/* On a TV the page is a broadsheet: wider, three columns, nothing to tap,
+   and the type a size up all round, because the phone's steps are capped
+   for a hand and the room reads this from the sofa. */
 .stage--tv .screen--paper {
-  max-width: 64rem;
+  max-width: 72rem;
 }
 
 .stage--tv .paper__columns {
   columns: 3;
+  column-gap: var(--space-5);
+}
+
+.stage--tv .paper__name {
+  font-size: 4.5rem;
+}
+
+.stage--tv .paper__edition,
+.stage--tv .paper__note,
+.stage--tv .paper__eyebrow {
+  font-size: 1rem;
+}
+
+.stage--tv .paper__headline {
+  font-size: 2.25rem;
+}
+
+.stage--tv .paper__lead .paper__headline {
+  font-size: 3.75rem;
+}
+
+.stage--tv .paper__dek,
+.stage--tv .paper__columns .paper__dek {
+  font-size: 1.25rem;
+}
+
+.stage--tv .paper__lead .paper__dek {
+  font-size: 1.5rem;
 }
 
 /* The drawn page, shown for a long press where there is no share sheet. */

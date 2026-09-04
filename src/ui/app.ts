@@ -1528,8 +1528,11 @@ function bind(): void {
     e.stopPropagation()
     if (dawn === null) return
     const count = currentSlides().length
-    if (dawn >= count - 1) dawn = null
-    else dawn += 1
+    if (dawn >= count - 1) {
+      endReading()
+      return
+    }
+    dawn += 1
     setState({}, false)
   })
 
@@ -1539,10 +1542,23 @@ function bind(): void {
     setState({}, false)
   })
 
-  on(root, '[data-dawn-close]', 'click', () => {
+  on(root, '[data-dawn-close]', 'click', endReading)
+
+  /**
+   * The morning reading ends on the paper: the town has heard the night,
+   * and the page is what it argues over. The verdict reading ends on the
+   * day screen, since the paper for it has already been read.
+   */
+  function endReading(): void {
+    const morning = dawnKind === 'dawn'
     dawn = null
-    setState({}, false)
-  })
+    if (morning) {
+      paperOpen = true
+      setState({})
+    } else {
+      setState({}, false)
+    }
+  }
 
   // ---- The paper ----
   // The day's edition, full screen; a scene of its own, so it enters.
