@@ -266,7 +266,7 @@ pages, and the five decisions the user has to make before phase 1 starts.
   table it just built, from precomputed simulator numbers.
 - **Running statistics** across games on the same roster: who gets hanged most,
   which side wins, the Detective's hit rate. The roster already persists.
-- **A rules card per role** during the reveal, for first-timers.
+- ~~**A rules card per role** during the reveal, for first-timers.~~ Built, then removed: the section was cut off on short phones and the user chose the brief alone.
 - **The Cultist's win condition.** The one card with no reason to exist. Needs
   a rule decision from the user; nothing invented beyond the script until then.
 
@@ -301,7 +301,7 @@ CLAUDE.md only in their own bullets.
 3. **The morning paper** on the game-over screen, with share.
 4. **Vote tally on the day screen**, once the engine outcome from A4 is on
    `main`.
-5. **A rules card per role** in the reveal.
+5. ~~**A rules card per role** in the reveal.~~ Shipped and later removed (see §3).
 
 ### Then, together
 

@@ -156,7 +156,7 @@ relay/      the Cloudflare Worker and Durable Object; its own tsconfig and wrang
 
 The same screen serves the mid-game "show a role again" flow in `single` mode, selected by player id from a picker.
 
-The held card is also the rules card. Under the brief it carries the role's fuller `detail`, the same text the narrator reads to a player who flagged a question, under a "How it plays" heading; nothing role-shaped exists outside the hold, so a first-timer holds longer, and the card scrolls inside the stage on a short phone. `reveal.test.ts` checks that the detail is on the card and not in the handoff or confirm markup.
+The held card carries the brief and nothing longer. A citizen's trade is its second line, right under the role and in the same Bebas at `--text-xl` (`.reveal__trade`): "CITIZEN" over "BAKER" is what a player must walk away knowing, so it is never a quiet footnote. A "How it plays" section with the role's fuller `detail` used to sit under the brief; it was cut off on short phones and the user had it removed. The `detail` string stays for the narrator, who reads it to a player who flagged a question. `reveal.test.ts` checks that the card has the brief and the trade in that order and does not carry the detail.
 
 Two rules the whole design rests on:
 

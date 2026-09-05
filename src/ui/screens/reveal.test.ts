@@ -87,12 +87,15 @@ describe('the revealed card', () => {
     expect(roleCardMarkup(player('KILLER'), 'en')).toContain(strings('en').ui.reveal.teamCrew)
   })
 
-  // A citizen's trade is on the held card, under the role, and nowhere the
-  // trade could be read before the hold: it is a secret the town has to earn.
-  it.each(LOCALES)('names a citizen’s trade on the card only (%s)', (locale) => {
+  // A citizen's trade is on the held card, right under the role, and nowhere
+  // the trade could be read before the hold: it is a secret the town has to earn.
+  it.each(LOCALES)('names a citizen’s trade on the card only, right under the role (%s)', (locale) => {
     const t = strings(locale)
     const citizen = { ...player('PLAIN'), trade: 3 }
-    expect(roleCardMarkup(citizen, locale)).toContain(esc(t.trades[3]!))
+    const card = roleCardMarkup(citizen, locale)
+    expect(card).toContain(esc(t.trades[3]!))
+    // The role's line and the trade's line, one after the other.
+    expect(card).toMatch(new RegExp('reveal__role">' + t.roles.PLAIN.name + '</h2>\\s*<p class="reveal__trade">' + esc(t.trades[3]!)))
     expect(roleCardMarkup(player('INSPECT'), locale)).not.toContain('reveal__trade')
     for (const phase of ['handoff', 'confirm'] as const) {
       const before = revealMarkup({
@@ -102,23 +105,16 @@ describe('the revealed card', () => {
     }
   })
 
-  // The rules for first-timers are the role's own detail, the text the
-  // narrator reads to a player who flagged a question, so the two cannot
-  // drift. They live on the held card only.
-  it.each(LOCALES)('carries the fuller rules under the brief, and nowhere before the hold (%s)', (locale) => {
+  // The fuller `detail` is the narrator's, for a player who flags a question.
+  // It used to sit under the brief as a rules section and was cut off on short
+  // phones; the card carries the brief and nothing longer.
+  it.each(LOCALES)('carries the brief and not the narrator’s detail (%s)', (locale) => {
     const t = strings(locale)
     for (const roleId of Object.keys(t.roles) as RoleId[]) {
       const card = roleCardMarkup(player(roleId), locale)
-      expect(card, `${locale}/${roleId}`).toContain(t.ui.reveal.howItPlays)
-      // Names and apostrophes are escaped on the way in, so compare escaped.
-      expect(card, `${locale}/${roleId}`).toContain(esc(t.roles[roleId].detail))
-      for (const phase of ['handoff', 'confirm'] as const) {
-        const before = revealMarkup({
-          player: player(roleId), position: 1, total: 6, phase, locale, mode: 'onboarding', canGoBack: false,
-        })
-        expect(before, `${locale}/${roleId}/${phase}`).not.toContain(esc(t.roles[roleId].detail))
-        expect(before, `${locale}/${roleId}/${phase}`).not.toContain(t.ui.reveal.howItPlays)
-      }
+      expect(card, `${locale}/${roleId}`).toContain(esc(t.roles[roleId].brief))
+      expect(card, `${locale}/${roleId}`).not.toContain(esc(t.roles[roleId].detail))
+      expect(card).not.toContain('reveal__rules')
     }
   })
 

@@ -155,7 +155,6 @@ export interface Strings {
       showRoleTo: (name: string) => string
       clearFlag: string
       /** The heading over the fuller rules on the held card, for first-timers. */
-      howItPlays: string
     }
     night: {
       stepCounter: (current: number, total: number) => string

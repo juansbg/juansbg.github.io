@@ -107,11 +107,11 @@ export const revealMarkup = (props: RevealProps): string => {
  * every role, so the glow of the phone across the table gives nothing away.
  * The side is stated in text, to the one person holding it.
  *
- * Under the brief, the rules: the role's fuller `detail`, the same text the
- * narrator reads to a player who flagged a question, so the two never
- * drift. It lives on the held card and nowhere else, because the hold is
- * the only time a role may be on screen; a first-timer simply holds
- * longer. The card scrolls inside the stage if the phone is short.
+ * A citizen's trade is the second line, right under the role and as bold
+ * as it: "CITIZEN / BAKER" is what the player must walk away knowing, so
+ * it is never a footnote. The brief is all the rules the card carries;
+ * the fuller `detail` is the narrator's, read to a player who flags a
+ * question, and stays off the card so it cannot be cut off on a short phone.
  */
 export const roleCardMarkup = (player: Player, locale: Locale): string => {
   const t = strings(locale)
@@ -128,10 +128,6 @@ export const roleCardMarkup = (player: Player, locale: Locale): string => {
       ${player.trade !== null ? `<p class="reveal__trade">${esc(t.trades[player.trade] ?? '')}</p>` : ''}
       <p class="reveal__team" data-team="${role.team}">${esc(team)}</p>
       <p class="reveal__prompt">${esc(roleStrings.brief)}</p>
-      <section class="reveal__rules">
-        <h3 class="reveal__label">${esc(t.ui.reveal.howItPlays)}</h3>
-        <p class="reveal__detail">${esc(roleStrings.detail)}</p>
-      </section>
     </div>
   `
 }

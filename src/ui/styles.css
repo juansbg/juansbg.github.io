@@ -1058,12 +1058,18 @@ body {
   text-wrap: balance;
 }
 
-/* A citizen's trade, under the role: the small line that makes "I am the
-   baker" something a player can say. Plex, a step quieter than the name. */
+/* A citizen's trade, right under the role and in the same voice: "CITIZEN"
+   over "BAKER", both in Bebas, so the player leaves knowing what they are
+   without a doubt. Full ink, never the quiet grey of a footnote. */
 .reveal__trade {
-  margin: 0;
-  font-size: var(--text-md);
-  color: color-mix(in oklab, var(--on-paper) 72%, var(--paper));
+  margin: calc(-1 * var(--space-2)) 0 0;
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--on-paper);
 }
 
 /* The side is text, not colour. The card is the same paper for every role,
@@ -1244,9 +1250,8 @@ body {
   display: none;
 }
 
-/* Paper, for every role alike. It may scroll inside the stage: the rules
-   under the brief make it taller than a short phone, and the page itself
-   never scrolls. */
+/* Paper, for every role alike. It may scroll inside the stage on a very
+   short phone, since the page itself never scrolls. */
 .reveal__card {
   display: grid;
   gap: var(--space-3);
@@ -1260,26 +1265,6 @@ body {
   box-shadow: var(--shadow-deep);
   text-align: center;
   animation: reveal-in var(--dur-base) var(--ease-out) both;
-}
-
-/* The rules, for first-timers: a hairline above, then the fuller text at
-   reading size, left-aligned because it is three sentences, not a label. */
-.reveal__rules {
-  display: grid;
-  gap: var(--space-2);
-  width: 100%;
-  max-width: 22rem;
-  margin-top: var(--space-2);
-  padding-top: var(--space-3);
-  border-top: 1px solid var(--paper-rule);
-  text-align: left;
-}
-
-.reveal__detail {
-  margin: 0;
-  color: var(--on-paper);
-  font-size: var(--text-sm);
-  line-height: 1.5;
 }
 
 body.is-revealing .bar {
