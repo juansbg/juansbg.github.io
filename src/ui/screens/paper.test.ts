@@ -35,8 +35,10 @@ describe('the morning paper', () => {
       expect(story.line).toContain(story.name)
       expect(story.line.length).toBeGreaterThan(story.name.length)
     }
-    // Two Family kills get two different sentences.
+    // Two Family kills get two different sentences, and two different headlines.
     expect(paper.stories[0]?.line).not.toBe(paper.stories[2]?.line)
+    expect(paper.stories[0]?.headline).not.toBe(paper.stories[2]?.headline)
+    for (const story of paper.stories) expect(story.headline).toContain(story.name)
   })
 
   it('names who was who, marking the Family and the dead', () => {
@@ -117,11 +119,12 @@ describe('the daily edition', () => {
     expect(e.day).toBe(1)
     expect(e.dateline).toBe(t.ui.paper.daily(1))
     expect(kinds(e)).toEqual(['death', 'event', 'colour', 'colour'])
-    expect(e.lead?.headline).toBe(t.ui.paper.headline.killers('Beto'))
+    // The headline comes from the bank for the cause, one of them, with the name in it.
+    expect(t.ui.paper.headline.killers.map((h) => h('Beto'))).toContain(e.lead?.headline)
     // The dek is the very line the town was read at dawn.
     expect(e.lead?.dek).toContain('Beto')
     expect(e.lead?.dek.length).toBeGreaterThan(20)
-    expect(e.rest[0]?.headline).toBe(t.ui.paper.event.silenced('Dani'))
+    expect(t.ui.paper.event.silenced.map((h) => h('Dani'))).toContain(e.rest[0]?.headline)
     expect(e.rest[0]?.dek).toBe(t.outcome.silenced('Dani'))
   })
 
@@ -135,7 +138,7 @@ describe('the daily edition', () => {
     const e = edition(state, 1, 'en')
     expect(kinds(e)).toEqual(['death', 'verdict', 'event', 'colour', 'colour'])
     const verdict = e.rest[0]
-    expect(verdict?.headline).toBe(strings('en').ui.paper.headline.lynch('Ana'))
+    expect(strings('en').ui.paper.headline.lynch.map((h) => h('Ana'))).toContain(verdict?.headline)
     expect(verdict?.note).toContain('Ana 2')
     expect(verdict?.note).toContain('Caro 1')
     // Without a recorded vote there is no count to print.
@@ -217,7 +220,7 @@ describe('the daily edition', () => {
     const t = strings(locale)
     // The sides are not in the list: "the town" is where the paper is printed.
     const words = [...ROLE_IDS.map((id) => bare(t.roles[id].name)), ...(TRADES[locale] ?? [])]
-    expect(t.ui.paper.colour.length).toBeGreaterThanOrEqual(30)
+    expect(t.ui.paper.colour.length).toBeGreaterThanOrEqual(60)
     for (const piece of t.ui.paper.colour) {
       const text = `${piece.headline} ${piece.dek}`.toLowerCase()
       for (const word of words) {
@@ -225,7 +228,7 @@ describe('the daily edition', () => {
       }
       expect(text).not.toContain('!')
     }
-    for (const id of ROLE_IDS) expect(t.ui.paper.investigation[id].length).toBeGreaterThanOrEqual(2)
+    for (const id of ROLE_IDS) expect(t.ui.paper.investigation[id].length).toBeGreaterThanOrEqual(4)
   })
 
   it.each(LOCALES)('sets a breadcrumb as a nameless article after the investigations (%s)', (locale) => {
@@ -261,5 +264,85 @@ describe('the daily edition', () => {
     expect(dailyMarkup(fromSource, 'en', false)).not.toContain('data-paper-close')
     expect(html).toContain('paper__scribble')
     expect(html).not.toContain('lorem')
+  })
+})
+
+// ---------------------------------------------------------------------------
+// The banks the paper is set from
+// ---------------------------------------------------------------------------
+
+describe('the paper’s banks', () => {
+  /** Every string in `ui.paper` that could be read, rendered with a stand-in name and card. */
+  const everyLine = (locale: (typeof LOCALES)[number]): { where: string; text: string }[] => {
+    const p = strings(locale).ui.paper
+    const out: { where: string; text: string }[] = []
+    for (const [cause, bank] of Object.entries(p.headline)) bank.forEach((h, i) => out.push({ where: `headline.${cause}[${i}]`, text: h('Zed') }))
+    p.event.silenced.forEach((h, i) => out.push({ where: `event.silenced[${i}]`, text: h('Zed') }))
+    p.event.extraVote.forEach((h, i) => out.push({ where: `event.extraVote[${i}]`, text: h('Zed') }))
+    p.event.growl.forEach((h, i) => out.push({ where: `event.growl[${i}]`, text: h }))
+    p.event.cardTaken.forEach((h, i) => out.push({ where: `event.cardTaken[${i}]`, text: h('Card') }))
+    p.event.clue.forEach((h, i) => out.push({ where: `event.clue[${i}]`, text: h }))
+    for (const id of ROLE_IDS) p.investigation[id].forEach((h, i) => out.push({ where: `investigation.${id}[${i}]`, text: h('Zed') }))
+    p.colour.forEach((c, i) => out.push({ where: `colour[${i}]`, text: `${c.headline} ${c.dek}` }))
+    out.push({ where: 'cardOn', text: p.cardOn('Zed', 'Card') })
+    return out
+  }
+
+  /** A word at the start of a word, as `i18n.test.ts` holds the death lines: "baker" catches "bakery". */
+  const prefix = (word: string): RegExp => new RegExp('\\b' + word.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))
+
+  it.each(LOCALES)('keep every trade out of every line, where it would read as a clue (%s)', (locale) => {
+    const t = strings(locale)
+    const trades = t.trades.map(prefix)
+    for (const { where, text } of everyLine(locale)) {
+      for (const word of trades) expect(text.toLowerCase(), `${locale} ${where}: ${text}`).not.toMatch(word)
+      expect(text, `${locale} ${where}`).not.toContain('!')
+    }
+  })
+
+  it.each(LOCALES)('keep every role out of the clue headlines and the colour (%s)', (locale) => {
+    const t = strings(locale)
+    const roles = ROLE_IDS.map((id) => prefix(bare(t.roles[id].name)))
+    const nameless = everyLine(locale).filter(({ where }) => where.startsWith('event.clue') || where.startsWith('colour'))
+    for (const { where, text } of nameless) {
+      for (const word of roles) expect(text.toLowerCase(), `${locale} ${where}: ${text}`).not.toMatch(word)
+    }
+  })
+
+  it.each(LOCALES)('are deep enough that a game rarely repeats a line, and never inside one bank (%s)', (locale) => {
+    const p = strings(locale).ui.paper
+    for (const [cause, bank] of Object.entries(p.headline)) expect(bank.length, cause).toBeGreaterThanOrEqual(8)
+    expect(p.event.silenced.length).toBeGreaterThanOrEqual(6)
+    expect(p.event.extraVote.length).toBeGreaterThanOrEqual(6)
+    expect(p.event.growl.length).toBeGreaterThanOrEqual(6)
+    expect(p.event.cardTaken.length).toBeGreaterThanOrEqual(5)
+    expect(p.event.clue.length).toBeGreaterThanOrEqual(8)
+    // Rendered with the same name, no two lines of a bank read the same.
+    const banks = new Map<string, string[]>()
+    for (const { where, text } of everyLine(locale)) {
+      const bank = where.replace(/\[\d+\]$/, '')
+      banks.set(bank, [...(banks.get(bank) ?? []), text])
+    }
+    for (const [bank, lines] of banks) expect(new Set(lines).size, `${locale} ${bank}`).toBe(lines.length)
+    // Every named line carries the name.
+    for (const { where, text } of everyLine(locale)) {
+      if (/^(headline|event\.silenced|event\.extraVote|investigation)/.test(where)) expect(text, `${locale} ${where}`).toContain('Zed')
+    }
+  })
+
+  it('give a long game a different headline for every Family kill', () => {
+    // Twelve Family kills in a row, one a night, at a table that can take it.
+    const roles: RoleId[] = ['KILLER', ...Array.from({ length: 13 }, () => 'PLAIN' as const)]
+    let state = quietGame(setup(roles, []))
+    for (let n = 1; n <= 10; n++) {
+      state = startNight(state)
+      state = { ...state, stepIndex: state.schedule.indexOf('KILLER') }
+      state = recordAction(state, { kind: 'target', roleId: 'KILLER', actor: 0, target: n })
+      state = { ...state, stepIndex: state.schedule.length }
+      state = endNight(state)
+    }
+    const paper = paperOf(state, 'en')
+    expect(paper.stories).toHaveLength(10)
+    expect(new Set(paper.stories.map((s) => s.headline)).size).toBe(10)
   })
 })

@@ -2133,6 +2133,9 @@ html[data-dawn] body {
   font-size: var(--text-lg);
   line-height: 0.95;
   text-wrap: balance;
+  /* A word longer than the column (a long name, "Guardaespaldas") breaks
+     rather than widening the columns, which would push the page off the phone. */
+  overflow-wrap: anywhere;
 }
 
 .paper__lead .paper__headline {
@@ -2145,6 +2148,7 @@ html[data-dawn] body {
   font-size: var(--text-sm);
   line-height: 1.3;
   text-wrap: pretty;
+  overflow-wrap: anywhere;
 }
 
 .paper__columns .paper__dek {

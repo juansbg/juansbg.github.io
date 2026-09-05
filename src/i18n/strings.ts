@@ -288,22 +288,24 @@ export interface Strings {
       side: { town: string; crew: string }
       /**
        * The headline over a death, short enough for Bebas in a column; the
-       * dek under it is the line the town was read at dawn.
+       * dek under it is the line the town was read at dawn. A bank per
+       * cause, handed out the way the dawn lines are (`deathLines()`), so
+       * no two deaths in a game share one and an undo moves nobody's.
        */
-      headline: Record<DeathCause, (name: string) => string>
-      /** Headlines over the public events; the dek is the report line. */
+      headline: Record<DeathCause, readonly ((name: string) => string)[]>
+      /** Headlines over the public events, a bank each picked by night; the dek is the report line. */
       event: {
-        silenced: (name: string) => string
-        extraVote: (name: string) => string
-        growl: string
-        cardTaken: (role: string) => string
-        /** Over a breadcrumb: says only that somebody talked, picked by night. */
+        silenced: readonly ((name: string) => string)[]
+        extraVote: readonly ((name: string) => string)[]
+        growl: readonly string[]
+        cardTaken: readonly ((role: string) => string)[]
+        /** Over a breadcrumb: says only that somebody talked, never who, picked by night. */
         clue: readonly string[]
       }
       /**
        * The investigation: a day after a death the police name what the
-       * dead were. A bank per role, two or three deep, picked by seat and
-       * day; the Family's reveals are the town's good news and read so.
+       * dead were. A bank per role, four deep, picked by seat and day; the
+       * Family's reveals are the town's good news and read so.
        */
       investigation: Record<RoleId, readonly ((name: string) => string)[]>
       /** The dek under an investigation: the card, by its display name. */
@@ -312,9 +314,10 @@ export interface Strings {
       tradeLine: (trade: string) => string
       /**
        * Colour, zero to two pieces an edition, seeded by day: council
-       * business, the weather, a lost dog. Never a trade, a person or a
-       * role word, so nothing here can be read as a clue (`paper.test.ts`
-       * checks the bank against the role names and the trades).
+       * business, the weather, a lost dog. Sixty pieces, so a long game
+       * never reads one twice. Never a trade, a person or a role word, so
+       * nothing here can be read as a clue (`paper.test.ts` checks the
+       * bank against the role names and the trades).
        */
       colour: readonly { headline: string; dek: string }[]
     }

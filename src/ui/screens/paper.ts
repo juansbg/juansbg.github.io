@@ -133,8 +133,11 @@ export const editionOf = (src: EditionSource, locale: Locale): Edition => {
   const bank = t.ui.dawn.death
   const name = (id: PlayerId): string => nameIn(src.players, id)
   const log = src.log.filter((o) => o.public)
-  // The whole log, so a death keeps the line it was given at dawn.
+  // The whole log, so a death keeps the line it was given at dawn, and the
+  // headline it was set under: both unique in the game while the bank lasts.
   const lines = deathLines(log, (cause) => bank[cause].length)
+  const headlines = deathLines(log, (cause) => p.headline[cause].length)
+  const pick = <T>(from: readonly T[], n: number): T | undefined => from[n % from.length]
 
   // The day's record splits where the night turned into the day, as the
   // dawn reading does: the town's vote is the first thing that happens by
@@ -152,7 +155,7 @@ export const editionOf = (src: EditionSource, locale: Locale): Edition => {
     return {
       kind: verdict ? 'verdict' : 'death',
       eyebrow: null,
-      headline: p.headline[o.cause](who),
+      headline: p.headline[o.cause][headlines.get(o) ?? 0]?.(who) ?? '',
       dek: bank[o.cause][lines.get(o) ?? 0]?.(who) ?? '',
       note: verdict ? count : null,
       mark: markOf(o),
@@ -164,13 +167,15 @@ export const editionOf = (src: EditionSource, locale: Locale): Edition => {
   const eventArticle = (o: Outcome): Article | null => {
     let headline: string
     switch (o.type) {
-      case 'silenced': headline = p.event.silenced(name(o.target)); break
-      case 'extraVote': headline = p.event.extraVote(name(o.target)); break
-      case 'growl': headline = p.event.growl; break
-      case 'cardTaken': headline = p.event.cardTaken(t.roles[o.role].name); break
+      // A bank each, picked by the night (and the seat, where one is named),
+      // so the Arsonist's third fire is not headlined like the first.
+      case 'silenced': headline = pick(p.event.silenced, o.night + o.target)?.(name(o.target)) ?? ''; break
+      case 'extraVote': headline = pick(p.event.extraVote, o.night + o.target)?.(name(o.target)) ?? ''; break
+      case 'growl': headline = pick(p.event.growl, o.night) ?? ''; break
+      case 'cardTaken': headline = pick(p.event.cardTaken, o.night)?.(t.roles[o.role].name) ?? ''; break
       // The breadcrumb: the engine's line, nameless by construction, under a
       // headline that says only that somebody talked.
-      case 'clue': headline = p.event.clue[o.night % p.event.clue.length] ?? ''; break
+      case 'clue': headline = pick(p.event.clue, o.night) ?? ''; break
       default: return null
     }
     const dek = renderOutcome(o, src.players, locale)
@@ -351,6 +356,8 @@ export interface Story {
   night: number
   name: string
   cause: DeathCause
+  /** The headline the death was set under, from the bank for its cause. */
+  headline: string
   line: string
   crew: boolean
 }
@@ -375,6 +382,7 @@ export const paperOf = (state: GameState, locale: Locale): Paper => {
   const t = strings(locale)
   const bank = t.ui.dawn.death
   const lines = deathLines(state.log, (cause) => bank[cause].length)
+  const headlines = deathLines(state.log, (cause) => t.ui.paper.headline[cause].length)
   const isCrew = (roleId: Player['roleId']): boolean => ROLES[roleId].team === 'crew'
 
   const stories: Story[] = state.log
@@ -386,6 +394,7 @@ export const paperOf = (state: GameState, locale: Locale): Paper => {
         night: o.night,
         name,
         cause: o.cause,
+        headline: t.ui.paper.headline[o.cause][headlines.get(o) ?? 0]?.(name) ?? '',
         line: bank[o.cause][lines.get(o) ?? 0]?.(name) ?? '',
         crew: victim ? isCrew(victim.roleId) : false,
       }
@@ -426,7 +435,7 @@ export const paperMarkup = (state: GameState, locale: Locale): string => {
     return {
       kind: s.cause === 'lynch' ? 'verdict' : 'death',
       eyebrow: t.ui.timeline.nightStart(s.night),
-      headline: t.ui.paper.headline[s.cause](s.name),
+      headline: s.headline,
       dek: s.line,
       note: null,
       mark: markOf(cause),
