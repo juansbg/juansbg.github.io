@@ -65,9 +65,9 @@ export const en: Strings = {
   ],
 
   phase: {
-    nightFalls: 'The city sleeps',
+    nightFalls: 'The town sleeps',
     nightFallsBody: 'Everyone close your eyes.',
-    townWakes: 'The city wakes!',
+    townWakes: 'The town wakes',
     townWakesBody: 'The town talks over what happened in the night.',
     quietNight: 'The night passed without incident.',
   },
@@ -350,9 +350,9 @@ export const en: Strings = {
     paper: {
       title: 'The morning paper',
       edition: (nights, players) =>
-        `Final edition · ${nights} ${nights === 1 ? 'night' : 'nights'} · ${players} at the table`,
+        `Final edition · Night ${nights} · ${players} players`,
       whoWasWho: 'Who was who',
-      share: 'Share the paper',
+      share: 'Share',
       cannotShare: 'This browser cannot draw the page. A screenshot will do.',
       holdHint: 'Press and hold the image to save or share it',
       open: 'Read the paper',
@@ -712,7 +712,7 @@ export const en: Strings = {
     },
     tv: {
       title: APP_NAME,
-      noRoom: 'No room in this address',
+      noRoom: 'No room at this address',
       waiting: 'Waiting for the narrator…',
       reconnecting: 'Reconnecting…',
     },

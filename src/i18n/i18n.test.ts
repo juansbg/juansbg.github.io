@@ -130,7 +130,7 @@ describe('rendering the morning report', () => {
   it('reads the death aloud in each language', () => {
     const state = playedNight()
 
-    expect(morningReport(state, 1, 'es')[0]).toBe('Ha amanecido muerto Beto.')
+    expect(morningReport(state, 1, 'es')[0]).toBe('Amanece sin Beto.')
     expect(morningReport(state, 1, 'en')[0]).toBe('Beto was found dead this morning.')
   })
 

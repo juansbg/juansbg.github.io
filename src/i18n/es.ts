@@ -65,9 +65,9 @@ export const es: Strings = {
   ],
 
   phase: {
-    nightFalls: 'La ciudad duerme',
+    nightFalls: 'El pueblo duerme',
     nightFallsBody: 'Que todos cierren los ojos.',
-    townWakes: '¡La ciudad despierta!',
+    townWakes: 'El pueblo despierta',
     townWakesBody: 'El pueblo discute lo ocurrido esta noche.',
     quietNight: 'La noche ha pasado sin novedad.',
   },
@@ -76,11 +76,11 @@ export const es: Strings = {
     death: (name, cause) => {
       switch (cause) {
         case 'killers':
-          return `Ha amanecido muerto ${name}.`
+          return `Amanece sin ${name}.`
         case 'rogue':
           return `También ha muerto ${name}.`
         case 'poison':
-          return `${name} ha muerto envenenado.`
+          return `${name} ha muerto por veneno.`
         case 'lynch':
           return `El pueblo ha ejecutado a ${name}.`
         case 'heartbreak':
@@ -350,9 +350,9 @@ export const es: Strings = {
     paper: {
       title: 'El periódico de la mañana',
       edition: (nights, players) =>
-        `Última edición · ${nights} ${nights === 1 ? 'noche' : 'noches'} · ${players} en la mesa`,
+        `Última edición · Noche ${nights} · ${players} jugadores`,
       whoWasWho: 'Quién era quién',
-      share: 'Compartir el periódico',
+      share: 'Compartir',
       cannotShare: 'Este navegador no puede dibujar la página. Una captura de pantalla sirve.',
       holdHint: 'Mantén pulsada la imagen para guardarla o compartirla',
       open: 'Leer el periódico',

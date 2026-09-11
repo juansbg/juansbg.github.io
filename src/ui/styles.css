@@ -1969,6 +1969,24 @@ html[data-dawn] body {
   background: var(--newsprint-rule);
 }
 
+/* On a phone the dateline has no room beside its hairlines: the rules go
+   above and below it instead, still a ruled nameplate, on one line. */
+@media (max-width: 419px) {
+  .paper__edition {
+    display: block;
+    padding: var(--space-1) 0;
+    border-top: 1px solid var(--newsprint-rule);
+    border-bottom: 1px solid var(--newsprint-rule);
+    letter-spacing: 0.04em;
+    text-align: center;
+  }
+
+  .paper__edition::before,
+  .paper__edition::after {
+    display: none;
+  }
+}
+
 .paper__banner {
   margin: var(--space-4) 0 0;
   padding-bottom: var(--space-3);
@@ -2185,7 +2203,8 @@ html[data-dawn] body {
 
 .paper__cast {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(9rem, 1fr));
+  /* One column on a phone: a role name beside a struck name needs the width. */
+  grid-template-columns: repeat(auto-fill, minmax(11rem, 1fr));
   gap: var(--space-1) var(--space-4);
   margin: 0;
   padding: 0;
