@@ -452,8 +452,16 @@ export interface Strings {
       stayTown: string
       keepCard: string
       bothSpent: string
-      /** The Detective's card on his own phone, for the rest of the night. */
+      /** The Detective's card on his own phone, shown once his step is done. */
       looked: (name: string) => string
+      /**
+       * The gate pages around the chooser (user, 2026-09-11): the acting phone
+       * shows only a sentence and one button before the chooser and after it,
+       * so eyes that opened early read no role and no choice off it.
+       */
+      yourTurn: (name: string) => string
+      proceed: string
+      closeEyes: (name: string) => string
     }
     /** The TV page, before and between projections. */
     tv: {

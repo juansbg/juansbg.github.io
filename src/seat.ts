@@ -21,7 +21,17 @@ import type { PlayerId } from './engine/types'
 import { ROLES } from './engine/roles'
 import { fitTables } from './ui/screens/circle'
 import { bindHold, roleCardMarkup } from './ui/screens/reveal'
-import { seatAction, seatCenter as center, seatMarkup, seatPlayer, settlePicks, stepKeyOf, type SeatPicks } from './ui/screens/seat'
+import {
+  nextGate,
+  seatAction,
+  seatCenter as center,
+  seatMarkup,
+  seatPlayer,
+  settlePicks,
+  stepKeyOf,
+  type SeatGate,
+  type SeatPicks,
+} from './ui/screens/seat'
 import { buzz, esc, on } from './ui/dom'
 
 const root = document.querySelector<HTMLDivElement>('#app')
@@ -75,6 +85,8 @@ let releaseHold: (() => void) | null = null
 let picks: SeatPicks = { picked: [], sent: false }
 /** Which night and step the picks belong to: a new step starts clean. */
 let stepKey = ''
+/** The gate around the chooser: "your turn", the chooser, "close your eyes"; see SeatGate. */
+let gate: SeatGate | null = null
 
 // ---- Rendering ---------------------------------------------------------------
 
@@ -109,7 +121,7 @@ const render = (): void => {
   } else if (projection === null) {
     body = center(`<p class="label">${esc(s.title)}</p><h1 class="title title--sm">${esc(s.joined(name))}</h1><p class="subtitle">${esc(s.waiting)}</p>`)
   } else {
-    body = seatMarkup(projection, locale, picks)
+    body = seatMarkup(projection, locale, picks, gate)
   }
 
   root.innerHTML = `
@@ -158,6 +170,7 @@ const applySealed = async (payload: string): Promise<void> => {
     remember(nameKey, parsed.name)
     picks = settlePicks(parsed, picks, stepKey)
     stepKey = stepKeyOf(parsed)
+    gate = nextGate(gate, parsed)
   }
   render()
 }
@@ -238,7 +251,22 @@ const bind = (): void => {
     link.send({ kind: 'vote', target: projection.vote === target ? null : target })
   })
 
-  // ---- The night: a seat tapped, then an action sent ----
+  // ---- The night: through the gate, a seat tapped, then an action sent ----
+  on(root, '[data-enter]', 'click', () => {
+    if (gate === null || gate.kind !== 'turn') return
+    buzz()
+    gate = { kind: 'chooser', key: gate.key }
+    render()
+  })
+
+  on(root, '[data-close]', 'click', () => {
+    if (gate === null) return
+    buzz()
+    // The Detective reads his card, then is told to close his eyes like everyone else.
+    gate = gate.kind === 'looked' ? { kind: 'close', key: gate.key } : null
+    render()
+  })
+
   on(root, '[data-pick]', 'click', (_event, el) => {
     if (projection === null || link === null || picks.sent) return
     const n = projection.tonight

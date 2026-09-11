@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { seatAction, seatMarkup, settlePicks, stepKeyOf, type SeatPicks } from './seat'
+import { nextGate, seatAction, seatMarkup, settlePicks, stepKeyOf, type SeatGate, type SeatPicks } from './seat'
 import { LOCALES, strings } from '../../i18n'
 import { ROLE_IDS, type RoleId } from '../../engine/roles'
 import type { PlayerId } from '../../engine/types'
@@ -124,10 +124,13 @@ describe("a player's phone at night", () => {
     // The mark is the narrator's; the local pick only bridges the round trip.
     expect(seatAction('target', {}, p, picks([]))).toEqual({ kind: 'target', target: 3 })
     expect(seatAction('target', {}, p, picks([4]))).toEqual({ kind: 'target', target: 4 })
-    // A crew member who is not the Family's step sees the same ring with no chooser.
+    // A crew member who is not the Family's step sees the plain ring every
+    // phone shows, the Family unmarked: a phone left face up between steps
+    // must read the same as its neighbour's (user, 2026-09-11).
     const asleep = seatMarkup({ ...p, tonight: { ...p.tonight!, acting: false, eligible: [] } }, 'en')
     expect(asleep).not.toContain('data-pick=')
-    expect(asleep.match(/data-crew/g)).toHaveLength(2)
+    expect(asleep).not.toContain('data-crew')
+    expect(asleep.split('data-self').length - 1).toBe(1)
   })
 
   it('waits for the narrator once an action is sent', () => {
@@ -225,10 +228,10 @@ describe("a player's phone at night", () => {
     expect(seatAction('split', {}, cult, picks([0, 1]))).toEqual({ kind: 'split', sectOne: [0, 1] })
   })
 
-  it("keeps the Detective's look on his phone, in the night's voice", () => {
+  it("shows the Detective's look in the night's voice, on the gate page after his step", () => {
     const t = strings('en')
     const p = seat(2, 'INSPECT', { step: 'GUARD', looked: { target: 0, roleId: 'CONVERT' } })
-    const html = seatMarkup(p, 'en')
+    const html = seatMarkup(p, 'en', undefined, { kind: 'looked', key: '2:INSPECT' })
     expect(html).toContain('data-looked')
     expect(html).toContain(t.ui.seat.looked('Ana'))
     expect(html).toContain(t.roles.CONVERT.name)
@@ -301,5 +304,91 @@ describe("a player's phone at night", () => {
     html = seatMarkup(day(null, { canVote: false, eligible: [] }), 'en')
     expect(html).toContain(t.ui.seat.cannotVote)
     expect(html).not.toContain('data-vote=')
+  })
+})
+
+describe('the gate around the chooser', () => {
+  const acting = (id: PlayerId, roleId: RoleId, step: RoleId, extra: Partial<SeatNight> = {}): SeatProjection =>
+    seat(id, roleId, { step, acting: true, eligible: [0, 1, 3, 4], ...extra })
+  const asleep = (id: PlayerId, roleId: RoleId, step: RoleId, extra: Partial<SeatNight> = {}): SeatProjection =>
+    seat(id, roleId, { step, acting: false, ...extra })
+
+  it('opens on "your turn" when a step becomes mine, and holds where the tap left it', () => {
+    const mine = acting(2, 'INSPECT', 'INSPECT')
+    const turn = nextGate(null, mine)
+    expect(turn).toEqual({ kind: 'turn', key: '2:INSPECT' })
+    // A repaint of the same step (the mark moved, a refusal) keeps the page.
+    expect(nextGate(turn, mine)).toBe(turn)
+    const chooser: SeatGate = { kind: 'chooser', key: '2:INSPECT' }
+    expect(nextGate(chooser, mine)).toBe(chooser)
+    // Not my step, never was: no gate at all.
+    expect(nextGate(null, asleep(3, 'GUARD', 'INSPECT'))).toBeNull()
+  })
+
+  it('tells the phone to close its eyes once its step is done, after the card for the Detective', () => {
+    const chooser: SeatGate = { kind: 'chooser', key: '2:INSPECT' }
+    const next = asleep(2, 'INSPECT', 'KILLER', { looked: { target: 0, roleId: 'CONVERT' } })
+    const looked = nextGate(chooser, next)
+    expect(looked).toEqual({ kind: 'looked', key: '2:INSPECT' })
+    // Waits for the tap through any number of repaints.
+    expect(nextGate(looked, next)).toBe(looked)
+    // Anyone else goes straight to the closing page, even from "your turn" (the narrator tapped for them).
+    expect(nextGate({ kind: 'turn', key: '2:GUARD' }, asleep(3, 'GUARD', 'INSPECT'))).toEqual({ kind: 'close', key: '2:GUARD' })
+    // A step that is mine again at once skips the closing page: the Godfather after the Family's pick.
+    expect(nextGate({ kind: 'chooser', key: '2:KILLER' }, acting(0, 'CONVERT', 'CONVERT'))).toEqual({ kind: 'turn', key: '2:CONVERT' })
+    // The morning clears everything.
+    expect(nextGate({ kind: 'close', key: '2:INSPECT' }, { ...asleep(2, 'INSPECT', 'INSPECT'), phase: 'day', tonight: null })).toBeNull()
+  })
+
+  it('shows a sentence and one button and nothing of the step, in the common screen’s own frame', () => {
+    for (const locale of LOCALES) {
+      const t = strings(locale)
+      const p = { ...acting(0, 'KILLER', 'KILLER', { view: { self: [], crew: [0, 1], doomed: [], marked: [3] } }), locale }
+      const turn = seatMarkup(p, locale, undefined, { kind: 'turn', key: '2:KILLER' })
+      expect(turn).toContain('data-gate="turn"')
+      expect(turn).toContain(t.ui.seat.yourTurn('Ana'))
+      expect(turn).toContain(t.ui.seat.proceed)
+      expect(turn.match(/data-enter/g)).toHaveLength(1)
+      expect(turn).not.toContain('data-close')
+      // The frame every phone has: the head, the card block, the ring; no chooser, no mark, no Family, no role.
+      expect(turn).toContain('mine__step')
+      expect(turn).toContain('class="seat"')
+      expect(turn).not.toContain('data-pick=')
+      expect(turn).not.toContain('data-act=')
+      expect(turn).not.toContain('data-crew')
+      expect(turn).not.toContain('data-selected')
+      expect(turn).not.toContain('data-hold')
+      for (const id of ROLE_IDS) expect(turn, id).not.toContain(t.roles[id].name)
+      expect(turn.split('data-self').length - 1).toBe(1)
+
+      const close = seatMarkup(p, locale, undefined, { kind: 'close', key: '2:KILLER' })
+      expect(close).toContain('data-gate="close"')
+      expect(close).toContain(t.ui.seat.closeEyes('Ana'))
+      expect(close.match(/data-close/g)).toHaveLength(1)
+      expect(close).not.toContain('data-pick=')
+      expect(close).not.toContain('data-crew')
+      for (const id of ROLE_IDS) expect(close, id).not.toContain(t.roles[id].name)
+
+      // The chooser itself is unchanged behind the gate.
+      const chooser = seatMarkup(p, locale, undefined, { kind: 'chooser', key: '2:KILLER' })
+      expect(chooser).toContain('data-acting')
+      expect(chooser.match(/data-crew/g)).toHaveLength(2)
+    }
+  })
+
+  it('shows the Detective the card he looked at on his closing page, and only there', () => {
+    const t = strings('en')
+    const p = asleep(2, 'INSPECT', 'KILLER', { looked: { target: 0, roleId: 'CONVERT' } })
+    const looked = seatMarkup(p, 'en', undefined, { kind: 'looked', key: '2:INSPECT' })
+    expect(looked).toContain('data-looked')
+    expect(looked).toContain(t.ui.seat.looked('Ana'))
+    expect(looked).toContain(t.roles.CONVERT.name)
+    expect(looked).toContain(t.ui.reveal.sideCrew)
+    expect(looked.match(/data-close/g)).toHaveLength(1)
+    expect(looked).not.toContain('data-pick=')
+    // The common screen after the tap carries no trace of it.
+    const common = seatMarkup(p, 'en')
+    expect(common).not.toContain('data-looked')
+    expect(common).not.toContain(t.roles.CONVERT.name)
   })
 })

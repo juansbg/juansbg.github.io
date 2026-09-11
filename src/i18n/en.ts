@@ -750,6 +750,9 @@ export const en: Strings = {
       keepCard: 'Keep your card',
       bothSpent: 'Both vials are spent.',
       looked: (name) => `You looked at ${name}`,
+      yourTurn: (name) => `${name}, it’s your turn`,
+      proceed: 'Proceed',
+      closeEyes: (name) => `Close your eyes, ${name}`,
     },
     tv: {
       title: APP_NAME,

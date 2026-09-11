@@ -394,9 +394,26 @@ narrator's: tap a seat for a `player` step (with "Nobody" where the narrator
 has it); two taps for the pair; a seat then a vial for the Apothecary, the
 vials locked the way hers are; tap the first faction then confirm for the
 Cultist; the centre's cards for the Chameleon; take him in or let the hit go
-for the Godfather; the two sides for the Associate. The Detective's phone shows
-the card he looked at, the same card the narrator held up, for the rest of the
-night. The dead see the night like everyone else and can do nothing.
+for the Godfather; the two sides for the Associate. The dead see the night like
+everyone else and can do nothing.
+
+**The gate around the chooser** (user, 2026-09-11). Eyes that open a moment
+early must read nothing off a neighbour's phone, so the chooser is never the
+first thing the acting phone shows. When the step becomes this seat's, the
+phone shows "[Name], it's your turn" and one button; the chooser comes only
+on the tap; once the step is done, by this phone, another Family phone or the
+narrator, it shows "Close your eyes, [Name]" and one button, and the tap
+returns it to the common screen. The Detective gets the card he looked at as
+the page before "close your eyes", in the night's dark voice, and nowhere
+else. The gate pages are the common screen with one sentence changed: the
+same head, the same card block, the same plain ring, the one button where
+the hold bar sits, so from across the table the acting phone is the same
+shape and light as every other. For the same reason the ring between steps is
+plain on every phone, the Family's included: what a role knows of the table
+is drawn only while it is choosing. `nextGate` in `screens/seat.ts` is the
+rule; a step that is mine again at once (the Godfather after the Family's
+pick) skips the closing page. The narrator's device remains the fallback for
+anyone who would rather open their eyes and say their pick aloud.
 
 By day nothing changes but polish: after voting, the phone says it is waiting
 for the others; while the narrator counts, that the count is with the narrator.
@@ -420,7 +437,10 @@ otherwise.
    Nothing advances on a timer.
 4. Mixed tables are first class: a seat without a phone plays as today.
 5. The ballot stays sealed with a live count; Reveal shows counts, never
-   voters.
+   voters. Decision 3 of §0 is now literally true (2026-09-11, Session B):
+   Reveal lands the ballots one at a time in suspense order, the TV shows
+   who has cast a ballot and a running figure, and the count ends on "The
+   town points at …" with the execution still the narrator's tap.
 
 ### 10.7 Who builds what
 

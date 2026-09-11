@@ -750,6 +750,9 @@ export const es: Strings = {
       keepCard: 'Quedarte con tu carta',
       bothSpent: 'Las dos pócimas están gastadas.',
       looked: (name) => `Has mirado a ${name}`,
+      yourTurn: (name) => `${name}, te toca`,
+      proceed: 'Continuar',
+      closeEyes: (name) => `Cierra los ojos, ${name}`,
     },
     tv: {
       title: APP_NAME,
