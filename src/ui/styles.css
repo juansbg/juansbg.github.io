@@ -3165,6 +3165,118 @@ html[data-dawn] body {
   display: none;
 }
 
+/* Everything on a TV is read from a sofa. The phone's caps (a 7rem tile, an
+   18px name, a 2.5rem clock) are a phone's; here the tile grows with the
+   screen up to 14rem, every label scales with the smaller side of the
+   screen (vmin), nothing on it is muted, and the reading takes the whole
+   screen the way the phone's own dawn slide does. The paper's own TV scale
+   is beside it above. */
+.stage--tv .circle {
+  /* The ring takes the screen's smaller side; the tile grows with it (a
+     4K monitor at 100% is twice a 1080p screen in CSS px, a 4K TV is not). */
+  --avail: max(min(100cqw, 100cqh, 90vmin), 9rem);
+  --seat: clamp(
+    3.5rem,
+    min(calc(var(--avail) * 0.31), calc(var(--avail) * var(--gap) / (sqrt(2) + var(--gap)))),
+    20vmin
+  );
+}
+
+.stage--tv .seat {
+  padding: 4px;
+}
+
+.stage--tv .seat__name {
+  font-size: clamp(
+    1rem,
+    min(calc(var(--seat) * 0.22), calc((var(--seat) - 16px) / (var(--len, 6) * 0.47))),
+    8rem
+  );
+  max-width: calc(var(--seat) - 10px);
+}
+
+.stage--tv .seat__n {
+  top: 6px;
+  left: 8px;
+  font-size: clamp(0.75rem, calc(var(--seat) * 0.1), 2.5rem);
+  color: var(--fg-2);
+}
+
+.stage--tv .seat__flag {
+  width: 2rem;
+  height: 2rem;
+  font-size: 1.1rem;
+}
+
+.stage--tv .seat__votes {
+  --badge: clamp(1.5rem, calc(var(--seat) * 0.3), 3rem);
+  font-size: clamp(0.875rem, calc(var(--badge) * 0.55), 1.75rem);
+}
+
+.stage--tv .seat[data-dead]::after {
+  height: 4px;
+}
+
+.stage--tv .tableview__head .label {
+  color: var(--fg);
+  font-size: clamp(1.5rem, 3.5vmin, 3rem);
+}
+
+.stage--tv .tableview__voted {
+  color: var(--fg-2);
+  font-size: clamp(1.25rem, 2.5vmin, 2.25rem);
+}
+
+.stage--tv .tableview__winner {
+  font-size: clamp(2rem, 5vmin, 4.5rem);
+}
+
+.stage--tv .clock__label {
+  color: var(--fg-2);
+  font-size: clamp(1rem, 2vmin, 1.75rem);
+}
+
+.stage--tv .clock__digits {
+  font-size: clamp(2.5rem, 7vmin, 6rem);
+}
+
+/* The reading fills the TV: a death paints the whole screen Vendetta. */
+.stage--tv .tableview__card {
+  position: fixed;
+  inset: 0;
+  width: auto;
+  max-width: none;
+  height: auto;
+  margin: 0;
+  padding: 6vmin 8vmin;
+  border: 0;
+  align-content: center;
+  justify-items: start;
+  gap: 3vmin;
+}
+
+.stage--tv .tableview__card .dawn__counter {
+  font-size: clamp(1.25rem, 2.5vmin, 2.5rem);
+}
+
+.stage--tv .tableview__card .dawn__mark {
+  width: 8vmin;
+  height: 8vmin;
+  margin: 0;
+  font-size: 4vmin;
+}
+
+.stage--tv .tableview__card .dawn__name {
+  font-size: clamp(6rem, 18vmin, 16rem);
+  text-align: left;
+}
+
+.stage--tv .tableview__card .dawn__line {
+  max-width: 28ch;
+  font-size: clamp(2rem, 4vmin, 4rem);
+  text-align: left;
+}
+
 /* Two codes on the sheet: one for the players, one for the TV. */
 .room__qrs {
   display: grid;

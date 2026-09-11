@@ -241,6 +241,13 @@ Rules:
   Vendetta strike, and the record night by night in Plex. Red on newsprint
   stays a rule or a strike. The shared image is the same page drawn on a
   canvas with the same faces and colours.
+- **The TV.** `.stage--tv` (`tv.html`) is the same table read from a
+  sofa: the ring takes 90vmin, a tile grows to 20vmin, the name inside it
+  to 8rem, the caption and the clock scale with vmin and nothing on the
+  screen is muted ink. The reading fills the whole screen, as the phone's
+  own dawn slide does, and a death paints the whole TV Vendetta. The
+  paper has its own TV scale beside it. Only the caps change; the phone's
+  rules and the projection are the same.
 
 ## Sound
 
