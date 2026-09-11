@@ -28,7 +28,8 @@ import { detectLocale, strings } from '../i18n'
 import { accentOf } from './accent'
 import { buzz, esc, on, swap } from './dom'
 import { sound, unlockOnGesture } from './sound'
-import { clear, clearRoster, load, loadRoster, loadTimer, recordGame, save, saveRoster, saveTimer, type AppState } from './store'
+import { clear, clearRoster, clearStats, load, loadRoster, loadStats, loadTimer, recordGame, save, saveRoster, saveTimer, type AppState } from './store'
+import { statsMarkup } from './screens/stats'
 import { summarise } from '../engine/summary'
 import { editorMarkup, MAX_PLAYERS, MIN_PLAYERS, namesMarkup, rosterMarkup } from './screens/setup'
 import { dealRoles, systemRandom, type Complexity } from '../engine/deal'
@@ -330,6 +331,8 @@ let dawnKind: Reading = 'dawn'
  * the town while it is read.
  */
 let paperOpen = false
+/** The ledger is up: the record of finished games, opened from ⋯. */
+let statsOpen = false
 const currentSlides = (): Slide[] =>
   (dawnKind === 'verdict' ? verdictSlides : dawnSlides)(state.session.current, state.locale)
 /** The overflow sheet behind the ⋯ button. */
@@ -339,7 +342,7 @@ let menuOpen = false
  * flashes a white system dialog, which in a dark room is a torch in the
  * face; this is the same question asked on our own sheet.
  */
-type Pending = 'restart' | 'clearNames' | 'finish'
+type Pending = 'restart' | 'clearNames' | 'finish' | 'clearStats'
 let confirming: Pending | null = null
 /** The browser's deferred install prompt, when it has offered one. */
 let installPrompt: InstallPromptEvent | null = null
@@ -519,6 +522,8 @@ function render(entering = false): void {
     body = questionCardMarkup(askingPlayer, state.locale, position, total)
   } else if (askIntro && flaggedNow.length > 0) {
     body = questionsIntroMarkup(flaggedNow, state.locale)
+  } else if (statsOpen) {
+    body = statsMarkup(loadStats(), state.locale)
   } else if (tableView) {
     // The room's screen wins over every screen of the narrator's, the lobby included.
     body = tableMarkup(projectionNow())
@@ -678,6 +683,7 @@ function render(entering = false): void {
     if (dawn !== null) return ''
     // The paper, likewise: the phone may be facing the town.
     if (paperOpen) return ''
+    if (statsOpen) return ''
     // The whole room is looking at the screen.
     if (tableView) return ''
     // A player is looking at the screen: the timeline would show them every
@@ -761,6 +767,7 @@ function render(entering = false): void {
       restart: { question: t.ui.menu.restartConfirm, action: t.ui.common.restart },
       clearNames: { question: t.ui.setup.clearConfirm, action: t.ui.setup.clearNames },
       finish: { question: t.ui.menu.endGameConfirm, action: t.ui.over.finishNow },
+      clearStats: { question: t.ui.stats.clearConfirm, action: t.ui.stats.clear },
     }[pending]
     return `
       <div class="sheet" data-sheet>
@@ -834,6 +841,7 @@ function render(entering = false): void {
       inPlay || room !== null ? row('data-show-table', t.ui.menu.table) : '',
       state.screen === 'day' ? row('data-show-role', t.ui.reveal.showAgain) : '',
       row('data-mute', t.ui.menu.sound, sound.muted() ? t.ui.menu.off : t.ui.menu.on),
+      row('data-stats', t.ui.stats.open),
       installPrompt ? row('data-install', t.ui.menu.install) : '',
       inPlay ? row('data-finish', t.ui.over.finishNow, '', true) : '',
       restartable ? row('data-reset', t.ui.common.restart, '', true) : '',
@@ -934,6 +942,10 @@ function bind(): void {
     if (pending === 'restart') reset()
     else if (pending === 'clearNames') clearNames()
     else if (pending === 'finish') finish()
+    else if (pending === 'clearStats') {
+      clearStats()
+      setState({}, false)
+    }
   })
 
   function ask(pending: Pending): void {
@@ -1596,6 +1608,20 @@ function bind(): void {
     paperOpen = false
     setState({})
   })
+
+  // The ledger, from ⋯: a full screen with its own Done, over whatever the
+  // game is showing, and the record can be wiped from it after a question.
+  on(root, '[data-stats]', 'click', () => {
+    menuOpen = false
+    statsOpen = true
+    buzz()
+    setState({})
+  })
+  on(root, '[data-stats-close]', 'click', () => {
+    statsOpen = false
+    setState({})
+  })
+  on(root, '[data-stats-clear]', 'click', () => ask('clearStats'))
 
   on(root, '[data-next-night]', 'click', () => {
     leaveDay()

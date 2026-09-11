@@ -85,7 +85,8 @@ body {
 .inspect__role,
 .dawn__name,
 .paper__headline,
-.paper__banner {
+.paper__banner,
+.ledger__name {
   font-family: var(--font-display);
   font-weight: 400;
   letter-spacing: var(--track-display);
@@ -3550,4 +3551,88 @@ html[data-dawn] body {
    without a notch. */
 .screen--names {
   padding-top: var(--space-3);
+}
+
+/* ---------- The ledger: statistics across games ---------- */
+
+/* The timeline's voice: ledger lines under hairlines on the dark ground,
+   figures in mono with their label in muted ink. The list scrolls inside
+   the screen; the page does not. */
+.screen--stats {
+  gap: var(--space-3);
+}
+
+.ledger__head {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.ledger {
+  display: flex;
+  flex: 1 1 0;
+  flex-direction: column;
+  gap: var(--space-4);
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.ledger__table {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2) var(--space-4);
+  margin: 0;
+  padding: var(--space-3) 0;
+  border-top: 1px solid var(--hairline-strong);
+  border-bottom: 1px solid var(--hairline-strong);
+  font-size: var(--text-sm);
+}
+
+.ledger__fig {
+  color: var(--fg-muted);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.ledger__fig b {
+  color: var(--fg);
+  font-weight: 500;
+}
+
+.ledger__names {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.ledger__row {
+  display: grid;
+  grid-template-columns: minmax(5rem, 7rem) 1fr;
+  gap: var(--space-1) var(--space-3);
+  align-items: baseline;
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--hairline);
+}
+
+.ledger__name {
+  font-size: var(--text-display-min);
+  overflow-wrap: anywhere;
+}
+
+.ledger__figs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  font-size: var(--text-xs);
+}
+
+.ledger__empty {
+  margin: 0;
+  color: var(--fg-2);
+}
+
+.ledger__clear {
+  flex: none;
+  align-self: flex-start;
 }

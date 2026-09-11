@@ -348,6 +348,17 @@ export const es: Strings = {
       finishNow: 'Terminar la partida',
       history: 'Toda la partida',
     },
+    stats: {
+      open: 'Estadísticas',
+      title: 'El registro',
+      games: (n) => (n === 1 ? '1 partida' : `${n} partidas`),
+      since: (date) => `desde el ${date}`,
+      empty: 'En este móvil aún no ha terminado ninguna partida. El registro se irá llenando.',
+      table: { town: 'gana el pueblo', family: 'gana la Familia', pair: 'el amarre', martyr: 'el Mártir', nights: 'noches por partida', looks: 'aciertos del Detective' },
+      columns: { games: 'partidas', wins: 'ganadas', family: 'Familia', hanged: 'horca', killed: 'de noche', survived: 'en pie' },
+      clear: 'Borrar el registro',
+      clearConfirm: '¿Borrar el registro? Se olvidan todas las partidas terminadas en este móvil. Los nombres se guardan.',
+    },
     paper: {
       title: 'El periódico de la mañana',
       edition: (nights, players) =>

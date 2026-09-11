@@ -282,6 +282,24 @@ export interface Strings {
       history: string
     }
     /** The game-over front page, on screen and as the shared image. */
+    /** The ledger: the record of finished games, added up. */
+    stats: {
+      /** The row in ⋯. */
+      open: string
+      /** The screen's title. */
+      title: string
+      games: (n: number) => string
+      /** …after the count: the date of the earliest game in the record, already formatted. */
+      since: (date: string) => string
+      /** No game has ended on this phone yet. */
+      empty: string
+      /** The table's line: wins by side, nights a game, the Detective's hits over looks. */
+      table: { town: string; family: string; pair: string; martyr: string; nights: string; looks: string }
+      /** The figures after each name. */
+      columns: { games: string; wins: string; family: string; hanged: string; killed: string; survived: string }
+      clear: string
+      clearConfirm: string
+    }
     paper: {
       title: string
       /** The dateline under the masthead: how many nights, how many at the table. */

@@ -225,6 +225,15 @@ Rules:
   a bare +1. No red anywhere in it: a vote is the town's, and only the
   execution it leads to is lethal.
 
+- **The ledger.** `.screen--stats` (`src/ui/screens/stats.ts`) is the
+  record of finished games added up, in the timeline's voice: the dark
+  ground, a Bebas title with a mono dateline (how many games, since when),
+  the table's line between two strong hairlines (figures in Ledger mono,
+  their labels in muted mono), then one row per name under a hairline, the
+  name in Bebas at the display minimum and its figures wrapping beside it.
+  No colour but ink: a win, a hanging and a night death are numbers here,
+  not a side. It scrolls inside the screen, closes with its own Done, and
+  ends with a ghost "Clear the ledger" that asks first.
 - **The town's paper.** `.paper` (`src/ui/screens/paper.ts`) is newsprint:
   the app's name as a masthead in Bebas at the hero size over a double
   rule, with the register ticks in its top corners (a newspaper is a

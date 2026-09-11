@@ -348,6 +348,17 @@ export const en: Strings = {
       finishNow: 'End the game',
       history: 'The whole game',
     },
+    stats: {
+      open: 'Statistics',
+      title: 'The ledger',
+      games: (n) => (n === 1 ? '1 game' : `${n} games`),
+      since: (date) => `since ${date}`,
+      empty: 'No game has ended on this phone yet. The ledger fills in as they do.',
+      table: { town: 'town wins', family: 'Family wins', pair: 'the pair', martyr: 'the Martyr', nights: 'nights a game', looks: 'Detective hits' },
+      columns: { games: 'games', wins: 'wins', family: 'Family', hanged: 'hanged', killed: 'killed', survived: 'stood' },
+      clear: 'Clear the ledger',
+      clearConfirm: 'Clear the ledger? Every finished game on this phone is forgotten. The names are kept.',
+    },
     paper: {
       title: 'The morning paper',
       edition: (nights, players) =>
