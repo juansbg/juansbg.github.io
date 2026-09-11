@@ -3443,6 +3443,61 @@ html[data-dawn] body {
   border: 1px solid var(--hairline-strong);
 }
 
+/* ---------- Wide screens: the table beside the card ---------- */
+/* A tablet in either hand and a laptop window. From 600px the ring may use
+   the column it has (the phone's 24.5rem cap kept an iPad's circle the size
+   of a phone's). From 900px — an iPad on its side, a laptop — the night, the
+   day, the roster and the player's view set the table on the left, sized
+   from the height, and everything else (the head, the card or the report,
+   the question, the action) stacked on the right in the phone's own column,
+   the action at the bottom, so the propped-up tablet is a table and not a
+   phone with a margin. The bar stays full width beneath. */
+@media (min-width: 600px) {
+  .circle {
+    --avail: max(min(100cqw, 100cqh, 34rem), 9rem);
+  }
+}
+
+@media (min-width: 900px) {
+  :is(.screen--night, .screen--day, .screen--roster, .screen--view) {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(22rem, 34rem);
+    grid-template-rows: repeat(11, auto) minmax(0, 1fr);
+    gap: var(--space-3) var(--space-6);
+    max-width: 90rem;
+    height: 100%;
+  }
+
+  :is(.screen--night, .screen--day, .screen--roster, .screen--view) > * {
+    grid-column: 2;
+  }
+
+  :is(.screen--night, .screen--day, .screen--roster, .screen--view) > .table {
+    grid-column: 1;
+    grid-row: 1 / -1;
+    height: 100%;
+    min-height: 0;
+  }
+
+  :is(.screen--night, .screen--day, .screen--roster, .screen--view) > .actions {
+    grid-row: 12;
+    align-self: end;
+  }
+
+  :is(.screen--night, .screen--day, .screen--roster, .screen--view) .circle {
+    --avail: max(min(100cqw, 100cqh, 48rem), 9rem);
+    --seat: clamp(
+      3.5rem,
+      min(calc(var(--avail) * 0.31), calc(var(--avail) * var(--gap) / (sqrt(2) + var(--gap)))),
+      10rem
+    );
+  }
+
+  .table--compact {
+    height: 100%;
+  }
+}
+
 /* ---------- Short phones ---------- */
 /* A short phone (an SE, an 8, a mini, or any phone with the keyboard bar
    up): the prompt and the report give a little so the circle keeps its

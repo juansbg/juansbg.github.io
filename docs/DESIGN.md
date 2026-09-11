@@ -248,6 +248,14 @@ Rules:
   own dawn slide does, and a death paints the whole TV Vendetta. The
   paper has its own TV scale beside it. Only the caps change; the phone's
   rules and the projection are the same.
+- **Wide screens.** From 600px the ring may use the column it has
+  (34rem instead of the phone's 24.5rem cap), so an iPad held upright gets
+  7rem tiles. From 900px — an iPad on its side, a laptop — the night, the
+  day, the roster and the player's view set the table on the left, sized
+  from the height with tiles up to 10rem, and everything else in the
+  phone's own column on the right with the action at the bottom. The bar
+  stays full width beneath. A propped-up tablet is a table, not a phone
+  with a margin.
 
 ## Sound
 
