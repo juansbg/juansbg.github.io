@@ -384,12 +384,11 @@ export const dayMarkup = (
   // come back with the same toggle the night uses, for the narrator only.
   return `
     <section class="screen screen--day">
-      <header class="screen__head">
-        <h1 class="title title--sm">${esc(t.phase.townWakes)}</h1>
+      <header class="screen__head screen__head--stacked">
+        <h1 class="title">${esc(t.phase.townWakes)}</h1>
         <div class="screen__tools">
           <button class="icon-btn icon-btn--word" type="button" data-peek aria-pressed="${peek}">${esc(peek ? t.ui.night.hideRoles : t.ui.night.showRoles)}</button>
-          <button class="icon-btn" type="button" data-dawn-play aria-label="${esc(t.ui.dawn.play)}" title="${esc(t.ui.dawn.play)}">▶</button>
-          <button class="icon-btn" type="button" data-paper-open aria-label="${esc(t.ui.paper.open)}" title="${esc(t.ui.paper.open)}">¶</button>
+          <button class="icon-btn icon-btn--word" type="button" data-dawn-play title="${esc(t.ui.dawn.play)}">${esc(t.ui.day.morning)}</button>
           <button class="icon-btn" type="button" data-undo aria-label="${esc(t.ui.common.undo)}" title="${esc(t.ui.common.undo)}">↶</button>
         </div>
       </header>

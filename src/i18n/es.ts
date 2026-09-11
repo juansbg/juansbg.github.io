@@ -248,6 +248,7 @@ export const es: Strings = {
       nobody: 'Nadie muere hoy',
       nextNight: 'Cae la noche',
       silencedToday: (name) => `${name} no puede hablar ni votar hoy`,
+      morning: 'La mañana',
       votes: 'Votos',
       voteHint: 'Toca a quien vota y luego a quien elige. Toca otra vez a quien vota para retirarlo.',
       pickFor: (name) => `${name} vota a…`,
@@ -355,7 +356,6 @@ export const es: Strings = {
       share: 'Compartir',
       cannotShare: 'Este navegador no puede dibujar la página. Una captura de pantalla sirve.',
       holdHint: 'Mantén pulsada la imagen para guardarla o compartirla',
-      open: 'Leer el periódico',
       daily: (day) => `Edición de la mañana · Día ${day}`,
       side: { town: 'El pueblo', crew: 'La Familia' },
       headline: {

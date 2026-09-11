@@ -248,6 +248,7 @@ export const en: Strings = {
       nobody: 'Nobody dies today',
       nextNight: 'Night falls',
       silencedToday: (name) => `${name} cannot speak or vote today`,
+      morning: 'Morning',
       votes: 'Votes',
       voteHint: 'Tap the voter, then their pick. Tap the voter again to take it back.',
       pickFor: (name) => `${name} votes for…`,
@@ -355,7 +356,6 @@ export const en: Strings = {
       share: 'Share',
       cannotShare: 'This browser cannot draw the page. A screenshot will do.',
       holdHint: 'Press and hold the image to save or share it',
-      open: 'Read the paper',
       daily: (day) => `Morning edition · Day ${day}`,
       side: { town: 'The town', crew: 'The Family' },
       headline: {

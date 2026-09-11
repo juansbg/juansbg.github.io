@@ -153,6 +153,22 @@ body {
   min-height: var(--touch);
 }
 
+/* The day's head is two rows: the title alone at the display size, the
+   tools right-aligned beneath it. Four squares beside a title left it a
+   108px column and two lines at 375px. */
+.screen__head--stacked {
+  flex-wrap: wrap;
+  row-gap: var(--space-1);
+}
+
+.screen__head--stacked .title {
+  flex: 1 0 100%;
+}
+
+.screen__head--stacked .screen__tools {
+  margin-left: auto;
+}
+
 /* A title sharing its row with tools must stay on one line in Spanish too. */
 .screen__head .title {
   font-size: clamp(1.5rem, 7vw, 2.5rem);
@@ -162,14 +178,11 @@ body {
    title measures 181px against the 149px left beside "Papeles" on a 375px
    phone. At the display floor it still runs a hair over and takes two
    lines there, which the 48px head holds without growing. */
-.screen--day .screen__head .title {
-  font-size: clamp(1.25rem, 5.5vw, 2.5rem);
-}
 
 .screen__tools {
   display: flex;
   flex: none;
-  gap: var(--space-1);
+  gap: var(--space-2);
 }
 
 /* A section label: a mono eyebrow. One voice for "what happened", "who does
@@ -2606,7 +2619,7 @@ html[data-dawn] body {
    block. No red: the clock is not lethal, the vote after it is. */
 .clock {
   display: flex;
-  gap: var(--space-1);
+  gap: var(--space-2);
 }
 
 .clock__face {

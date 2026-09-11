@@ -230,6 +230,8 @@ export interface Strings {
       nobody: string
       nextNight: string
       silencedToday: (name: string) => string
+      /** The one word button on the day head: replays the reading and lands on the paper. */
+      morning: string
       /** The Votes toggle beside the execution question. */
       votes: string
       /** How to record a vote, shown while nobody is armed. */
@@ -290,8 +292,6 @@ export interface Strings {
       cannotShare: string
       /** Over the image shown where the browser has no share sheet for files. */
       holdHint: string
-      /** Accessible name of the button on the day screen that opens the day's edition. */
-      open: string
       /** The dateline of a morning edition. */
       daily: (day: number) => string
       /** A side, as the paper names it on an investigation. */
