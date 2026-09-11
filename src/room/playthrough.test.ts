@@ -34,6 +34,15 @@ const forbid = (html: string, word: string, why: string): void => {
   }
 }
 
+/** The same, but the word whole: a trade must not be caught inside another word. */
+const forbidWord = (html: string, word: string, why: string): void => {
+  if (word === '') return
+  const escaped = word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  if (new RegExp(`(^|[^\\p{L}])${escaped}(?=[^\\p{L}]|$)`, 'u').test(html)) {
+    throw new Error(`${why}: "${word}" is on screen\n${html.slice(0, 400)}`)
+  }
+}
+
 const checkTv = (state: GameState, locale: Locale, sealed: boolean): void => {
   const t = strings(locale)
   const p = tvProjection(state, locale, { sealed })
@@ -163,18 +172,33 @@ const checkSeats = (state: GameState, locale: Locale): void => {
     expect(html).toContain(me.name)
     // Once the game is over the winner line may name a role ("The Martyr wins").
     const winnerLine = win === null ? '' : (renderWinner(win, locale) ?? '')
+    // What a phone may say of a role at night, on purpose (docs/BIG-SCREEN.md
+    // §10): the step being read is on every phone, since the narrator says it
+    // aloud; the centre's cards are on the Chameleon's at his step; the card
+    // the Detective looked at is on his for the rest of the night.
+    const spoken = new Set<string>()
+    if (p.tonight?.step) spoken.add(t.roles[p.tonight.step].name)
+    for (const id of p.tonight?.spare ?? []) spoken.add(t.roles[id].name)
+    if (p.tonight?.looked) spoken.add(t.roles[p.tonight.looked.roleId].name)
+    // A phone that sees the Family is the Family's: the faction's name (the
+    // killers' card is named for it) may be on it, as on the held card.
+    if ((p.tonight?.view.crew.length ?? 0) > 0) spoken.add(t.roles.KILLER.name)
     // Nobody else's role or trade, unless it happens to be the same as mine.
     for (const other of state.players) {
       if (other.id === me.id) continue
       const otherRole = t.roles[other.roleId].name
-      if (other.roleId !== me.roleId && !winnerLine.includes(otherRole)) forbid(html, otherRole, `'s phone names 's role`)
+      if (other.roleId !== me.roleId && !winnerLine.includes(otherRole) && !spoken.has(otherRole)) {
+        forbid(html, otherRole, `'s phone names 's role`)
+      }
       if (other.trade !== null && other.trade !== me.trade) {
-        forbid(html, t.trades[other.trade] ?? '', `${me.name}'s phone names ${other.name}'s trade`)
+        // As a word: the Apothecary's "Curar" is not the priest ("Cura").
+        forbidWord(html, t.trades[other.trade] ?? '', `${me.name}'s phone names ${other.name}'s trade`)
       }
     }
-    // The screen itself never shows my role either; only the held card does.
-    if (state.players.some((o) => o.id !== me.id && o.roleId !== me.roleId) || true) {
-      if (!winnerLine.includes(t.roles[me.roleId].name)) expect(html, `'s role is on screen without a hold`).not.toContain(t.roles[me.roleId].name)
+    // The screen itself never shows my role either; only the held card does —
+    // unless it is the step being read, which every phone shows alike.
+    if (!winnerLine.includes(t.roles[me.roleId].name) && !spoken.has(t.roles[me.roleId].name)) {
+      expect(html, `'s role is on screen without a hold`).not.toContain(t.roles[me.roleId].name)
     }
     const card = roleCardMarkup(seatPlayer(p), locale)
     expect(card).toContain(t.roles[me.roleId].name)

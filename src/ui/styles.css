@@ -3383,6 +3383,71 @@ html[data-dawn] body {
   background: color-mix(in oklab, var(--fg) 14%, transparent);
 }
 
+/* The night on a phone (docs/BIG-SCREEN.md §10). Every phone: the step's card,
+   the plain ring, the hold shrunk to a bar at the bottom; the acting phone
+   adds the prompt, the hint and the action row under the ring. The held card
+   lands over the whole screen instead of in a stage of its own, so the ring
+   keeps the height. */
+.mine--night {
+  position: relative;
+  gap: var(--space-3);
+}
+
+.mine--night .mine__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: var(--space-2);
+}
+
+.mine--night .mine__head .title {
+  font-size: var(--text-lg);
+}
+
+.mine__step,
+.mine__looked {
+  flex: none;
+}
+
+.mine__step .night__counter,
+.mine__looked .night__counter {
+  margin-bottom: var(--space-1);
+}
+
+.mine__looked .card__aside {
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+}
+
+.mine__hint {
+  text-align: center;
+}
+
+.mine__card {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  background: var(--bg);
+}
+
+.mine--night .reveal__hold {
+  min-height: var(--touch);
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-display-min);
+}
+
+.mine--night .reveal__hold-label {
+  max-width: none;
+}
+
+/* An action is on its way: the row waits for the narrator's answer. */
+.mine--night[data-sent] .actions,
+.mine--night[data-sent] .card__potion {
+  opacity: 0.55;
+}
+
 /* ---------- The lobby on the big screen ---------- */
 .screen--lobby {
   display: grid;

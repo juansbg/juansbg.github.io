@@ -1,7 +1,10 @@
 // A player's phone. Joins the room with a name, keeps a key pair the relay
 // never sees, and renders the one projection sealed for this seat: the card
-// under a hold, the vote by day, "you are out" after. Same fonts, tokens and
-// card as the narrator's phone; none of the narrator's handlers.
+// under a hold, the night step by step with the chooser on the acting seat's
+// phone alone (docs/BIG-SCREEN.md §10), the vote by day, "you are out" after.
+// Same fonts, tokens and card as the narrator's phone; none of the narrator's
+// handlers. The narrator validates every action and answers with the seat's
+// projection, so nothing here assumes a tap landed.
 import '@fontsource/bebas-neue/latin-400.css'
 import '@fontsource/ibm-plex-sans/latin-400.css'
 import '@fontsource/ibm-plex-sans/latin-500.css'
@@ -14,9 +17,12 @@ import { detectLocale, strings, type Locale } from './i18n'
 import { exportKeys, importKeys, makeKeys, sharedKey, unseal, type KeyPair } from './room/crypto'
 import { PlayerLink, parseFragment, type LinkStatus } from './room/client'
 import type { SeatProjection } from './room/projections'
+import type { PlayerId } from './engine/types'
+import { ROLES } from './engine/roles'
+import { fitTables } from './ui/screens/circle'
 import { bindHold, roleCardMarkup } from './ui/screens/reveal'
-import { seatCenter as center, seatMarkup, seatPlayer } from './ui/screens/seat'
-import { esc, on } from './ui/dom'
+import { seatAction, seatCenter as center, seatMarkup, seatPlayer, settlePicks, stepKeyOf, type SeatPicks } from './ui/screens/seat'
+import { buzz, esc, on } from './ui/dom'
 
 const root = document.querySelector<HTMLDivElement>('#app')
 if (!root) throw new Error('#app missing')
@@ -65,6 +71,10 @@ let refused = false
 let projection: SeatProjection | null = null
 let link: PlayerLink | null = null
 let releaseHold: (() => void) | null = null
+/** The seats picked at this step and whether an action is on its way; see SeatPicks. */
+let picks: SeatPicks = { picked: [], sent: false }
+/** Which night and step the picks belong to: a new step starts clean. */
+let stepKey = ''
 
 // ---- Rendering ---------------------------------------------------------------
 
@@ -99,7 +109,7 @@ const render = (): void => {
   } else if (projection === null) {
     body = center(`<p class="label">${esc(s.title)}</p><h1 class="title title--sm">${esc(s.joined(name))}</h1><p class="subtitle">${esc(s.waiting)}</p>`)
   } else {
-    body = seatMarkup(projection, locale)
+    body = seatMarkup(projection, locale, picks)
   }
 
   root.innerHTML = `
@@ -107,7 +117,9 @@ const render = (): void => {
     ${joined && status !== 'open' ? `<p class="tv__status">${esc(t.ui.tv.reconnecting)}</p>` : ''}
   `
 
+  fitTables(root)
   bind()
+  keepAwake()
   if (projection?.roleId) {
     const p = projection
     releaseHold = bindHold(root, {
@@ -144,8 +156,31 @@ const applySealed = async (payload: string): Promise<void> => {
     joined = true
     refused = false
     remember(nameKey, parsed.name)
+    picks = settlePicks(parsed, picks, stepKey)
+    stepKey = stepKeyOf(parsed)
   }
   render()
+}
+
+// ---- The screen stays lit through the night ---------------------------------
+// Every phone shows the same night at every step, and a phone that went dark
+// would say its owner is not awake. The lock is asked for once a projection is
+// up and again whenever the page comes back to the front; a browser without
+// it just falls back to its own timeout.
+
+let wakeLock: WakeLockSentinel | null = null
+
+const keepAwake = (): void => {
+  if (projection === null || document.hidden || !('wakeLock' in navigator)) return
+  if (wakeLock !== null && !wakeLock.released) return
+  navigator.wakeLock.request('screen').then(
+    (lock) => {
+      wakeLock = lock
+    },
+    () => {
+      wakeLock = null
+    },
+  )
 }
 
 const sendJoin = (): void => {
@@ -202,7 +237,49 @@ const bind = (): void => {
     const target = Number(el.dataset['vote'])
     link.send({ kind: 'vote', target: projection.vote === target ? null : target })
   })
+
+  // ---- The night: a seat tapped, then an action sent ----
+  on(root, '[data-pick]', 'click', (_event, el) => {
+    if (projection === null || link === null || picks.sent) return
+    const n = projection.tonight
+    if (n === null || n.step === null || !n.acting) return
+    const id = Number(el.dataset['pick']) as PlayerId
+    const kind = ROLES[n.step].target.kind
+    buzz()
+    if (kind === 'player' || kind === 'potion') {
+      // One seat at a time; the same seat again takes the pick back. On a
+      // player step the pick is also the mark every Family phone sees.
+      const marked = picks.picked.length > 0 ? picks.picked : kind === 'player' ? n.view.marked : []
+      const off = marked.includes(id)
+      picks = { picked: off ? [] : [id], sent: false }
+      if (kind === 'player') link.send({ kind: 'mark', target: off ? null : id })
+    } else {
+      // The pair and the split collect seats; tapping one again drops it.
+      picks = {
+        picked: picks.picked.includes(id) ? picks.picked.filter((x) => x !== id) : [...picks.picked, id],
+        sent: false,
+      }
+    }
+    render()
+  })
+
+  on(root, '[data-act]', 'click', (_event, el) => {
+    if (projection === null || link === null || picks.sent) return
+    const action = seatAction(
+      el.dataset['act'] ?? '',
+      { potion: el.dataset['potion'], role: el.dataset['role'] },
+      projection,
+      picks,
+    )
+    if (action === null) return
+    buzz()
+    link.send({ kind: 'act', action })
+    picks = { picked: picks.picked, sent: true }
+    render()
+  })
 }
+
+window.addEventListener('resize', () => fitTables(root))
 
 // A background tab or a dropped finger must never leave a card on screen.
 document.addEventListener('visibilitychange', () => {
@@ -210,6 +287,8 @@ document.addEventListener('visibilitychange', () => {
     const slot = root.querySelector('[data-card]')
     if (slot) slot.innerHTML = ''
     document.body.classList.remove('is-revealing')
+  } else {
+    keepAwake()
   }
 })
 

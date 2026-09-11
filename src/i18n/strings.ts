@@ -427,9 +427,23 @@ export interface Strings {
       /** Under the label once a vote is cast: how to take it back. */
       yourVote: string
       cannotVote: string
+      /** Under the ballot once the vote is cast: the phone is done for now. */
+      voted: string
       out: string
       refused: string
       refusedBody: string
+      /** The night on a phone (docs/BIG-SCREEN.md §10): the acting seat's chooser. */
+      yourMove: string
+      familyMark: string
+      /** An action went out and the narrator has not answered yet. */
+      sent: string
+      convertOffer: (name: string) => string
+      joinCrew: string
+      stayTown: string
+      keepCard: string
+      bothSpent: string
+      /** The Detective's card on his own phone, for the rest of the night. */
+      looked: (name: string) => string
     }
     /** The TV page, before and between projections. */
     tv: {

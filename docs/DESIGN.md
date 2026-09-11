@@ -259,6 +259,25 @@ Rules:
   Vendetta strike, and the record night by night in Plex. Red on newsprint
   stays a rule or a strike. The shared image is the same page drawn on a
   canvas with the same faces and colours.
+- **A player's night.** `.mine--night` (`src/ui/screens/seat.ts`) is the
+  phone in a player's hand while the narrator reads the night
+  (`docs/BIG-SCREEN.md` §10). Every phone shows the same screen at every
+  step, so a lit phone never says who is awake: the seat and the name on one
+  line, the step's card in the night card's shape (a mono "Night 3" eyebrow,
+  the role being read in Bebas, its sigil in Neon top-right), the ring
+  through the role's own perspective with the owner's chair marked "you", and
+  the hold shrunk to one touch-height bar at the bottom, since a player may
+  need their card again. The held card lands over the whole screen. The
+  acting phone alone adds the prompt in the card, a hint in the label voice
+  under it, tappable seats, and the narrator's own action row: "No one" as a
+  ghost, Confirm as primary, the vials in the card, the two sides or the
+  centre's cards as ghosts. Once an action is sent the row dims and the hint
+  becomes a muted sentence until the narrator's answer repaints the step.
+  The card the Detective looked at stays on his phone in the same dark
+  card — name as the eyebrow, sigil, role, the side in mono — never the
+  Ledger inspect card: one phone turning paper-white for the rest of the
+  night would tell the table who looked. The ring falls to rows on a short
+  phone as everywhere else, and the page never scrolls.
 - **The TV.** `.stage--tv` (`tv.html`) is the same table read from a
   sofa: the ring takes 90vmin, a tile grows to 20vmin, the name inside it
   to 8rem, the caption and the clock scale with vmin and nothing on the
