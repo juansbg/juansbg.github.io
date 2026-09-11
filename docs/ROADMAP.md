@@ -266,6 +266,9 @@ pages, and the five decisions the user has to make before phase 1 starts.
   table it just built, from precomputed simulator numbers.
 - **Running statistics** across games on the same roster: who gets hanged most,
   which side wins, the Detective's hit rate. The roster already persists.
+  **In progress (2026-09-11):** the engine's `summarise()` and `aggregate()`
+  and the `omerta:stats` record are on `main` (Session A); the statistics
+  screen in ⋯ is Session B's.
 - ~~**A rules card per role** during the reveal, for first-timers.~~ Built, then removed: the section was cut off on short phones and the user chose the brief alone.
 - **The Cultist's win condition.** The one card with no reason to exist. Needs
   a rule decision from the user; nothing invented beyond the script until then.
@@ -320,7 +323,12 @@ CLAUDE.md only in their own bullets.
   newsprint built from the public outcomes, the dead named for what they were a
   day late, and seeded nameless breadcrumbs through the trades. Session A takes
   the engine (trades, seed, clue outcomes), Session B the paper.
-- Running statistics.
+- Running statistics: Session A the summary and the record, Session B the screen.
+- **The name** (user, 2026-09-11): Omertà tested obscure; The Family chosen after a
+  store and register sweep (see CLAUDE.md). Done.
+- **The design audit** (`docs/DESIGN-AUDIT.md`, Session B, 2026-09-11): sixteen
+  findings fixed in one pass; the seating circle now holds its floor and the
+  block above it yields, the TV scales, tablets get two columns.
 - **The Cultist stays out for now** (decided 2026-09-04): a pending feature,
   not planned, until the user chooses a rule for it. The card remains
   assignable by hand and the split still works; nothing more is built on it.

@@ -39,6 +39,10 @@ import {
   type AppState,
   loadTimer,
   saveTimer,
+  STATS_LIMIT,
+  clearStats,
+  loadStats,
+  recordGame,
 } from './store'
 import {
   advance,
@@ -50,6 +54,7 @@ import {
 } from '../engine/state'
 import { STATE_VERSION } from '../engine/types'
 import type { RoleId } from '../engine/roles'
+import type { GameSummary } from '../engine/summary'
 
 const cast = (roles: RoleId[]): PlayerSetup[] => roles.map((roleId, i) => ({ name: `P${i}`, roleId }))
 
@@ -247,5 +252,44 @@ describe('the discussion timer', () => {
     expect(loadTimer()).toBeNull()
     localStorage.setItem('omerta:timer', 'not json')
     expect(loadTimer()).toBeNull()
+  })
+})
+
+describe('the statistics across games', () => {
+  const summary = (seed: number, winner: GameSummary['winner'] = 'town'): GameSummary => ({
+    version: 1, seed, endedAt: seed, winner, players: 1, nights: 1, looks: 0, hits: 0,
+    seats: [{ name: 'Ana', roleId: 'PLAIN', team: 'town', trade: 0, alive: true, death: null, won: winner === 'town' }],
+  })
+
+  beforeEach(() => clearStats())
+
+  it('starts empty and keeps every game recorded, oldest first', () => {
+    expect(loadStats()).toEqual([])
+    recordGame(summary(1))
+    recordGame(summary(2))
+    expect(loadStats().map((g) => g.seed)).toEqual([1, 2])
+  })
+
+  it('keeps one copy per game, the latest ending', () => {
+    recordGame(summary(7, 'town'))
+    recordGame(summary(8))
+    recordGame(summary(7, 'crew'))
+    const games = loadStats()
+    expect(games.map((g) => g.seed)).toEqual([8, 7])
+    expect(games[1]!.winner).toBe('crew')
+  })
+
+  it('caps the record and drops the oldest', () => {
+    for (let i = 0; i < STATS_LIMIT + 5; i++) recordGame(summary(i))
+    const games = loadStats()
+    expect(games).toHaveLength(STATS_LIMIT)
+    expect(games[0]!.seed).toBe(5)
+  })
+
+  it('ignores a corrupt or foreign record', () => {
+    localStorage.setItem('omerta:stats', 'not json')
+    expect(loadStats()).toEqual([])
+    localStorage.setItem('omerta:stats', JSON.stringify([{ version: 99, seed: 1, seats: [] }, summary(3), 4]))
+    expect(loadStats().map((g) => g.seed)).toEqual([3])
   })
 })

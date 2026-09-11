@@ -28,7 +28,8 @@ import { detectLocale, strings } from '../i18n'
 import { accentOf } from './accent'
 import { buzz, esc, on, swap } from './dom'
 import { sound, unlockOnGesture } from './sound'
-import { clear, clearRoster, load, loadRoster, loadTimer, save, saveRoster, saveTimer, type AppState } from './store'
+import { clear, clearRoster, load, loadRoster, loadTimer, recordGame, save, saveRoster, saveTimer, type AppState } from './store'
+import { summarise } from '../engine/summary'
 import { editorMarkup, MAX_PLAYERS, MIN_PLAYERS, namesMarkup, rosterMarkup } from './screens/setup'
 import { dealRoles, systemRandom, type Complexity } from '../engine/deal'
 import { dayMarkup, inspectionMarkup, nightMarkup, playerViewMarkup, questionCardMarkup, questionsIntroMarkup } from './screens/night'
@@ -469,8 +470,22 @@ const mutate = (
  * a toggle) rebuilds the same DOM, and without the mark every seat would
  * bounce into place again on every tap.
  */
+/** The seed of the game whose ending is already in the record, so a repaint does not write it again. */
+let recordedGame: number | null = null
+
 function render(entering = false): void {
   const game = state.session.current
+  // The record across games: a finished game is written once, by its seed.
+  // Leaving the game-over screen (an undo) arms it again, so a last day
+  // played differently replaces the earlier ending rather than counting twice.
+  if (state.screen !== 'over') recordedGame = null
+  else if (game.seed !== recordedGame) {
+    const summary = summarise(game, Date.now())
+    if (summary !== null) {
+      recordGame(summary)
+      recordedGame = game.seed
+    }
+  }
   const t = strings(state.locale)
   document.documentElement.lang = state.locale
   document.documentElement.dataset.phase =

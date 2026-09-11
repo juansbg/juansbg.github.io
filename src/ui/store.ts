@@ -1,4 +1,5 @@
 import { newSession, type Session, type TimelineEntry } from '../engine/state'
+import { SUMMARY_VERSION, type GameSummary } from '../engine/summary'
 import { systemRandom } from '../engine/deal'
 import type { GameState, Player } from '../engine/types'
 import { STATE_VERSION } from '../engine/types'
@@ -210,6 +211,57 @@ export const loadTimer = (): Timer | null => {
 export const saveTimer = (timer: Timer): void => {
   try {
     localStorage.setItem(TIMER_KEY, JSON.stringify(timer))
+  } catch {
+    // See save().
+  }
+}
+
+const STATS_KEY = 'omerta:stats'
+
+/** How many finished games the statistics keep. About a kilobyte each. */
+export const STATS_LIMIT = 300
+
+/**
+ * Every finished game the phone has run, oldest first, for the statistics
+ * across games on the same roster. Kept apart from the game save, like the
+ * roster: a restart forgets the game and keeps the record.
+ */
+export const loadStats = (): GameSummary[] => {
+  try {
+    const raw = localStorage.getItem(STATS_KEY)
+    const parsed: unknown = raw === null ? [] : JSON.parse(raw)
+    if (!Array.isArray(parsed)) return []
+    return parsed.filter(
+      (g): g is GameSummary =>
+        typeof g === 'object' && g !== null &&
+        (g as GameSummary).version === SUMMARY_VERSION &&
+        typeof (g as GameSummary).seed === 'number' &&
+        Array.isArray((g as GameSummary).seats),
+    )
+  } catch {
+    return []
+  }
+}
+
+/**
+ * Add a finished game. A game is known by its seed, so recording the same
+ * game twice (the game-over screen renders more than once) keeps one copy,
+ * and a narrator who undoes past the end and plays the last day differently
+ * replaces the earlier ending rather than counting both.
+ */
+export const recordGame = (summary: GameSummary): GameSummary[] => {
+  const next = [...loadStats().filter((g) => g.seed !== summary.seed), summary].slice(-STATS_LIMIT)
+  try {
+    localStorage.setItem(STATS_KEY, JSON.stringify(next))
+  } catch {
+    // See save().
+  }
+  return next
+}
+
+export const clearStats = (): void => {
+  try {
+    localStorage.removeItem(STATS_KEY)
   } catch {
     // See save().
   }
