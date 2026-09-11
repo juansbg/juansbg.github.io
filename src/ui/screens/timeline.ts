@@ -121,9 +121,9 @@ export const timelineMarkup = (session: Session, locale: Locale): string => {
           <span class="log__night" aria-hidden="true">N${entry.night}</span>
           <span class="mark" aria-hidden="true">${mark}</span>
           <span class="log__text">${esc(describeEntry(entry, players, locale))}</span>
-          <button class="log__revert" type="button" data-revert="${i}">
-            ${esc(t.ui.timeline.revertHere)}
-          </button>
+          <button class="icon-btn log__revert" type="button" data-revert="${i}"
+                  aria-label="${esc(`${t.ui.timeline.revertHere} · ${describeEntry(entry, players, locale)}`)}"
+                  title="${esc(t.ui.timeline.revertHere)}">↶</button>
         </li>
       `
     })
