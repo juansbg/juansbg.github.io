@@ -24,15 +24,17 @@ scales. The problems are concentrated in one place: **the seating circle
 gives up its space to whatever sits above it**, and on a short phone or a
 big screen that is the whole game.
 
-**Status (2026-09-11).** Every item below has been taken on the `role-glyphs`
-branch, one commit each in the order the user set: the strings first
+**Status (2026-09-11).** Every item below has been taken and merged to main, one commit each in the order the user set: the strings first
 (items 5 and 13), then tier 1 as 1+3, 2 and 4, then tier 2 in number
 order, then tier 3 in one commit. The decisions the user made on the way:
 a 3.5rem seat floor with the rows taking over under it; the two-column
 stage from 900px before release; the Plex button and the chips set in
 Bebas; the four sentence-stamps kept in Bebas without full stops and
-recorded in DESIGN.md; the hold bar in Ledger. Each fix is described at
-its item with what was measured after.
+recorded in DESIGN.md; the hold bar in Ledger. Each item closes with a
+**Resolved** line giving what was measured on the merged build at the same
+seven sizes. One artefact worth knowing: the browser pane's viewport
+emulation does not fire a `resize` event, so the ring-to-rows check had to
+be nudged with a synthetic one there; on a device, rotation fires it.
 
 ---
 
@@ -76,6 +78,8 @@ Files: `styles.css` (`--seat`, `.night__card`, `.report`), `screens/circle.ts`
 (the auto list), `screens/night.ts` (Heal/Poison placement). **Decision**
 on the auto-list threshold only; the rest is mechanical.
 
+**Resolved.** Measured on main at 375×667: the Spanish morning with two report lines sets rows of 343×48 with 20px names and 12px numbers; the Apothecary's step sets rows too, with Heal and Poison inside her card at 48px; the vote mode sets rows with a 12px badge; a two-line night step keeps a 63px ring with 14px names. No tile is drawn under 3.5rem: the CSS floor and `fitTables()` agree, and the flip back to the ring on a real resize was checked (a synthetic resize at 430×932 gives an 83px ring).
+
 ### 2. The TV does not scale: a phone-sized circle in the middle of a 1080p or 4K screen
 
 **What you see.** At 1920×1080 the table is a ring of **112px** tiles with
@@ -103,6 +107,8 @@ the clock or the reading.
 Files: `styles.css` (`.stage--tv` block), `screens/table.ts` (reading
 markup class). No engine or projection change.
 
+**Resolved.** At 1920×1080 the table sets 207px tiles, 45px names, 21px numbers and a 38px Ledger caption, and the reading fills the whole screen (1920×1080, Vendetta) with a 194px name over a 43px line. At 3840×2160: 414px tiles, 91px names, 40px numbers, a 48px caption, the reading at 256px over 64px.
+
 ### 3. Twelve players on a phone: 40px tiles, and the list that should save it is a narrow column
 
 **What you see.** A twelve-seat night at 375×667: **40px** tiles, **11px**
@@ -115,6 +121,8 @@ number in mono, name in Bebas, the same flags and strike as the tile),
 two columns from 600px up, and the circle switches to it by itself under
 the floor from item 1. Files: `screens/circle.ts` (`listMarkup`),
 `styles.css` (`.table--list`).
+
+**Resolved.** Twelve seats at 375×667 set rows of 343×48 with 20px names and 12px numbers, no name truncated, scrolling inside a 295px box; the list in ⋯ is the same rows, chosen by hand.
 
 ### 4. On an iPad or a laptop the app is a phone column with two thirds of the screen empty
 
@@ -132,6 +140,8 @@ and the player view all fall out of the same grid. Files: `styles.css`
 (`.screen--night`, `.screen--day`, `.screen--table` at
 `@media (min-width: 900px)`). **Decision**: worth doing before release,
 or accept the column and ship the TV for big screens.
+
+**Resolved.** At 1180×820 the stage is two columns, 572px for the table and 544px for the card, report and actions, with 122px tiles and 18px names; nothing off screen, no scroll. In portrait at 820×1180 the single column keeps the ring at its 112px cap where it was 83px.
 
 ---
 
@@ -156,6 +166,8 @@ rewritten gender-neutral ("Elena ha aparecido sin vida." or
 line to scan the narrator's code again. Files: `i18n/en.ts`, `i18n/es.ts`.
 Strings only, so it can land first.
 
+**Resolved.** `townWakes` is "The town wakes" / "El pueblo despierta", `nightFalls` "The town sleeps" / "El pueblo duerme", the Spanish report reads "Amanece sin Elena." and "ha muerto por veneno", and the player page says "No room at this address".
+
 ### 6. The day head is crowded at 375px
 
 **What you see.** The title wraps to two lines inside a **108px** column
@@ -171,6 +183,8 @@ word button "Morning" that opens the reading and lands on the paper, as
 the automatic flow already does. Files: `screens/night.ts` (`dayMarkup`),
 `styles.css` (`.screen__head`).
 
+**Resolved.** The day head is 76px in two rows: the title on one line at 26px (Spanish measured) and three tools of 48px beneath it with 8px between them; ▶ and ¶ are one "Morning" / "La mañana" button.
+
 ### 7. Type under the floor on every seat
 
 **What you see.** Seat numbers **8px** mono, names **11–12.5px** Bebas
@@ -185,6 +199,8 @@ peek and can be 11px mono. Note in DESIGN.md that seat names are the one
 sanctioned Bebas below 20px, since a tile is a label of one word.
 Files: `styles.css` (`.seat__n`, `.seat__name`, `.seat__you`,
 `.seat__votes`, `.seat__role`).
+
+**Resolved.** On a 63px ring the names are 14px; on a 69px ring 15px with an eleven-letter name at 12px, the numbers 10px and "you" 10px; in rows the names are 20px and the numbers 12px; the vote badge is 12px on a 24px block. DESIGN.md records the seat name as the one Bebas below the display minimum.
 
 ### 8. Muted ink fails contrast at small sizes
 
@@ -205,6 +221,8 @@ behind them, or Bebas at 20px, which is large text. Files: `tokens.css`,
 `styles.css` (`.label`, `.sheet__title`, `.menu__value`, `.log__text`,
 `.reveal__hint`).
 
+**Resolved.** Measured against the painted ground on main: nothing under 4.5:1 on the day screen, the vote, the menu, the timeline, the paper, the reveal or the player page, except the dead seats, the disabled vials and the idle reset, which are faint on purpose. `--fg-muted` is 72% Ash; the sheet sits on `--surface`.
+
 ### 9. Tap targets under 48px and gaps under 8px
 
 - `.menu__seg` (the circle/list and the timer length choices) is
@@ -220,6 +238,8 @@ label-above like the timer row; `.screen__tools` and `.clock` gap to
 `--space-2`; the remove button to 48px. Files: `styles.css`, `app.ts`
 (`menuMarkup`).
 
+**Resolved.** The segmented choices measure 48px in both languages with their labels stacked above on one line; the tool row and the clock have an 8px gap; the remove button is 48px by rule.
+
 ### 10. A Plex button and Plex chips
 
 "I have a question" / "Tengo una duda" on the confirm screen is a
@@ -229,6 +249,8 @@ button label is Bebas. **Decision**: make them Bebas (the chips at
 20px, the question as a ghost button), or record both as sanctioned
 exceptions in DESIGN.md (a quieter "not a move" button). Files:
 `styles.css` (`.reveal__question`, `.chip`).
+
+**Resolved.** "I have a question" is Bebas at 20px in a solid hairline, 48px tall; the complexity chips are Bebas at 20px, 48px tall.
 
 ### 11. Bebas carrying sentences
 
@@ -240,6 +262,8 @@ says Bebas is never for a sentence read aloud. **Decision**: these read
 as stamps and I would keep them, dropping the full stop from the winner
 line and recording the four in DESIGN.md as the sanctioned
 stamp-sentences; the alternative is Plex 600 at the same size.
+
+**Resolved.** The winner line reads "The Family wins" on the game-over screen and as the final edition's banner, with no full stop in either language; the four stamps are listed in DESIGN.md's type rules; the design doc and its page carry the new name.
 
 ### 12. The timeline sheet shouts REWIND on every row
 
@@ -254,6 +278,8 @@ and a single "Rewind to here" appears on the selected row. Divider on one
 line at `--text-xs` with the night on the left. Files: `screens/timeline.ts`,
 `styles.css` (`.log__revert`).
 
+**Resolved.** Each timeline row is 65px with a 48×48 undo square whose accessible name is "Rewind to here · " and the row's sentence; the divider sits on one line; nothing in the sheet under 4.5:1.
+
 ### 13. The final edition on a phone: the cast list clips and the dateline wraps
 
 **What you see.** "WHO WAS WHO" is a two-column grid at 375px: "THE
@@ -267,6 +293,8 @@ dateline shortened to "Final edition · Night 2 · 6 players", the share
 button labelled "Share". Files: `styles.css` (`.paper__cast`), `i18n`
 (`ui.paper.edition`, `ui.paper.share`).
 
+**Resolved.** At 375×667 the masthead "The Family" is one line at 56px, the dateline "Final edition · Night 2 · 6 players" one line between its rules, the cast one column, nothing overflowing, and the buttons read "Share" and "Play again" at 48px.
+
 ### 14. Red as decoration on the reveal
 
 The hold-to-reveal progress bar fills in Vendetta. The palette rule keeps
@@ -274,6 +302,8 @@ Vendetta for blood, the crew and the button that kills; a progress bar is
 none of those. **Fix.** The fill in Ledger (the narrator's hand), or Ash.
 File: `styles.css` (`.reveal__fill`). One line, but it is a visible
 colour change, so **decision**.
+
+**Resolved.** The fill measures `rgb(247, 246, 242)`, Ledger, charging and full.
 
 ### 15. The canvas paper invents two greys, and the shadows are raw black
 
@@ -287,6 +317,8 @@ defines `--shadow-lift` / `--shadow-deep` with `rgb(0 0 0 …)`.
 image follows the tokens; the shadows become Midnight at the same alpha.
 Files: `screens/paper.ts`, `tokens.css`.
 
+**Resolved.** A background pixel of the shared image reads (194, 193, 180), the `--newsprint` token as the browser resolves it, not the old hand-picked hex; the shadows are Midnight at 55% and 70%.
+
 ### 16. The list layout and the empty bar in setup
 
 - The names screen carries the full bottom bar with nothing in it but ⋯,
@@ -297,6 +329,8 @@ Files: `screens/paper.ts`, `tokens.css`.
 **Fix.** In setup, the bar collapses to the ⋯ square at the right (the
 timeline has nothing to show); the names screen takes `--space-4` at the
 top. Files: `app.ts` (`chromeMarkup`), `styles.css`.
+
+**Resolved.** Before the game the bar carries the `bar--quiet` class: no surface, only the ⋯ square at the right; the wordmark's top sits 24px under the edge.
 
 ---
 
@@ -320,6 +354,8 @@ top. Files: `app.ts` (`chromeMarkup`), `styles.css`.
     beside its segments (fixed by item 9's label-above).
 22. **`::selection`** is Vendetta with Midnight text: fine by the rule,
     but selecting a name on the day screen flashes red; consider Ledger.
+
+**Resolved, all six.** `.reveal--open` is gone and `.inspect__role` is on the play-once list; the marks' text glyphs render in Plex at weight 600 (measured on the ⚖ of the final edition); the player page's ballot is labelled "Your vote" with "Tap it again to take it back." in Plex under it, the hint in muted ink, four choices of 168×48 ending 12px above the edge; the table view's caption is Ledger; the Spanish menu labels are one line; a selection is Ledger on Midnight.
 
 ---
 
