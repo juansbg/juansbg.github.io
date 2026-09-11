@@ -63,7 +63,8 @@ export const seatMarkup = (p: SeatProjection, locale: Locale): string => {
   } else if (p.phase === 'day') {
     day = p.canVote
       ? `
-        <p class="label">${esc(p.vote === null ? s.vote : s.yourVote)}</p>
+        <p class="label">${esc(s.vote)}</p>
+        ${p.vote === null ? '' : `<p class="mine__note">${esc(s.yourVote)}</p>`}
         <div class="mine__ballot">
           ${p.eligible
             .map(

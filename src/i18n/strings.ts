@@ -404,6 +404,7 @@ export interface Strings {
       waitingForDeal: string
       youAre: (seat: number) => string
       vote: string
+      /** Under the label once a vote is cast: how to take it back. */
       yourVote: string
       cannotVote: string
       out: string

@@ -40,7 +40,7 @@ body {
 }
 
 ::selection {
-  background: var(--vendetta);
+  background: var(--fg);
   color: var(--midnight);
 }
 
@@ -85,8 +85,7 @@ body {
 .inspect__role,
 .dawn__name,
 .paper__headline,
-.paper__banner,
-.mark {
+.paper__banner {
   font-family: var(--font-display);
   font-weight: 400;
   letter-spacing: var(--track-display);
@@ -209,7 +208,7 @@ body {
    the menu, a toggle — and must not replay them: the table would bounce into
    place on every tap. Sheets and the dawn slides are not in this list; they
    are new things each time. */
-.stage:not([data-enter]) :is(.screen, .seat, .card, .report__card, .name-chip, .paper__article) {
+.stage:not([data-enter]) :is(.screen, .seat, .card, .report__card, .name-chip, .paper__article, .inspect__role) {
   animation-name: none;
 }
 
@@ -358,6 +357,10 @@ body {
   padding-top: 2px;
   border: 1px solid var(--role, var(--fg-muted));
   background: var(--role-fill, transparent);
+  /* The text glyphs a mark can hold (the scales, the pilcrow, the sun, a
+     tick) are not in Bebas: Plex carries them, at weight 600. */
+  font-family: var(--font-body);
+  font-weight: 600;
   color: var(--role-ink, var(--fg-muted));
   font-size: 0.95rem;
   letter-spacing: 0.05em;
@@ -1151,10 +1154,6 @@ body {
   margin: 0;
   color: var(--fg-muted);
   font-size: var(--text-xs);
-}
-
-.reveal--open {
-  animation: reveal-in var(--dur-fast) var(--ease-out) both;
 }
 
 @keyframes reveal-in {
@@ -3008,6 +3007,7 @@ html[data-dawn] body {
 }
 
 .tableview__head .label {
+  color: var(--fg);
   font-size: var(--text-md);
 }
 

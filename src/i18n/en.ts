@@ -704,7 +704,7 @@ export const en: Strings = {
       waitingForDeal: 'The narrator is dealing the cards…',
       youAre: (seat) => `Seat ${seat}`,
       vote: 'Your vote',
-      yourVote: 'Your vote — tap it again to take it back',
+      yourVote: 'Tap it again to take it back.',
       cannotVote: 'You cannot vote today.',
       out: 'You are out. Keep watching the screen.',
       refused: 'No seat for that name',

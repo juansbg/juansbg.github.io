@@ -24,6 +24,16 @@ scales. The problems are concentrated in one place: **the seating circle
 gives up its space to whatever sits above it**, and on a short phone or a
 big screen that is the whole game.
 
+**Status (2026-09-11).** Every item below has been taken on the `role-glyphs`
+branch, one commit each in the order the user set: the strings first
+(items 5 and 13), then tier 1 as 1+3, 2 and 4, then tier 2 in number
+order, then tier 3 in one commit. The decisions the user made on the way:
+a 3.5rem seat floor with the rows taking over under it; the two-column
+stage from 900px before release; the Plex button and the chips set in
+Bebas; the four sentence-stamps kept in Bebas without full stops and
+recorded in DESIGN.md; the hold bar in Ledger. Each fix is described at
+its item with what was measured after.
+
 ---
 
 ## Tier 1 — breaks the game in the hand

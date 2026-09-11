@@ -704,7 +704,7 @@ export const es: Strings = {
       waitingForDeal: 'El narrador está repartiendo las cartas…',
       youAre: (seat) => `Asiento ${seat}`,
       vote: 'Tu voto',
-      yourVote: 'Tu voto: tócalo otra vez para retirarlo',
+      yourVote: 'Tócalo otra vez para retirarlo.',
       cannotVote: 'Hoy no puedes votar.',
       out: 'Estás fuera. Sigue mirando la pantalla.',
       refused: 'No hay asiento con ese nombre',
