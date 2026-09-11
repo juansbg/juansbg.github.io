@@ -134,8 +134,8 @@
   --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
   --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
 
-  --shadow-lift: 0 6px 24px rgb(0 0 0 / 0.55); /* the menu sheet */
-  --shadow-deep: 0 18px 48px rgb(0 0 0 / 0.7); /* the reveal card */
+  --shadow-lift: 0 6px 24px color-mix(in oklab, var(--midnight) 55%, transparent); /* the menu sheet */
+  --shadow-deep: 0 18px 48px color-mix(in oklab, var(--midnight) 70%, transparent); /* the reveal card */
 }
 
 /* Role accents collapse to team + kind. Markup carries data-accent, set from

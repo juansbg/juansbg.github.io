@@ -488,12 +488,39 @@ export const paperMarkup = (state: GameState, locale: Locale): string => {
 const WIDTH = 1080
 const MARGIN = 72
 const COLUMN = WIDTH - MARGIN * 2
-/** `--newsprint` resolved: Ash with a little Midnight. The canvas cannot read a token. */
-const NEWSPRINT = '#c7c3b4'
-const MIDNIGHT = '#000029'
-const VENDETTA = '#ff0f0f'
-const MUTED = '#4f4f62'
-const RULE = '#9c9a90'
+/**
+ * The page's inks. A canvas cannot read a token by name, so `resolveInks()`
+ * asks the stylesheet for each one through a probe element before the
+ * image is drawn and keeps these as the fallback for a document with no
+ * styles (a test, a canvas that refuses modern colour syntax). The values
+ * here are the tokens as they resolved when written; the tokens win.
+ */
+let NEWSPRINT = '#c7c3b4'
+let MIDNIGHT = '#000029'
+let VENDETTA = '#ff0f0f'
+let MUTED = '#4f4f62'
+let RULE = '#9c9a90'
+
+const resolveInks = (ctx: CanvasRenderingContext2D): void => {
+  const probe = document.createElement('span')
+  probe.style.position = 'absolute'
+  probe.style.visibility = 'hidden'
+  document.body.append(probe)
+  const ink = (token: string, fallback: string): string => {
+    probe.style.color = `var(${token})`
+    const value = getComputedStyle(probe).color
+    // A colour the canvas cannot parse leaves fillStyle where it was.
+    ctx.fillStyle = '#010203'
+    ctx.fillStyle = value
+    return ctx.fillStyle === '#010203' ? fallback : value
+  }
+  NEWSPRINT = ink('--newsprint', NEWSPRINT)
+  MIDNIGHT = ink('--on-newsprint', MIDNIGHT)
+  VENDETTA = ink('--lethal', VENDETTA)
+  MUTED = ink('--on-newsprint-muted', MUTED)
+  RULE = ink('--newsprint-rule', RULE)
+  probe.remove()
+}
 
 const BEBAS = '"Bebas Neue", Impact, "Arial Narrow", sans-serif'
 const PLEX = '"IBM Plex Sans", system-ui, sans-serif'
@@ -657,6 +684,7 @@ export const paperImage = async (state: GameState, locale: Locale): Promise<Blob
   }
   const canvas = document.createElement('canvas')
   const probe = canvas.getContext('2d')
+  if (probe) resolveInks(probe)
   if (!probe) return null
   canvas.width = WIDTH
   const height = paint(probe, paper, t, true)
