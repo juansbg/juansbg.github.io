@@ -75,6 +75,8 @@ body {
 .target,
 .menu__item,
 .menu__seg,
+.chip,
+.reveal__question,
 .card__title,
 .winner,
 .reveal__lead,
@@ -1510,9 +1512,7 @@ body.is-revealing .bar {
   border-radius: 0;
   background: transparent;
   color: var(--fg-2);
-  font: inherit;
-  font-size: var(--text-sm);
-  font-weight: 500;
+  font-size: var(--text-display-min);
   cursor: pointer;
   transition:
     border-color var(--dur-fast) var(--ease-out),
@@ -1661,16 +1661,15 @@ body.is-revealing .bar {
 
 /* ---------- Reveal: question flag ---------- */
 
+/* A ghost button like any other: every button label is Bebas. */
 .reveal__question {
   min-height: var(--touch);
   padding: var(--space-2) var(--space-4);
-  border: 1px dashed var(--hairline-strong);
+  border: 1px solid var(--hairline-strong);
   border-radius: 0;
   background: transparent;
   color: var(--fg-2);
-  font: inherit;
-  font-size: var(--text-sm);
-  font-weight: 500;
+  font-size: var(--text-display-min);
   cursor: pointer;
 }
 
