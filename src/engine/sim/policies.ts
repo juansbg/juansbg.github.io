@@ -101,14 +101,83 @@ export const detectiveVote: VotePolicy = (state, random) => {
   return pick(unknown.length > 0 ? unknown : living, random).id
 }
 
+/** Who was alive once night `night` had been resolved: everyone not yet dead by then. */
+const aliveAfter = (state: GameState, night: number): PlayerId[] => {
+  const dead = new Set<PlayerId>()
+  for (const o of state.log) if (o.type === 'death' && o.night <= night) dead.add(o.target)
+  return state.players.filter((p) => !dead.has(p.id)).map((p) => p.id)
+}
+
+/** The two seats either side of `id` in a ring of the given seats, the way `crewNextDoor` reads it. */
+const neighboursIn = (ring: readonly PlayerId[], id: PlayerId): PlayerId[] => {
+  const index = ring.indexOf(id)
+  if (index === -1 || ring.length < 3) return []
+  return [ring[(index - 1 + ring.length) % ring.length]!, ring[(index + 1) % ring.length]!]
+}
+
+/**
+ * The town follows the Detective and reads the paper.
+ *
+ * The model of the table: every citizen has said what their trade is and the
+ * town believes them (so a living trade-holder is never hanged, which a
+ * converted citizen exploits), and the paper's `neighbour` breadcrumbs are
+ * read against the seating as it was on the night they were printed: "the
+ * Family lives next door to the baker" puts a point on both of the baker's
+ * neighbours that night; "nobody from the Family lives next door to the
+ * baker" clears them. The `doors` breadcrumb only fixes where the trade sits
+ * and so says nothing about who to hang; the town ignores it.
+ *
+ * Hang: a crew member the Detective has found, else the most suspected seat
+ * that nobody has cleared, else anyone not cleared, else anyone. Compared with
+ * `detectiveVote` this measures what the breadcrumbs are worth to a town that
+ * trusts every claim; the difference is the paper's weight on the game.
+ */
+export const clueVote: VotePolicy = (state, random) => {
+  const living = state.players.filter((p) => p.alive)
+  const detectiveAlive = living.some((p) => p.roleId === 'INSPECT')
+  const seen = new Set<PlayerId>()
+  for (const o of state.log) if (o.type === 'inspected') seen.add(o.target)
+  if (detectiveAlive) {
+    const found = living.find((p) => seen.has(p.id) && ROLES[p.roleId].team === 'crew')
+    if (found) return found.id
+  }
+
+  const cleared = new Set<PlayerId>()
+  const suspicion = new Map<PlayerId, number>()
+  for (const p of living) {
+    if (p.trade !== null) cleared.add(p.id)
+    if (detectiveAlive && seen.has(p.id)) cleared.add(p.id)
+  }
+  for (const o of state.log) {
+    if (o.type !== 'clue' || o.clue.kind !== 'neighbour') continue
+    const holder = state.players.find((p) => p.trade === o.trade)
+    if (holder === undefined) continue
+    for (const n of neighboursIn(aliveAfter(state, o.night), holder.id)) {
+      if (o.clue.crew) suspicion.set(n, (suspicion.get(n) ?? 0) + 1)
+      else cleared.add(n)
+    }
+  }
+
+  const open = living.filter((p) => !cleared.has(p.id))
+  if (open.length === 0) return pick(living, random).id
+  const top = Math.max(...open.map((p) => suspicion.get(p.id) ?? 0))
+  if (top === 0) return pick(open, random).id
+  return pick(open.filter((p) => (suspicion.get(p.id) ?? 0) === top), random).id
+}
+
 /** The Gunman shoots whoever. */
 export const randomShot: ShotPolicy = (state, random) =>
   pick(state.players.filter((p) => p.alive), random).id
 
-/** The two tables the report prints: the worst town and a plausible one. */
-export const POLICIES: Readonly<Record<'random' | 'detective', Policies>> = {
+/**
+ * The tables the report prints: the worst town, a plausible one, and the same
+ * plausible town reading the paper, so the breadcrumbs' weight is the gap
+ * between the last two.
+ */
+export const POLICIES: Readonly<Record<'random' | 'detective' | 'clues', Policies>> = {
   random: { night: randomNight, vote: randomVote, shot: randomShot },
   detective: { night: randomNight, vote: detectiveVote, shot: randomShot },
+  clues: { night: randomNight, vote: clueVote, shot: randomShot },
 }
 
 export type PolicyName = keyof typeof POLICIES

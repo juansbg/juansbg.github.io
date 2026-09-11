@@ -210,6 +210,60 @@ The balance test asserts: no stall, no game without a winner, wipe-outs at most
 1%, first-morning endings at most 5%, and each side winning at least 15% of
 detective-led games at every size from 5 to 15 at every complexity.
 
+### The paper's breadcrumbs, measured (2026-09-11)
+
+A third town policy, `clues` (`clueVote` in `sim/policies.ts`), follows the
+Detective like `detective` does and also reads the paper: it believes every
+living citizen's trade claim (so a trade-holder is never hanged) and reads
+each `neighbour` breadcrumb against the seating of the night it was printed,
+a point of suspicion on both of the holder's neighbours when the Family was
+next door, both cleared when nobody was. `doors` is ignored: it fixes where a
+trade sits and says nothing about whom to hang. To separate what the claims
+are worth from what the clues add, a one-off run also played the same town
+with every clue struck from the log before it voted (`claims`):
+
+```
+n   cx        detective  claims  clues   (town win %, 1000 games each)
+6   simple           76      90     94
+8   simple           59      87     89
+10  simple           65     100    100
+12  simple           53     100    100
+15  simple           39     100    100
+6   standard         75      74     79
+8   standard         41      45     50
+10  standard         52      57     66
+12  standard         46      50     61
+15  standard         38      49     66
+6   complex          71      62     71
+8   complex          37      28     38
+10  complex          48      38     51
+12  complex          30      27     35
+15  complex          28      23     38
+```
+
+Reading it:
+
+- **At simple tables the claim space decides the game, not the paper.** With
+  only the Detective and the Bodyguard powered, nearly every town seat holds
+  a trade; a town that believes every claim is left with two or three open
+  seats and the Family among them. The clues add one to four points on top.
+  This is an upper bound: at a real table the Family fake-claims a trade
+  nobody has spoken for, and the bots never bluff.
+- **At standard tables the breadcrumbs are worth five to seventeen points**
+  of town win rate over the same trusting town without them (8: 45→50, 10:
+  57→66, 12: 50→61, 15: 49→66), growing with the table because bigger games
+  run more nights and print more breadcrumbs.
+- **At complex tables trusting claims hurts the town** (a converted citizen
+  keeps a trade and is believed; the Renegade and the Godfather muddle the
+  Detective's reads), and the breadcrumbs bring it back to a few points above
+  the detective town (8: 37→38, 10: 48→51, 15: 28→38).
+
+**Decision:** the dial stays at 60% quiet / 25% loud, one a night. The paper
+is a nudge worth a handful of points to a town that already plays well, not
+a solver; the one-a-night cap and the trade-not-seat rule are what keep it
+so. `balance.test.ts` now runs the `clues` policy through the same structural
+checks as the other two.
+
 ## 2. The big-screen mode
 
 The user's proposal: the narrator casts a table view to a TV, every player scans a

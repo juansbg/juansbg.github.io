@@ -102,7 +102,11 @@ type Clue =
   the town gets a Bloodhound-strength fact about every third night on
   average, anchored to a seat it does not know. The simulator can measure the
   win-rate shift under the detective policy before and after; the dial moves
-  if it is more than a few points.
+  if it is more than a few points. **Measured 2026-09-11** (`docs/ROADMAP.md`
+  §1, "The paper's breadcrumbs, measured"): five to seventeen points at
+  standard tables for a town that trusts every trade claim, an upper bound;
+  one to four at simple tables, where the claim space itself decides; about
+  even at complex ones. The dial stays.
 
 ## 4. Investigations
 
@@ -222,4 +226,6 @@ Two sprints. Step 2 ships alone and is worth it alone.
    until the simulator says what each costs the Family.
 5. **How often.** Recommended: 60% on a quiet night, 25% otherwise, one at
    most, tuned by the simulator; the narrator gets no switch for it in the
-   first version, so a table cannot argue about the dial.
+   first version, so a table cannot argue about the dial. **Kept after
+   measuring** (2026-09-11): the paper is worth a handful of points to a
+   trusting town, not the game.
