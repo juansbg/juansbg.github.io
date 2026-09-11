@@ -294,9 +294,9 @@ export interface Strings {
       /** No game has ended on this phone yet. */
       empty: string
       /** The table's line: wins by side, nights a game, the Detective's hits over looks. */
-      table: { town: string; family: string; pair: string; martyr: string; nights: string; looks: string }
-      /** The figures after each name. */
-      columns: { games: string; wins: string; family: string; hanged: string; killed: string; survived: string }
+      table: { town: (n: number) => string; family: (n: number) => string; pair: string; martyr: string; nights: string; looks: string }
+      /** The label after each figure on a name's row, by the count, so one game is "1 game". */
+      columns: Record<'games' | 'wins' | 'family' | 'hanged' | 'killed' | 'survived', (n: number) => string>
       clear: string
       clearConfirm: string
     }

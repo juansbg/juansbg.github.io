@@ -41,8 +41,8 @@ export const statsMarkup = (games: readonly GameSummary[], locale: Locale, roste
     }</span>`
 
   const line = [
-    fig(table.town, s.table.town, table.town / table.games),
-    fig(table.crew, s.table.family, table.crew / table.games),
+    fig(table.town, s.table.town(table.town), table.town / table.games),
+    fig(table.crew, s.table.family(table.crew), table.crew / table.games),
     table.lovers > 0 ? fig(table.lovers, s.table.pair, table.lovers / table.games) : '',
     table.martyr > 0 ? fig(table.martyr, s.table.martyr, table.martyr / table.games) : '',
     fig((table.nights / table.games).toFixed(1), s.table.nights),
@@ -64,7 +64,7 @@ export const statsMarkup = (games: readonly GameSummary[], locale: Locale, roste
         <li class="ledger__row">
           <span class="ledger__name">${esc(n.name)}</span>
           <span class="ledger__figs">
-            ${fig(n.games, s.columns.games)}${fig(n.wins, s.columns.wins)}${fig(n.family, s.columns.family)}${fig(n.hanged, s.columns.hanged)}${fig(n.killed, s.columns.killed)}${fig(n.survived, s.columns.survived)}
+            ${fig(n.games, s.columns.games(n.games))}${fig(n.wins, s.columns.wins(n.wins))}${fig(n.family, s.columns.family(n.family))}${fig(n.hanged, s.columns.hanged(n.hanged))}${fig(n.killed, s.columns.killed(n.killed))}${fig(n.survived, s.columns.survived(n.survived))}
           </span>
         </li>`,
     )
