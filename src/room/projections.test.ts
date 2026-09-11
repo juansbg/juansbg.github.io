@@ -118,7 +118,37 @@ describe('the projection for the whole town', () => {
     expect(sealed.tally).toEqual([])
     expect(sealed.leader).toBeNull()
     expect(sealed.voted).toBe(2)
+    expect(sealed.count).toBeNull()
+    // That a hand is up is public; whose ballot it is stays with the phone.
+    expect(sealed.players.filter((s) => s.voted).map((s) => s.id)).toEqual([2, 3])
+    expect(JSON.stringify(sealed)).not.toContain('voter')
     expect(tvProjection(state, 'en', { sealed: false }).tally).toHaveLength(1)
+  })
+
+  it('brings the count up one ballot at a time, and names the leader only once it is complete', () => {
+    let state = secretNight()
+    state = castVote(state, 2, 0)
+    state = castVote(state, 3, 0)
+    state = castVote(state, 5, 2)
+    const one = tvProjection(state, 'en', { shown: 1 })
+    expect(one.count).toEqual({ shown: 1, total: 3, last: 2 })
+    expect(one.tally).toEqual([{ target: 2, votes: 1 }])
+    expect(one.leader).toBeNull()
+    const all = tvProjection(state, 'en', { shown: 3 })
+    expect(all.count).toEqual({ shown: 3, total: 3, last: 0 })
+    expect(all.tally).toEqual([{ target: 0, votes: 2 }, { target: 2, votes: 1 }])
+    expect(all.leader).toBe(0)
+    for (const p of [one, all]) expect(JSON.stringify(p)).not.toContain('voter')
+    // The phone gets the same count.
+    const mine = seatProjection(state, 4, 'en', { dealt: true, shown: 1 })!
+    expect(mine.count).toEqual({ shown: 1, total: 3, last: 2 })
+    expect(mine.tally).toEqual([{ target: 2, votes: 1 }])
+    expect(mine.voted).toBe(3)
+    expect(mine.players.filter((s) => s.voted).map((s) => s.id)).toEqual([2, 3, 5])
+    const sealedSeat = seatProjection(state, 4, 'en', { dealt: true, sealed: true })!
+    expect(sealedSeat.count).toBeNull()
+    expect(sealedSeat.tally).toEqual([])
+    expect(sealedSeat.voted).toBe(3)
   })
 
   it('shows no winner to the room or a seat before the first night', () => {

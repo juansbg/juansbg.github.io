@@ -12,7 +12,7 @@ import type { SeatNight, SeatProjection } from '../../room/projections'
  */
 
 const NAMES = ['Ana', 'Beto', 'Caro', 'Dani', 'Eva', 'Fer']
-const players = NAMES.map((name, id) => ({ id: id as PlayerId, name, alive: id !== 5 }))
+const players = NAMES.map((name, id) => ({ id: id as PlayerId, name, alive: id !== 5, voted: false }))
 
 const quiet = (): SeatNight => ({
   step: 'INSPECT',
@@ -42,6 +42,9 @@ const seat = (id: PlayerId, roleId: RoleId, tonight: Partial<SeatNight>, extra: 
   canVote: false,
   vote: null,
   eligible: [],
+  voted: 0,
+  tally: [],
+  count: null,
   winner: null,
   ...extra,
 })
@@ -258,17 +261,45 @@ describe("a player's phone at night", () => {
     expect(stepKeyOf({ ...pair, tonight: null })).toBe('')
   })
 
-  it('says the vote is in, by day', () => {
+  it('votes on the ring by day, says the vote is in, and shows the count as it comes up', () => {
     const t = strings('en')
-    const day = (vote: PlayerId | null): SeatProjection =>
+    const day = (vote: PlayerId | null, extra: Partial<SeatProjection> = {}): SeatProjection =>
       seat(0, 'PLAIN', {}, {
         phase: 'day',
         tonight: null,
         canVote: true,
         vote,
         eligible: players.filter((x) => x.alive && x.id !== 0).map(({ id, name }) => ({ id, name })),
+        voted: 2,
+        players: players.map((x) => ({ ...x, voted: x.id === 1 || x.id === 3 })),
+        ...extra,
       })
-    expect(seatMarkup(day(null), 'en')).not.toContain(t.ui.seat.voted)
-    expect(seatMarkup(day(2), 'en')).toContain(t.ui.seat.voted)
+    let html = seatMarkup(day(null), 'en')
+    expect(html).toContain(t.ui.table.ballot)
+    expect(html).toContain(t.ui.table.voted(2, 5))
+    expect(html.match(/data-vote="\d"/g)).toHaveLength(4)
+    expect(html).not.toContain('data-vote="0"')
+    expect(html.split('data-self').length - 1).toBe(1)
+    expect(html.match(/seat__cast/g)).toHaveLength(2)
+    expect(html).not.toContain(t.ui.seat.voted)
+    expect(html).toContain('data-hold')
+
+    html = seatMarkup(day(2), 'en')
+    expect(html).toContain(t.ui.seat.voted)
+    expect(html.match(/<button class="seat"[^>]*data-vote="2"[^>]*>/)?.[0]).toContain('data-selected')
+
+    // The count coming up, then complete.
+    html = seatMarkup(day(2, { count: { shown: 1, total: 3, last: 2 }, tally: [{ target: 2, votes: 1 }] }), 'en')
+    expect(html).toContain(t.ui.table.count)
+    expect(html).toContain('1 / 3')
+    expect(html).toContain('seat__votes')
+    expect(html).toContain('data-fresh')
+    html = seatMarkup(day(2, { count: { shown: 3, total: 3, last: 2 }, tally: [{ target: 2, votes: 2 }, { target: 4, votes: 1 }] }), 'en')
+    expect(html).toContain(t.ui.table.pointsAt('Caro'))
+    expect(html).toContain('data-leader')
+    // The silenced watch the same ring with no vote to cast.
+    html = seatMarkup(day(null, { canVote: false, eligible: [] }), 'en')
+    expect(html).toContain(t.ui.seat.cannotVote)
+    expect(html).not.toContain('data-vote=')
   })
 })

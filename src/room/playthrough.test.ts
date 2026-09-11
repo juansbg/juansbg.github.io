@@ -71,8 +71,21 @@ const checkTv = (state: GameState, locale: Locale, sealed: boolean): void => {
   if (sealed) {
     expect(p.tally).toEqual([])
     expect(p.leader).toBeNull()
+    expect(p.count).toBeNull()
   }
   expect(p.voted).toBe(state.votes.length)
+  expect(p.players.filter((s) => s.voted).length).toBe(state.votes.length)
+  // The count coming up, at every stage: ballots only, never a voter.
+  if (!sealed && state.votes.length > 0) {
+    const total = tvProjection(state, locale, { shown: 0 }).count!.total
+    for (const shown of [0, 1, Math.ceil(total / 2), total]) {
+      const c = tvProjection(state, locale, { shown })
+      expect(JSON.stringify(c)).not.toContain('voter')
+      expect(c.count!.shown).toBe(Math.min(shown, total))
+      expect(c.tally.reduce((n, e) => n + e.votes, 0)).toBe(Math.min(shown, total))
+      if (shown < total) expect(c.leader).toBeNull()
+    }
+  }
 
   const html = tableMarkup(p, false)
   expect(html).not.toContain('seat__sigil')

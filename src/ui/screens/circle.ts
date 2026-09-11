@@ -62,6 +62,14 @@ export interface CircleOptions {
   votes?: ReadonlyMap<PlayerId, number>
   /** The seat the vote points at, marked as the execution's preselection. */
   leader?: PlayerId | null
+  /** The viewer's own chair, on a phone that is not looking through a role's perspective. */
+  self?: readonly PlayerId[]
+  /** Who has cast a ballot today: a mark in the badge's corner until the count comes up. */
+  cast?: readonly PlayerId[]
+  /** The seat the last ballot of the count fell on: its badge lands. */
+  fresh?: PlayerId | null
+  /** Markup for the middle of the ring (the ballot's figure, the verdict); not drawn in rows. */
+  centre?: string
   /**
    * Render for a player's eyes rather than the narrator's: no roles, no
    * sigils, no team colour, no question flags, no accent on any seat. Only
@@ -88,7 +96,7 @@ export const circleMarkup = (
   const t = strings(locale)
   const {
     pickAttr, eligible, selected = [], showRoles = false, compact = false, revealTeams = false,
-    perspective, votes, leader = null, list = false,
+    perspective, votes, leader = null, list = false, cast = [], fresh = null, self: own = [], centre = '',
   } = options
   // The tile has room for one word, not a title: "Bodyguard", not "The
   // Bodyguard"; "Santera", not "La Santera". The sigil above it already says
@@ -108,9 +116,10 @@ export const circleMarkup = (
       const crew = hidden
         ? perspective.crew.includes(p.id)
         : revealTeams && role.team === 'crew' && p.alive
-      const self = hidden && perspective.self.includes(p.id)
+      const self = hidden ? perspective.self.includes(p.id) : own.includes(p.id)
       const doom = doomed.includes(p.id) && p.alive
       const count = p.alive ? votes?.get(p.id) ?? 0 : 0
+      const voted = p.alive && cast.includes(p.id)
 
       return `
         <button class="seat" type="button"
@@ -127,7 +136,9 @@ export const circleMarkup = (
                 ${crew ? 'data-crew' : ''}
                 ${self ? 'data-self' : ''}
                 ${doom ? 'data-doomed' : ''}
-                ${!hidden && p.alive && leader === p.id ? 'data-leader' : ''}>
+                ${!hidden && p.alive && leader === p.id ? 'data-leader' : ''}
+                ${voted ? 'data-voted' : ''}
+                ${fresh === p.id ? 'data-fresh' : ''}>
           <span class="seat__n" aria-hidden="true">${String(p.id + 1).padStart(2, '0')}</span>
           ${showRoles && !hidden ? `<span class="seat__sigil">${sigilMarkup(p.roleId)}</span>` : ''}
           <span class="seat__name" style="--len: ${named ? p.name.trim().length : 1}">${named ? esc(p.name) : '—'}</span>
@@ -135,7 +146,7 @@ export const circleMarkup = (
           ${self ? `<span class="seat__you">${esc(t.ui.view.you)}</span>` : ''}
           ${!hidden && p.hasQuestion ? '<span class="seat__flag" aria-hidden="true">?</span>' : ''}
           ${doom ? '<span class="seat__doom" aria-hidden="true">✕</span>' : ''}
-          ${!hidden && count > 0 ? `<span class="seat__votes">${count}</span>` : ''}
+          ${!hidden && count > 0 ? `<span class="seat__votes">${count}</span>` : voted ? '<span class="seat__cast" aria-hidden="true">✓</span>' : ''}
         </button>
       `
     })
@@ -146,7 +157,8 @@ export const circleMarkup = (
   // one phone screen instead of pushing the buttons below it off the bottom.
   const tableClass = `table${compact ? ' table--compact' : ''}${list ? ' table--list' : ''}`
   const circleClass = `circle${compact ? ' circle--compact' : ''}${list ? ' circle--list' : ''}`
-  return `<div class="${tableClass}"><div class="${circleClass}" style="--seats: ${players.length}">${seats}</div></div>`
+  const middle = centre === '' ? '' : `<div class="circle__centre">${centre}</div>`
+  return `<div class="${tableClass}"><div class="${circleClass}" style="--seats: ${players.length}">${seats}${middle}</div></div>`
 }
 
 /** The smallest tile a name still reads in, in px (3.5rem). Under it, rows. */

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { tallyMarkup, voteChoices, voteCounts } from './vote'
+import { countOrder, countUp, tallyMarkup, voteChoices, voteCounts } from './vote'
 import { castVote, createGame, endNight, startNight, type PlayerSetup } from '../../engine/state'
 import { LOCALES, strings } from '../../i18n'
 import type { GameState } from '../../engine/types'
@@ -74,5 +74,50 @@ describe('the count', () => {
     }
     expect(voteCounts(state).get(1)).toBe(1)
     expect(tallyMarkup(state, 'en')).toContain(strings('en').ui.day.extraVoteMark)
+  })
+})
+
+describe('the count coming up', () => {
+  const base = day(['KILLER', 'PLAIN', 'INSPECT', 'PLAIN', 'PLAIN'])
+
+  it('lands the ballots in rounds, the fewest first, so the last ones all fall on the leader', () => {
+    let state = castVote(base, 1, 0)
+    state = castVote(state, 2, 0)
+    state = castVote(state, 3, 0)
+    state = castVote(state, 4, 2)
+    expect(countOrder(state)).toEqual([2, 0, 0, 0])
+
+    expect(countUp(state, 0)).toEqual({ shown: 0, total: 4, last: null, tally: [], leader: null })
+    const two = countUp(state, 2)
+    expect(two.tally).toEqual([{ target: 0, votes: 1 }, { target: 2, votes: 1 }])
+    expect(two.last).toBe(0)
+    expect(two.leader).toBeNull()
+    const done = countUp(state, 4)
+    expect(done.tally).toEqual([{ target: 0, votes: 3 }, { target: 2, votes: 1 }])
+    expect(done.leader).toBe(0)
+    // Past the end is the end.
+    expect(countUp(state, 9)).toEqual(done)
+    // No voter anywhere in it.
+    expect(JSON.stringify(done)).not.toContain('voter')
+  })
+
+  it('ends a tie with no leader', () => {
+    let state = castVote(base, 1, 0)
+    state = castVote(state, 2, 3)
+    expect(countOrder(state)).toEqual([0, 3])
+    expect(countUp(state, 2).leader).toBeNull()
+    expect(countUp(state, 2).tally).toHaveLength(2)
+  })
+
+  it("counts the Raven's extra as a ballot of its own", () => {
+    let state = castVote(base, 1, 0)
+    state = { ...state, players: state.players.map((p) => (p.id === 0 ? { ...p, extraVotesOnDay: state.day } : p)) }
+    expect(countOrder(state)).toEqual([0, 0])
+    expect(countUp(state, 2).tally).toEqual([{ target: 0, votes: 2 }])
+  })
+
+  it('is empty with no votes', () => {
+    expect(countOrder(base)).toEqual([])
+    expect(countUp(base, 1).total).toBe(0)
   })
 })

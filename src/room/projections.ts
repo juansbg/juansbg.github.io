@@ -5,6 +5,7 @@ import type { GameState, Outcome, Player, PlayerId } from '../engine/types'
 import type { Locale } from '../i18n'
 import type { Perspective } from '../ui/screens/circle'
 import type { Reading, Slide } from '../ui/screens/dawn'
+import { countUp } from '../ui/screens/vote'
 import { familyVictim, perspectiveFor } from '../ui/screens/night'
 import type { TimerView } from '../ui/screens/timer'
 import { actsAt, eligibleAt } from './actions'
@@ -32,6 +33,19 @@ export interface TvSeat {
   extraVote: boolean
   /** Raised a question about their role: the day table already shows it. */
   hasQuestion: boolean
+  /** Has cast a ballot today. That a hand went up is public; for whom is not. */
+  voted: boolean
+}
+
+/**
+ * The count coming up: how many ballots are on the seats so far, of how
+ * many, and the seat the last one fell on. Null while the ballot is sealed;
+ * complete once `shown` reaches `total`.
+ */
+export interface TvCount {
+  shown: number
+  total: number
+  last: PlayerId | null
 }
 
 /** The reading up right now, with its slides already built from public outcomes. */
@@ -52,12 +66,14 @@ export interface TvProjection {
   log: Outcome[]
   reading: TvReading | null
   timer: TvTimer | null
-  /** Votes against each seat today, most first. Counts only. */
+  /** Ballots against each seat today, most first; the count so far while it comes up. Counts only. */
   tally: { target: PlayerId; votes: number }[]
-  /** Who the count points at, or null on a tie or before a vote. */
+  /** Who the count points at once it is complete, or null on a tie or before. */
   leader: PlayerId | null
   /** How many have voted, for a sealed ballot's running count. */
   voted: number
+  /** The count coming up, or null while the ballot is sealed. */
+  count: TvCount | null
   winner: Winner
   /**
    * The dead the paper has named for what they were (`revealedDead`): the one
@@ -91,8 +107,27 @@ export interface TvContext {
    * until the narrator reveals. The count and the leader stay on the phone.
    */
   sealed?: boolean
+  /**
+   * The count is coming up: this many ballots are on the seats. Omitted,
+   * every ballot is (the narrator's own table with nothing to reveal).
+   */
+  shown?: number
   join?: string | null
   roster?: { name: string; joined: boolean }[]
+}
+
+/** The ballot as the room may see it: sealed, coming up, or every ballot. */
+const ballot = (
+  state: GameState,
+  context: { sealed?: boolean; shown?: number },
+): { tally: TvProjection['tally']; leader: PlayerId | null; voted: number; count: TvCount | null } => {
+  const voted = state.votes.length
+  if (context.sealed) return { tally: [], leader: null, voted, count: null }
+  if (context.shown === undefined) {
+    return { tally: tally(state).map((e) => ({ target: e.target, votes: e.votes })), leader: leader(state), voted, count: null }
+  }
+  const c = countUp(state, context.shown)
+  return { tally: c.tally, leader: c.leader, voted, count: { shown: c.shown, total: c.total, last: c.last } }
 }
 
 export const tvProjection = (
@@ -112,13 +147,12 @@ export const tvProjection = (
     silenced: p.silencedOnDay === state.day,
     extraVote: p.extraVotesOnDay === state.day,
     hasQuestion: p.hasQuestion,
+    voted: state.votes.some((v) => v.voter === p.id),
   })),
   log: state.log.filter((o) => o.public),
   reading: context.reading ?? null,
   timer: context.timer ?? null,
-  tally: context.sealed ? [] : tally(state).map((e) => ({ target: e.target, votes: e.votes })),
-  leader: context.sealed ? null : leader(state),
-  voted: state.votes.length,
+  ...ballot(state, context),
   winner: winner(state),
   revealed: revealedDead(state).map((p) => ({ id: p.id, roleId: p.roleId, trade: p.trade })),
   paper: context.paper ?? null,
@@ -149,9 +183,13 @@ export interface SeatProjection {
   vote: PlayerId | null
   /** Who this seat may vote for: the living, themselves excluded. */
   eligible: { id: PlayerId; name: string }[]
+  /** How many have voted today, and the count as the room sees it (sealed: empty, null). */
+  voted: number
+  tally: { target: PlayerId; votes: number }[]
+  count: TvCount | null
   winner: Winner
-  /** The table, for the phone to draw the ring: names and who is dead, public already. */
-  players: { id: PlayerId; name: string; alive: boolean }[]
+  /** The table, for the phone to draw the ring: names, who is dead, who has voted; public already. */
+  players: { id: PlayerId; name: string; alive: boolean; voted: boolean }[]
   /** The night as this seat may see it (docs/BIG-SCREEN.md §10); null by day. */
   tonight: SeatNight | null
 }
@@ -233,7 +271,7 @@ export const seatProjection = (
   state: GameState,
   seat: PlayerId,
   locale: Locale,
-  context: { dealt: boolean; picked?: readonly PlayerId[] },
+  context: { dealt: boolean; picked?: readonly PlayerId[]; sealed?: boolean; shown?: number },
 ): SeatProjection | null => {
   const me = state.players.find((p) => p.id === seat)
   if (!me) return null
@@ -254,8 +292,12 @@ export const seatProjection = (
     eligible: voting
       ? state.players.filter((p) => p.alive && p.id !== seat).map((p) => ({ id: p.id, name: p.name }))
       : [],
+    ...(() => {
+      const b = ballot(state, context)
+      return { voted: b.voted, tally: b.tally, count: b.count }
+    })(),
     winner: winner(state),
-    players: state.players.map((p) => ({ id: p.id, name: p.name, alive: p.alive })),
+    players: state.players.map((p) => ({ id: p.id, name: p.name, alive: p.alive, voted: state.votes.some((v) => v.voter === p.id) })),
     tonight: context.dealt ? seatNight(state, me, context.picked ?? []) : null,
   }
 }
@@ -275,6 +317,9 @@ export const waitingSeat = (seat: PlayerId, name: string, locale: Locale): SeatP
   canVote: false,
   vote: null,
   eligible: [],
+  voted: 0,
+  tally: [],
+  count: null,
   winner: null,
   players: [],
   tonight: null,

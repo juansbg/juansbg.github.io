@@ -213,18 +213,31 @@ Rules:
   clock is not lethal, the vote after it is. Its length is a segmented row
   in ⋯, label above and four choices across, because four Bebas choices do
   not fit beside a label on a phone.
-- **The vote.** Votes against a seat are a `.seat__votes` badge in the
-  bottom-right corner (the question flag keeps the top), an Ash block with
-  a mono figure; the seat the town points at (`[data-leader]`) takes a
-  Ledger edge and a Ledger badge, one step short of selected, because the
-  narrator's tap is still what executes. While votes are being recorded the
-  armed voter is selected (inverted) and the how-to replaces the mono
-  question with a Plex sentence. The count (`.tally`) is a wrapping row of
-  figure · name · voters: the figure in a hairline box that inverts for the
-  leader, the name in Bebas, the voters in muted Plex; the Raven's extra is
-  a bare +1. No red anywhere in it: a vote is the town's, and only the
-  execution it leads to is lethal.
-
+- **The vote.** The vote is a performance in three acts, and the ring is
+  its stage on every screen. *The ballot:* while it is sealed, a seat that
+  has cast a ballot carries a `.seat__cast` tick in the badge's corner (a
+  hand is up; for whom stays on the phone), and the middle of the ring
+  (`.circle__centre`) holds the figure the room watches, `4 / 7` in Plex
+  Mono at the hero size, tabular, with "have voted" under it; the caption
+  says THE BALLOT under the day. On the phone the same ring is the ballot:
+  tap a chair, it inverts, tap it again to take it back. *The count:* the
+  narrator's Reveal on the day head starts it, and the ballots come up one
+  at a time at the narrator's beat, in rounds across the seats pointed at,
+  fewest first, so every seat rises together and the last ballots all fall
+  on the leader; each lands as a `.seat__votes` badge that drops onto the
+  seat (`[data-fresh]`, the one entrance that runs on every paint) while
+  the edge flashes Ledger for a beat, the ticks are gone, and the figure
+  reads `3 / 6` counted. *The verdict:* the count ends with the leader's
+  seat on a Ledger edge and the centre saying THE TOWN POINTS AT ANA in
+  Bebas at the winner's size, or A TIE and the names; the narrator's tap
+  on the seat is still what executes, and the drum and the verdict reading
+  follow it as before. No red anywhere in it: a vote is the town's, and
+  only the execution it leads to is lethal. On the narrator's own screen
+  the count (`.tally`) stays a wrapping row of figure · name · voters,
+  complete at all times, with the Raven's extra as a bare +1; while votes
+  are being recorded by hand the armed voter is selected and the how-to
+  replaces the mono question with a Plex sentence; while the count comes
+  up on the room's screen the question reads "Counting · 3 / 6".
 - **The ledger.** `.screen--stats` (`src/ui/screens/stats.ts`) is the
   record of finished games added up, in the timeline's voice: the dark
   ground, a Bebas title with a mono dateline (how many games, since when),
@@ -259,15 +272,18 @@ Rules:
   Vendetta strike, and the record night by night in Plex. Red on newsprint
   stays a rule or a strike. The shared image is the same page drawn on a
   canvas with the same faces and colours.
-- **A player's night.** `.mine--night` (`src/ui/screens/seat.ts`) is the
-  phone in a player's hand while the narrator reads the night
-  (`docs/BIG-SCREEN.md` §10). Every phone shows the same screen at every
-  step, so a lit phone never says who is awake: the seat and the name on one
-  line, the step's card in the night card's shape (a mono "Night 3" eyebrow,
-  the role being read in Bebas, its sigil in Neon top-right), the ring
-  through the role's own perspective with the owner's chair marked "you", and
-  the hold shrunk to one touch-height bar at the bottom, since a player may
-  need their card again. The held card lands over the whole screen. The
+- **A player's night and day.** `.mine--table` (`src/ui/screens/seat.ts`)
+  is the phone in a player's hand while the narrator reads the night
+  (`docs/BIG-SCREEN.md` §10) and through the day's vote. Every phone shows
+  the same screen at every step, so a lit phone never says who is awake:
+  the seat and the name on one line, the step's card in the night card's
+  shape (a mono "Night 3" eyebrow, the role being read in Bebas, its sigil
+  in Neon top-right), the ring through the role's own perspective with the
+  owner's chair marked "you", and the hold shrunk to one touch-height bar
+  at the bottom, since a player may need their card again. By day the card
+  says where the ballot stands (THE BALLOT and how many have voted; THE
+  COUNT as it comes up; who the town points at) and the ring is the ballot,
+  with the same cast ticks and landing badges as the room's screen. The held card lands over the whole screen. The
   acting phone alone adds the prompt in the card, a hint in the label voice
   under it, tappable seats, and the narrator's own action row: "No one" as a
   ghost, Confirm as primary, the vials in the card, the two sides or the

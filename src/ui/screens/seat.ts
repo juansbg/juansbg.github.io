@@ -116,27 +116,86 @@ export const seatMarkup = (p: SeatProjection, locale: Locale, picks: SeatPicks =
       ${holdMarkup(locale)}`
     : `<p class="subtitle">${esc(s.waitingForDeal)}</p>`
 
+  if (p.phase === 'day' && p.roleId !== null) {
+    return dayMarkup(p, locale, head)
+  }
+
   let day = ''
   if (!p.alive) {
     day = `<p class="mine__note">${esc(s.out)}</p>`
   } else if (p.phase === 'night') {
     day = `<p class="mine__note">${esc(t.phase.nightFalls)}</p>`
-  } else if (p.phase === 'day') {
-    day = p.canVote
-      ? `
-        <p class="label">${esc(s.vote)}</p>
-        ${p.vote === null ? '' : `<p class="mine__note">${esc(s.voted)} ${esc(s.yourVote)}</p>`}
-        <div class="mine__ballot">
-          ${p.eligible
-            .map(
-              (e) => `<button class="target mine__choice" type="button" data-vote="${e.id}"${p.vote === e.id ? ' data-on' : ''}>${esc(e.name)}</button>`,
-            )
-            .join('')}
-        </div>`
-      : `<p class="mine__note">${esc(s.cannotVote)}</p>`
   }
 
   return `<section class="screen mine">${head}${card}${day}</section>`
+}
+
+/**
+ * The day: the vote on the ring. The card says where the ballot stands
+ * (how many hands are up; the count as it comes up; who the town points at
+ * once it is complete), the ring takes the vote — tap a chair, tap it again
+ * to take it back — with the badges landing on the seats as the room's
+ * screen shows them, and the hold stays a bar at the bottom.
+ */
+const dayMarkup = (p: SeatProjection, locale: Locale, head: string): string => {
+  const t = strings(locale)
+  const s = t.ui.seat
+  const nameOf = (id: PlayerId): string => p.players.find((x) => x.id === id)?.name ?? '?'
+  const living = p.players.filter((x) => x.alive).length
+  const c = p.count
+  const complete = c !== null && c.total > 0 && c.shown >= c.total
+  const top = p.tally[0]
+  const runnerUp = p.tally[1]
+  const leader = complete && top !== undefined && (runnerUp === undefined || runnerUp.votes < top.votes) ? top.target : null
+
+  let title: string
+  let situation = ''
+  if (complete && top !== undefined) {
+    title =
+      leader !== null
+        ? t.ui.table.pointsAt(nameOf(leader))
+        : `${t.ui.table.tie} · ${p.tally.filter((e) => e.votes === top.votes).map((e) => nameOf(e.target)).join(' · ')}`
+  } else if (c !== null && c.total > 0) {
+    title = t.ui.table.count
+    situation = `${c.shown} / ${c.total} · ${t.ui.table.counted}`
+  } else {
+    title = t.ui.table.ballot
+    situation = t.ui.table.voted(p.voted, living)
+  }
+
+  const note = !p.alive
+    ? `<p class="mine__note">${esc(s.out)}</p>`
+    : !p.canVote
+      ? `<p class="mine__note">${esc(s.cannotVote)}</p>`
+      : c !== null
+        ? ''
+        : p.vote !== null
+          ? `<p class="mine__note">${esc(s.voted)} ${esc(s.yourVote)}</p>`
+          : `<p class="label mine__hint">${esc(s.vote)}</p>`
+
+  const table = circleMarkup(p.players.map(tableSeat), locale, {
+    ...(p.canVote ? { pickAttr: 'vote', eligible: p.eligible.map((e) => e.id) } : {}),
+    selected: p.vote === null ? [] : [p.vote],
+    votes: new Map(p.tally.map((e) => [e.target, e.votes])),
+    leader,
+    self: [p.seat],
+    cast: p.players.filter((x) => x.voted).map((x) => x.id),
+    fresh: c?.last ?? null,
+  })
+
+  return `
+    <section class="screen mine mine--table" data-day ${complete ? 'data-counted' : ''}>
+      ${head}
+      <div class="card card--role mine__step" data-accent="system">
+        <p class="night__counter">${esc(t.ui.table.day(p.day))}</p>
+        <h2 class="card__title">${esc(title)}</h2>
+        ${situation ? `<p class="card__situation">${esc(situation)}</p>` : ''}
+      </div>
+      ${note}
+      ${table}
+      <div class="reveal__slot mine__card" data-card></div>
+      ${holdMarkup(locale)}
+    </section>`
 }
 
 /** The hold that shows the card: the same gesture as the pass-around, the same slot beside it. */
@@ -306,7 +365,7 @@ const nightMarkup = (
         : ''
 
   return `
-    <section class="screen mine mine--night" data-step="${step ?? ''}" ${acting ? 'data-acting' : ''} ${picks.sent ? 'data-sent' : ''}>
+    <section class="screen mine mine--table" data-step="${step ?? ''}" ${acting ? 'data-acting' : ''} ${picks.sent ? 'data-sent' : ''}>
       ${head}
       ${stepCard}
       ${looked}

@@ -33,6 +33,48 @@ export const voteChoices = (state: GameState, armed: PlayerId | null): PlayerId[
 export const voteCounts = (state: GameState): ReadonlyMap<PlayerId, number> =>
   new Map(tally(state).map((e) => [e.target, e.votes]))
 
+/**
+ * The ballots as they come up in the count, one target per ballot, in
+ * suspense order: rounds across the seats pointed at, the fewest first, so
+ * every seat rises together and the last ballots all fall on the leader.
+ * The Raven's extra is a ballot like any other; no voter is in it.
+ */
+export const countOrder = (state: GameState): PlayerId[] => {
+  const entries = [...tally(state)].sort((a, b) => a.votes - b.votes || a.target - b.target)
+  const rounds = entries.at(-1)?.votes ?? 0
+  const out: PlayerId[] = []
+  for (let round = 0; round < rounds; round++) {
+    for (const e of entries) if (e.votes > round) out.push(e.target)
+  }
+  return out
+}
+
+/** The count with `shown` ballots up: the seat each fell on, most first, and the one that fell last. */
+export interface Count {
+  shown: number
+  total: number
+  /** The seat the last ballot fell on, for the screen to make it land. */
+  last: PlayerId | null
+  tally: { target: PlayerId; votes: number }[]
+  /** Who the count points at once it is complete; null before, and on a tie. */
+  leader: PlayerId | null
+}
+
+export const countUp = (state: GameState, shown: number): Count => {
+  const order = countOrder(state)
+  const up = Math.max(0, Math.min(shown, order.length))
+  const votes = new Map<PlayerId, number>()
+  for (const target of order.slice(0, up)) votes.set(target, (votes.get(target) ?? 0) + 1)
+  const entries = [...votes].map(([target, n]) => ({ target, votes: n })).sort((a, b) => b.votes - a.votes || a.target - b.target)
+  return {
+    shown: up,
+    total: order.length,
+    last: up === 0 ? null : (order[up - 1] ?? null),
+    tally: entries,
+    leader: up === order.length ? leader(state) : null,
+  }
+}
+
 const nameOf = (players: readonly Player[], id: PlayerId): string =>
   players.find((p) => p.id === id)?.name ?? '?'
 

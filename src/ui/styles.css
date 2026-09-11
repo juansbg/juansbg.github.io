@@ -2545,11 +2545,20 @@ html[data-dawn] body {
   font-size: var(--text-xs);
 }
 
+.label-row__tools {
+  display: flex;
+  flex: none;
+  gap: var(--space-2);
+}
+
 /* Votes against a seat, bottom-right so the question flag keeps its corner.
    Ash block, Midnight figure; the leader's goes Ledger. Sized to the tile
    and hung a little off its corner: on an eight-seat ring a tile is about
-   2rem and a fixed 1.25rem badge sat on top of the name. */
-.seat__votes {
+   2rem and a fixed 1.25rem badge sat on top of the name. The cast mark
+   (a hand is up, for whom is sealed) takes the same corner in the same
+   block until the count comes up and replaces it with a figure. */
+.seat__votes,
+.seat__cast {
   --badge: clamp(1.125rem, calc(var(--seat) * 0.4), 1.5rem);
   position: absolute;
   right: calc(var(--seat) * -0.15);
@@ -2563,6 +2572,49 @@ html[data-dawn] body {
   color: var(--on-accent);
   font-size: clamp(0.6875rem, calc(var(--badge) * 0.55), 0.8rem);
   font-weight: 500;
+}
+
+/* A ballot landing in the count: the badge drops onto the seat and the
+   edge flashes Ledger for a beat. Runs on every paint of a fresh seat on
+   purpose: the room's screen repaints per ballot, and two ballots on one
+   seat should land twice. */
+.seat[data-fresh] .seat__votes {
+  animation: badge-land var(--dur-base) var(--ease-out) both;
+}
+
+.seat[data-fresh] {
+  animation: seat-land 900ms var(--ease-out) both;
+}
+
+@keyframes badge-land {
+  from {
+    scale: 2.4;
+    opacity: 0;
+  }
+  55% {
+    scale: 0.85;
+    opacity: 1;
+  }
+  to {
+    scale: 1;
+  }
+}
+
+@keyframes seat-land {
+  from {
+    border-color: var(--fg);
+    box-shadow: inset 0 0 0 1px var(--fg);
+  }
+  to {
+    box-shadow: inset 0 0 0 0 transparent;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .seat[data-fresh] .seat__votes,
+  .seat[data-fresh] {
+    animation: none;
+  }
 }
 
 /* The seat the town is pointing at: a Ledger edge, one step short of
@@ -3020,6 +3072,71 @@ html[data-dawn] body {
   text-align: left;
 }
 
+/* The middle of the ring: the square the seats leave free, for the
+   ballot's figure and the verdict. Not drawn in rows, where there is no
+   middle; the phone's card says the same there. */
+.circle__centre {
+  position: absolute;
+  inset: var(--seat);
+  display: grid;
+  place-content: center;
+  padding: var(--space-2);
+  text-align: center;
+  pointer-events: none;
+}
+
+.circle[data-rows] .circle__centre,
+.circle--list .circle__centre {
+  display: none;
+}
+
+/* The ballot as a figure the room watches, in the middle of the ring: how
+   many hands are up of the living, then how many ballots are counted of
+   how many. Mono digits at the hero size, tabular, the clock's voice. */
+.tableview__ballot {
+  display: grid;
+  gap: var(--space-1);
+  justify-items: center;
+}
+
+.tableview__eyebrow {
+  margin-top: var(--space-1);
+  color: var(--fg-muted);
+}
+
+.tableview__figure {
+  margin: 0;
+  color: var(--fg);
+  font-family: var(--font-mono);
+  font-size: var(--text-hero);
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+
+.tableview__figure b {
+  font-weight: 500;
+}
+
+.tableview__of {
+  margin: 0 0.08em;
+  color: var(--fg-muted);
+}
+
+/* The count is complete: who the town points at, in the middle of the
+   ring, in the winner's voice. Ledger, never red: the vote is the town's,
+   and only the execution after it is lethal. */
+.tableview__verdict {
+  margin: 0;
+  color: var(--fg);
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  letter-spacing: var(--track-display);
+  line-height: 0.95;
+  text-transform: uppercase;
+  text-wrap: balance;
+  animation: line-in var(--dur-slow) var(--ease-out) both;
+}
+
 .tableview__clock {
   grid-row: 1;
   grid-column: 3;
@@ -3238,9 +3355,24 @@ html[data-dawn] body {
   font-size: 1.1rem;
 }
 
-.stage--tv .seat__votes {
+.stage--tv .seat__votes,
+.stage--tv .seat__cast {
   --badge: clamp(1.5rem, calc(var(--seat) * 0.3), 3rem);
   font-size: clamp(0.875rem, calc(var(--badge) * 0.55), 1.75rem);
+}
+
+.stage--tv .tableview__ballot .label,
+.stage--tv .tableview__eyebrow {
+  color: var(--fg-2);
+  font-size: clamp(1rem, 2vmin, 2rem);
+}
+
+.stage--tv .tableview__figure {
+  font-size: clamp(4rem, 14vmin, 12rem);
+}
+
+.stage--tv .tableview__verdict {
+  font-size: clamp(2rem, 6vmin, 5.5rem);
 }
 
 .stage--tv .seat[data-dead]::after {
@@ -3250,11 +3382,6 @@ html[data-dawn] body {
 .stage--tv .tableview__head .label {
   color: var(--fg);
   font-size: clamp(1.5rem, 3.5vmin, 3rem);
-}
-
-.stage--tv .tableview__voted {
-  color: var(--fg-2);
-  font-size: clamp(1.25rem, 2.5vmin, 2.25rem);
 }
 
 .stage--tv .tableview__winner {
@@ -3335,12 +3462,6 @@ html[data-dawn] body {
   color: var(--accent);
 }
 
-.tableview__voted {
-  margin: 0;
-  color: var(--fg-muted);
-  font-size: var(--text-sm);
-}
-
 /* ---------- A player's phone ---------- */
 .stage--seat {
   padding: max(var(--space-4), env(safe-area-inset-top)) var(--space-4) max(var(--space-4), env(safe-area-inset-bottom));
@@ -3383,24 +3504,25 @@ html[data-dawn] body {
   background: color-mix(in oklab, var(--fg) 14%, transparent);
 }
 
-/* The night on a phone (docs/BIG-SCREEN.md §10). Every phone: the step's card,
-   the plain ring, the hold shrunk to a bar at the bottom; the acting phone
-   adds the prompt, the hint and the action row under the ring. The held card
-   lands over the whole screen instead of in a stage of its own, so the ring
-   keeps the height. */
-.mine--night {
+/* The night and the day on a phone (docs/BIG-SCREEN.md §10). Every phone: a
+   card (the step being read; by day, where the ballot stands), the ring, the
+   hold shrunk to a bar at the bottom; the acting phone adds the hint and the
+   action row under the ring, and by day the ring is the ballot. The held
+   card lands over the whole screen instead of in a stage of its own, so the
+   ring keeps the height. */
+.mine--table {
   position: relative;
   gap: var(--space-3);
 }
 
-.mine--night .mine__head {
+.mine--table .mine__head {
   display: flex;
   align-items: baseline;
   justify-content: center;
   gap: var(--space-2);
 }
 
-.mine--night .mine__head .title {
+.mine--table .mine__head .title {
   font-size: var(--text-lg);
 }
 
@@ -3432,19 +3554,19 @@ html[data-dawn] body {
   background: var(--bg);
 }
 
-.mine--night .reveal__hold {
+.mine--table .reveal__hold {
   min-height: var(--touch);
   padding: var(--space-2) var(--space-4);
   font-size: var(--text-display-min);
 }
 
-.mine--night .reveal__hold-label {
+.mine--table .reveal__hold-label {
   max-width: none;
 }
 
 /* An action is on its way: the row waits for the narrator's answer. */
-.mine--night[data-sent] .actions,
-.mine--night[data-sent] .card__potion {
+.mine--table[data-sent] .actions,
+.mine--table[data-sent] .card__potion {
   opacity: 0.55;
 }
 

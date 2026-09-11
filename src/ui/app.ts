@@ -34,6 +34,7 @@ import { summarise } from '../engine/summary'
 import { editorMarkup, MAX_PLAYERS, MIN_PLAYERS, namesMarkup, rosterMarkup } from './screens/setup'
 import { dealRoles, systemRandom, type Complexity } from '../engine/deal'
 import { dayMarkup, inspectionMarkup, nightMarkup, playerViewMarkup, questionCardMarkup, questionsIntroMarkup } from './screens/night'
+import { countOrder } from './screens/vote'
 import { dawnMarkup, dawnSlides, verdictSlides, type Reading, type Slide } from './screens/dawn'
 import { tableMarkup } from './screens/table'
 import { tvProjection, type TvProjection } from '../room/projections'
@@ -145,8 +146,21 @@ interface Guest {
 const guests = new Map<string, Guest>()
 /** This phone's half of the key exchange, made once per page load. */
 let narratorKeys: KeyPair | null = null
-/** The ballot: sealed until the narrator taps Reveal; every move that leaves the day seals it again. */
-let votesRevealed = false
+/**
+ * The ballot: sealed until the narrator taps Reveal, and then the count
+ * comes up on the room's screen one ballot at a time (`countUp` in
+ * screens/vote.ts), at a beat this phone keeps. `shown` is how many are up,
+ * null while sealed; every move that leaves the day seals it again.
+ */
+let shown: number | null = null
+let countBeat: number | null = null
+const COUNT_BEAT_MS = 900
+
+const stopCount = (): void => {
+  if (countBeat !== null) window.clearInterval(countBeat)
+  countBeat = null
+  shown = null
+}
 
 const sameName = (a: string, b: string): boolean => a.trim().toLowerCase() === b.trim().toLowerCase()
 
@@ -284,7 +298,12 @@ function seatNow(guest: Guest): SeatProjection | { kind: 'refused' } {
     return waitingSeat(guest.seat, names[guest.seat] ?? guest.name, state.locale)
   }
   return (
-    seatProjection(game, guest.seat, state.locale, { dealt: state.screen !== 'setup', picked }) ?? { kind: 'refused' }
+    seatProjection(game, guest.seat, state.locale, {
+      dealt: state.screen !== 'setup',
+      picked,
+      sealed: shown === null,
+      ...(shown === null ? {} : { shown }),
+    }) ?? { kind: 'refused' }
   )
 }
 
@@ -319,7 +338,8 @@ function projectionNow(): TvProjection {
   return tvProjection(state.session.current, state.locale, {
     reading: dawn !== null ? { kind: dawnKind, index: dawn, slides: currentSlides() } : null,
     timer: state.screen === 'day' ? { ...viewOf(timer, Date.now()), endsAt: timer.endsAt } : null,
-    sealed: !votesRevealed,
+    sealed: shown === null,
+    ...(shown === null ? {} : { shown }),
     join: room === null ? null : seatUrl(room, location.origin),
     roster: lobbyRoster(),
     // The TV shows the paper while the phone does.
@@ -408,7 +428,7 @@ let voter: PlayerId | null = null
 const leaveDay = (): void => {
   voting = false
   voter = null
-  votesRevealed = false
+  stopCount()
   setTimer(resetTimer(timer))
 }
 
@@ -606,6 +626,10 @@ function render(entering = false): void {
             : dayMarkup(
               game, state.locale, state.layout, peeking, viewOf(timer, Date.now()),
               voting ? { armed: voter } : null,
+              {
+                revealable: room !== null && game.votes.length > 0 && shown === null,
+                count: shown === null ? null : { shown, total: countOrder(game).length },
+              },
             )
     if (picking) sheets += pickerMarkup()
   } else {
@@ -871,9 +895,6 @@ function render(entering = false): void {
            </div>`
         : '',
       row('data-room', t.ui.menu.bigScreen, room?.code ?? ''),
-      room !== null && state.screen === 'day' && game.votes.length > 0 && !votesRevealed
-        ? row('data-reveal-votes', t.ui.menu.revealVotes, String(game.votes.length))
-        : '',
       inPlay || room !== null ? row('data-show-table', t.ui.menu.table) : '',
       state.screen === 'day' ? row('data-show-role', t.ui.reveal.showAgain) : '',
       row('data-mute', t.ui.menu.sound, sound.muted() ? t.ui.menu.off : t.ui.menu.on),
@@ -1460,11 +1481,25 @@ function bind(): void {
     setState({}, false)
   })
 
-  // The ballot comes off the seal: the count and the leader reach the room.
+  // The ballot comes off the seal: the count comes up on the room's screen
+  // one ballot at a time, at this phone's beat, and each ballot ticks here.
+  // Anything that leaves the day stops it; once complete it stays up.
   on(root, '[data-reveal-votes]', 'click', () => {
-    menuOpen = false
-    votesRevealed = true
+    if (shown !== null) return
+    shown = 0
     buzz()
+    countBeat = window.setInterval(() => {
+      if (shown === null) return
+      const total = countOrder(state.session.current).length
+      shown = Math.min(shown + 1, total)
+      buzz()
+      sound.tick()
+      if (shown >= total && countBeat !== null) {
+        window.clearInterval(countBeat)
+        countBeat = null
+      }
+      setState({}, false)
+    }, COUNT_BEAT_MS)
     setState({}, false)
   })
 

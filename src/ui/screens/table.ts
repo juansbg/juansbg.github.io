@@ -1,5 +1,6 @@
 import type { Player } from '../../engine/types'
 import { renderWinner, strings } from '../../i18n'
+import type { PlayerId } from '../../engine/types'
 import type { TvProjection, TvSeat } from '../../room/projections'
 import { esc } from '../dom'
 import { qrSvg } from '../../room/qr'
@@ -53,6 +54,8 @@ export const tableMarkup = (p: TvProjection, controls = true): string => {
         : ''
   const line = over ? (renderWinner(p.winner, p.locale) ?? '') : ''
   const votes = new Map(p.tally.map((e) => [e.target, e.votes]))
+  const complete = p.count !== null && p.count.total > 0 && p.count.shown >= p.count.total
+  const verdict = complete ? verdictLine(p, t) : ''
 
   // The paper is open on the phone: the room reads the same edition, set
   // from the projection's public facts, with no Done of its own.
@@ -65,19 +68,67 @@ export const tableMarkup = (p: TvProjection, controls = true): string => {
     <section class="screen screen--table" data-table data-phase="${p.phase}">
       <header class="tableview__head">
         <p class="label">${esc(caption)}</p>
-        ${
-          p.voted > 0 && p.tally.length === 0
-            ? `<p class="tableview__voted">${esc(t.ui.table.voted(p.voted, p.players.filter((s) => s.alive).length))}</p>`
-            : ''
-        }
+        ${over || p.phase !== 'day' ? '' : ballotEyebrow(p, t)}
       </header>
       ${p.timer && p.phase === 'day' ? `<div class="tableview__clock">${timerMarkup(p.timer, p.locale)}</div>` : ''}
-      ${circleMarkup(p.players.map(seatOf), p.locale, { votes, leader: p.leader })}
+      ${circleMarkup(p.players.map(seatOf), p.locale, {
+        votes,
+        leader: p.leader,
+        // A hand up is marked while the ballot is sealed; once the count comes
+        // up the corner belongs to the ballots against the seat.
+        cast: p.phase === 'day' && !over && p.count === null ? p.players.filter((s) => s.voted).map((s) => s.id) : [],
+        fresh: p.count?.last ?? null,
+        centre: over
+          ? ''
+          : verdict
+            ? `<p class="tableview__verdict" data-verdict>${esc(verdict)}</p>`
+            : ballotMarkup(p, t),
+      })}
       ${readingMarkup(p, controls)}
       ${line ? `<p class="tableview__winner winner">${esc(line)}</p>` : ''}
       ${controls ? `<button class="icon-btn tableview__close" type="button" data-table-close aria-label="${esc(t.ui.common.back)}" title="${esc(t.ui.common.back)}">✕</button>` : ''}
     </section>
   `
+}
+
+/**
+ * The ballot as a figure the whole room watches, in the middle of the ring:
+ * while it is sealed, how many hands are up of the living; while the count
+ * comes up, how many ballots are on the seats of how many. Mono digits at
+ * display size, the way the clock is read from across the table. Nothing
+ * while nobody has voted. The word for it (the ballot, the count) sits
+ * under the day in the caption.
+ */
+const ballotMarkup = (p: TvProjection, t: ReturnType<typeof strings>): string => {
+  if (p.phase !== 'day') return ''
+  const c = p.count
+  if (c === null) {
+    if (p.voted === 0) return ''
+    return figureMarkup(p.voted, p.players.filter((s) => s.alive).length, t.ui.table.haveVoted)
+  }
+  if (c.total === 0) return ''
+  return figureMarkup(c.shown, c.total, t.ui.table.counted)
+}
+
+const ballotEyebrow = (p: TvProjection, t: ReturnType<typeof strings>): string => {
+  if (p.count === null) return p.voted === 0 ? '' : `<p class="label tableview__eyebrow">${esc(t.ui.table.ballot)}</p>`
+  return p.count.total === 0 ? '' : `<p class="label tableview__eyebrow">${esc(t.ui.table.count)}</p>`
+}
+
+const figureMarkup = (n: number, total: number, under: string): string => `
+  <div class="tableview__ballot" data-ballot>
+    <p class="tableview__figure"><b>${n}</b><span class="tableview__of">/</span><b>${total}</b></p>
+    <p class="label">${esc(under)}</p>
+  </div>`
+
+/** The count is complete: who the town points at, or the names it is torn between. */
+const verdictLine = (p: TvProjection, t: ReturnType<typeof strings>): string => {
+  const nameOf = (id: PlayerId): string => p.players.find((s) => s.id === id)?.name ?? '?'
+  if (p.leader !== null) return t.ui.table.pointsAt(nameOf(p.leader))
+  const top = p.tally[0]
+  if (!top) return ''
+  const tied = p.tally.filter((e) => e.votes === top.votes).map((e) => nameOf(e.target))
+  return `${t.ui.table.tie} · ${tied.join(' · ')}`
 }
 
 /** The slide up right now, as a card over the table. */

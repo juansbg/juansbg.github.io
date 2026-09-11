@@ -141,3 +141,53 @@ describe('the paper on the table', () => {
     }
   })
 })
+
+describe('the vote on the table', () => {
+  const ballot = (): GameState => {
+    let state = morning()
+    state = castVote(state, 2, 0)
+    state = castVote(state, 3, 0)
+    return state
+  }
+
+  it('shows how many hands are up while the ballot is sealed, and whose, never for whom', () => {
+    const state = ballot()
+    for (const locale of LOCALES) {
+      const t = strings(locale)
+      const html = tableMarkup(tvProjection(state, locale, { sealed: true }))
+      expect(html).toContain('data-ballot')
+      expect(html).toContain(t.ui.table.ballot)
+      expect(html).toMatch(/<b>2<\/b>.*<b>3<\/b>/s)
+      expect(html).toContain(t.ui.table.haveVoted)
+      expect(html.match(/seat__cast/g)).toHaveLength(2)
+      expect(html).not.toContain('seat__votes')
+      expect(html).not.toContain('data-leader')
+      expect(html).not.toContain('data-verdict')
+    }
+  })
+
+  it('lands the count one ballot at a time and ends on who the town points at', () => {
+    const state = ballot()
+    const t = strings('en')
+    const one = tableMarkup(tvProjection(state, 'en', { shown: 1 }))
+    expect(one).toContain(t.ui.table.count)
+    expect(one).toMatch(/<b>1<\/b>.*<b>2<\/b>/s)
+    expect(one).toContain(t.ui.table.counted)
+    expect(one).toMatch(/data-fresh[^>]*>[\s\S]*?Ana/)
+    expect(one.match(/seat__votes/g)).toHaveLength(1)
+    expect(one).not.toContain('data-verdict')
+    const done = tableMarkup(tvProjection(state, 'en', { shown: 2 }))
+    expect(done).toContain('data-verdict')
+    expect(done).toContain(t.ui.table.pointsAt('Ana'))
+    expect(done).toContain('data-leader')
+  })
+
+  it('calls a tie a tie', () => {
+    let state = morning()
+    state = castVote(state, 2, 0)
+    state = castVote(state, 0, 2)
+    const html = tableMarkup(tvProjection(state, 'es', { shown: 2 }))
+    expect(html).toContain('Empate · Ana · Caro')
+    expect(html).not.toContain('data-leader')
+  })
+})

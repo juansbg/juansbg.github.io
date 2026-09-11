@@ -37,6 +37,12 @@ export const picksNeeded = (roleId: RoleId): number => {
 
 export type Layout = 'circle' | 'list'
 
+/** The ballot from the narrator's side: whether the count may start, and how far it is. */
+export interface DayBallot {
+  revealable: boolean
+  count: { shown: number; total: number } | null
+}
+
 /** The Family's pick tonight, once recorded — what the Godfather decides about. */
 export const familyVictim = (state: GameState): Player | null => {
   const hit = state.pending.find((a) => a.kind === 'target' && a.roleId === 'KILLER')
@@ -349,6 +355,7 @@ export const dayMarkup = (
   peek = false,
   timer: TimerView | null = null,
   voting: VoteMode | null = null,
+  ballot: DayBallot | null = null,
 ): string => {
   const t = strings(locale)
   // Coloured cards, one per public outcome, in the colour of the role that
@@ -370,9 +377,17 @@ export const dayMarkup = (
   const top = leader(state)
   const armed = voting?.armed ?? null
   const armedName = state.players.find((p) => p.id === armed)?.name ?? ''
-  const question = voting
-    ? `<p class="label-row__hint">${esc(armed === null ? t.ui.day.voteHint : t.ui.day.pickFor(armedName))}</p>`
-    : `<p class="label">${esc(t.ui.day.whoDies)}</p>`
+  // While the count comes up on the room's screen the question gives way to
+  // its progress; the narrator's own tally underneath stays complete.
+  const counting = ballot?.count !== null && ballot?.count !== undefined && ballot.count.shown < ballot.count.total ? ballot.count : null
+  const question = counting
+    ? `<p class="label-row__hint">${esc(t.ui.day.counting)} · ${counting.shown} / ${counting.total}</p>`
+    : voting
+      ? `<p class="label-row__hint">${esc(armed === null ? t.ui.day.voteHint : t.ui.day.pickFor(armedName))}</p>`
+      : `<p class="label">${esc(t.ui.day.whoDies)}</p>`
+  const reveal = ballot?.revealable
+    ? `<button class="icon-btn icon-btn--word" type="button" data-reveal-votes>${esc(t.ui.day.reveal)}</button>`
+    : ''
   const pickAttr = voting ? 'vote' : 'lynch'
   const eligible = voting ? voteChoices(state, armed) : living
   const selected = armed === null ? [] : [armed]
@@ -408,7 +423,10 @@ export const dayMarkup = (
 
       <div class="label-row">
         ${question}
-        <button class="icon-btn icon-btn--word" type="button" data-voting aria-pressed="${voting !== null}">${esc(voting ? t.ui.common.done : t.ui.day.votes)}</button>
+        <span class="label-row__tools">
+          ${reveal}
+          <button class="icon-btn icon-btn--word" type="button" data-voting aria-pressed="${voting !== null}">${esc(voting ? t.ui.common.done : t.ui.day.votes)}</button>
+        </span>
       </div>
       ${tallyMarkup(state, locale)}
       ${circleMarkup(state.players, locale, {

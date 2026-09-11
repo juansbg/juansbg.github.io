@@ -238,6 +238,9 @@ export interface Strings {
       votes: string
       /** How to record a vote, shown while nobody is armed. */
       voteHint: string
+      /** The day head's word button that starts the count on the room's screen. */
+      reveal: string
+      counting: string
       /** A voter is armed: whose pick is awaited. */
       pickFor: (name: string) => string
       /** Accessible name of the count row. */
@@ -374,14 +377,21 @@ export interface Strings {
       table: string
       /** The row that opens the room sheet: a code and a QR for a TV. */
       bigScreen: string
-      /** Lifts the seal on the day's ballot for the room; the value is the count so far. */
-      revealVotes: string
     }
     /** The table view: the seating plan for the room, phone on its side. */
     table: {
       day: (n: number) => string
       /** The sealed ballot's running count: n of the living have voted. */
       voted: (n: number, living: number) => string
+      /** The ballot and the count as the room watches them (docs/DESIGN.md, "The vote"). */
+      ballot: string
+      count: string
+      /** Under the big figure: "4 / 7" have voted; "3 / 7" counted. */
+      haveVoted: string
+      counted: string
+      /** The count is complete: who it points at, or a tie between these names. */
+      pointsAt: (name: string) => string
+      tie: string
       /** The lobby on the big screen. */
       scanToJoin: string
       joined: (n: number, total: number) => string
