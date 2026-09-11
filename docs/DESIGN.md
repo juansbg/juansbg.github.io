@@ -57,7 +57,9 @@ the side. `--glyph-dim` is the only derived state, for the dead.
   one job Ash has as a surface: the town's paper, daily and final, so the
   narrator's report (Ledger) and the town's gossip sheet are told apart at a
   glance. On it red is a rule or a strike, never type.
-- **Ink**: `--fg` Ledger, `--fg-2` Ash, `--fg-muted`, `--fg-faint`.
+- **Ink**: `--fg` Ledger, `--fg-2` Ash, `--fg-muted` (72% Ash: the mono
+  eyebrows are 12px and read in the dark, so it clears 5:1 on `--surface`),
+  `--fg-faint` (the dead and the disabled only, never a label).
 - **Lines**: `--hairline` (22% Ash), `--hairline-strong` (48% Ash).
 - **Vendetta states**: `--lethal`, `--lethal-dim`, `--lethal-glow`. The only
   colour with states.

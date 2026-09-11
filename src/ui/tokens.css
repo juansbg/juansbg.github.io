@@ -56,7 +56,7 @@
   /* Ink — Ledger speaks, Ash annotates, the rest recede. */
   --fg: var(--ledger);
   --fg-2: var(--ash);
-  --fg-muted: color-mix(in oklab, var(--ash) 62%, var(--midnight));
+  --fg-muted: color-mix(in oklab, var(--ash) 72%, var(--midnight)); /* 5:1 on --surface at 12px: the eyebrows are read in the dark */
   --fg-faint: color-mix(in oklab, var(--ash) 36%, var(--midnight));
 
   /* Lines. Depth comes from a hairline and a step up the surface scale. */

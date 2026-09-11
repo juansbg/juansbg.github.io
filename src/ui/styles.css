@@ -669,7 +669,9 @@ body {
     max(var(--space-5), env(safe-area-inset-bottom));
   border-top: 1px solid var(--hairline-strong);
   border-radius: 0;
-  background: var(--surface-raised);
+  /* One step up from the ground, not two: on the raised surface the two
+     Vendetta rows measured 4.0:1, under the 4.5 the design promises. */
+  background: var(--surface);
   box-shadow: var(--shadow-deep);
   overflow-y: auto;
   animation: sheet-up var(--dur-base) var(--ease-out) both;
@@ -1146,7 +1148,7 @@ body {
 
 .reveal__hint {
   margin: 0;
-  color: var(--fg-faint);
+  color: var(--fg-muted);
   font-size: var(--text-xs);
 }
 
