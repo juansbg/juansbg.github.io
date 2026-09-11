@@ -119,10 +119,10 @@ export const en: Strings = {
   },
 
   winner: {
-    town: 'The town wins.',
-    crew: 'The Family wins.',
-    lovers: 'The bound pair win together.',
-    martyr: 'The Martyr wins — the town walked into it.',
+    town: 'The town wins',
+    crew: 'The Family wins',
+    lovers: 'The bound pair win together',
+    martyr: 'The Martyr wins — the town walked into it',
   },
 
   ui: {

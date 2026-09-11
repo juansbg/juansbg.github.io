@@ -119,10 +119,10 @@ export const es: Strings = {
   },
 
   winner: {
-    town: 'Gana el pueblo.',
-    crew: 'Gana la Familia.',
-    lovers: 'Ganan los amarrados.',
-    martyr: 'Gana el Mártir: el pueblo cayó en su trampa.',
+    town: 'Gana el pueblo',
+    crew: 'Gana la Familia',
+    lovers: 'Ganan los amarrados',
+    martyr: 'Gana el Mártir: el pueblo cayó en su trampa',
   },
 
   ui: {

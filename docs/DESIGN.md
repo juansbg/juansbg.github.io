@@ -1,4 +1,4 @@
-# Omertà design language
+# The Family design language
 
 The visual identity of the v3 app. This is the authority for any UI change;
 `src/ui/tokens.css` is its executable form and `docs/design-language.html`
@@ -113,6 +113,13 @@ Rules:
 
 - Every button label is Bebas. Every sentence is Plex Sans. Every number is
   Plex Mono, even inside a sentence.
+- **Four stamps are sentences, and stay Bebas.** The winner line ("The
+  Family wins", on the game-over screen, the final edition's banner, the
+  player page and the TV), the handoff ("Pass the phone to Ana" / "Are you
+  Ana?") and the hold label ("Press and hold to see your role") are read
+  as stamps, not read aloud, so they keep the display face. A stamp
+  carries no full stop. Nothing else that is a sentence may be set in
+  Bebas; a fifth needs this list changed.
 - No italics. Emphasis is weight 600.
 - Scale is `--text-xs` … `--text-hero` in `tokens.css`, all `clamp()`.
 - If lowercase titles are ever wanted, the swap is Big Shoulders Display.
