@@ -791,7 +791,7 @@ function render(entering = false): void {
     const items = [
       row('data-lang', t.ui.menu.language, strings(other).languageName),
       inPlay
-        ? `<div class="menu__item menu__item--static">
+        ? `<div class="menu__item menu__item--static menu__item--stack">
              <span class="menu__label">${esc(t.ui.menu.layout)}</span>
              <span class="menu__segment" role="radiogroup" aria-label="${esc(t.ui.menu.layout)}">
                <button class="menu__seg" type="button" role="radio" data-layout="circle"

@@ -1819,7 +1819,7 @@ body.is-revealing .bar {
   display: grid;
   place-content: center;
   align-self: stretch;
-  min-width: 2.75rem;
+  min-width: var(--touch);
   border: 0;
   border-left: 1px solid var(--hairline);
   background: transparent;
@@ -2716,7 +2716,7 @@ html[data-dawn] body {
 }
 
 .menu__seg {
-  min-height: 2.5rem;
+  min-height: var(--touch);
   padding: 0 var(--space-4);
   border: 0;
   border-radius: 0;
