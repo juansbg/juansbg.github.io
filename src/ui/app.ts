@@ -56,6 +56,7 @@ import { makeKeys, seal, sharedKey, type KeyPair } from '../room/crypto'
 import { seatProjection, waitingSeat, type SeatProjection } from '../room/projections'
 import { qrSvg } from '../room/qr'
 import { timelineMarkup } from './screens/timeline'
+import { fitTables } from './screens/circle'
 import { dailyMarkup, edition, paperMarkup, sharePaper, type ShareResult } from './screens/paper'
 import {
   TIMER_LENGTHS,
@@ -383,6 +384,12 @@ interface InstallPromptEvent extends Event {
 // ones wake it after iOS has put it to sleep.
 unlockOnGesture()
 
+// The room a table has changes with the viewport (a rotation, the keyboard
+// bar, a split view), not only with a paint: watch the root's box and let
+// the circle fall back to rows, or come back, as it does.
+window.addEventListener('resize', () => fitTables(root))
+if (typeof ResizeObserver !== 'undefined') new ResizeObserver(() => fitTables(root)).observe(root)
+
 window.addEventListener('beforeinstallprompt', (event) => {
   event.preventDefault()
   installPrompt = event as InstallPromptEvent
@@ -560,6 +567,8 @@ function render(entering = false): void {
 
   root.innerHTML = `<main class="stage"${entering ? ' data-enter' : ''}>${body}</main>${overlay}${chromeMarkup()}`
   bind()
+  // A circle with no room for readable tiles becomes rows, before it is seen.
+  fitTables(root)
   syncTicker()
   // The TV follows every paint; the link sends one message per frame at most.
   publish()

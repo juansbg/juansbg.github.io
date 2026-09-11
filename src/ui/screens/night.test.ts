@@ -67,8 +67,9 @@ describe('the potion step', () => {
 
   it('marks the chosen player in the list too', () => {
     const html = nightMarkup(state, 'en', [2], 'list')
-    expect(html).toMatch(/data-target="2"\s+data-picked/)
-    expect(html).not.toMatch(/data-target="1"\s+data-picked/)
+    expect(html).toContain('circle--list')
+    expect(html).toMatch(/data-target="2"[\s\S]*?data-selected/)
+    expect(html).not.toMatch(/data-target="1"[^>]*data-selected/)
   })
 
   it('labels the vials rather than repeating the role name', () => {
@@ -148,10 +149,9 @@ describe('choosing from the circle', () => {
   it('keeps every player on screen in either layout', () => {
     for (const layout of ['circle', 'list'] as const) {
       const html = nightMarkup(state, 'en', [], layout)
-      // The circle shows all five seats; the list shows only the choosable.
+      // Both layouts are the same five seats: the list is the ring in rows.
       const seats = (html.match(/class="seat"/g) ?? []).length
-      const rows = (html.match(/class="target"/g) ?? []).length
-      expect(layout === 'circle' ? seats : rows).toBeGreaterThan(0)
+      expect(seats).toBe(state.players.length)
     }
   })
 

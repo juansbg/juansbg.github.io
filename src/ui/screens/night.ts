@@ -8,7 +8,7 @@ import { strings, type Locale } from '../../i18n'
 import { accentOf } from '../accent'
 import { sigilMarkup } from '../sigils'
 import { esc } from '../dom'
-import { circleMarkup, holdersOf, listMarkup, type CircleOptions, type Perspective } from './circle'
+import { circleMarkup, holdersOf, type CircleOptions, type Perspective } from './circle'
 import { timerMarkup, type TimerView } from './timer'
 import { tallyMarkup, voteChoices, voteCounts, type VoteMode } from './vote'
 import { outcomeCardMarkup } from './timeline'
@@ -72,11 +72,12 @@ export const nightMarkup = (
   // tappable for the narrator. Peek brings the roles and colours back for
   // this one step, for a narrator who has lost track of who is who.
   const view = perspectiveFor(state, roleId, picked)
+  const list = layout === 'list'
   const table = (opts: CircleOptions = {}): string =>
     circleMarkup(
       state.players,
       locale,
-      peek ? { showRoles: true, revealTeams: true, doomed, ...opts } : { perspective: view, ...opts },
+      peek ? { showRoles: true, revealTeams: true, doomed, list, ...opts } : { perspective: view, list, ...opts },
     )
 
   // The narrator has to know who to wake, not just which role. v1 never said.
@@ -105,6 +106,8 @@ export const nightMarkup = (
   // A sentence under the prompt when the step has a specific situation to
   // report: who the Family chose, or that both vials are gone.
   let situation = ''
+  // What sits inside the card under the prompt: the Apothecary's vials.
+  let inCard = ''
   let chooser: string
   let action: string
 
@@ -146,10 +149,7 @@ export const nightMarkup = (
     // is locked until both factions have someone in them.
     const living = state.players.filter((p) => p.alive).map((p) => p.id)
     const ready = picked.length > 0 && picked.length < living.length
-    chooser =
-      layout === 'circle'
-        ? table({ pickAttr: 'target', eligible: living, selected: picked })
-        : listMarkup(state.players, 'target', living, picked)
+    chooser = table({ pickAttr: 'target', eligible: living, selected: picked })
     action = `<div class="actions actions--row">
         <button class="btn btn--ghost" type="button" data-skip>${esc(t.ui.night.noOne)}</button>
         <button class="btn btn--primary" type="button" data-split-confirm ${ready ? '' : 'disabled'}>${esc(t.ui.night.splitConfirm)}</button>
@@ -174,20 +174,16 @@ export const nightMarkup = (
        </button>`
     const bothSpent = state.healUsed && state.poisonUsed
     if (bothSpent) situation = t.ui.night.bothSpent
-    chooser =
-      layout === 'circle'
-        ? table({ pickAttr: 'target', eligible, selected: picked })
-        : listMarkup(state.players, 'target', eligible, picked)
-    action = `
-      ${
-        bothSpent
-          ? ''
-          : `<div class="potion">
+    chooser = table({ pickAttr: 'target', eligible, selected: picked })
+    // The vials live in the card, under the prompt: a second full-width row
+    // over the button used to take the room the circle needed on a phone.
+    inCard = bothSpent
+      ? ''
+      : `<div class="potion card__potion">
         ${vial('heal', 'btn--ok', t.ui.night.heal, canHeal, state.healUsed)}
         ${vial('kill', 'btn--danger', t.ui.night.poison, canPoison, state.poisonUsed)}
       </div>`
-      }
-      <div class="actions"><button class="btn btn--ghost" type="button" data-skip>${esc(t.ui.night.noOne)}</button></div>`
+    action = `<div class="actions"><button class="btn btn--ghost" type="button" data-skip>${esc(t.ui.night.noOne)}</button></div>`
   } else if (spec.kind === 'none') {
     // A role that picks nobody still gets the table, read-only, so the screen
     // keeps its shape and the narrator keeps their bearings.
@@ -198,10 +194,7 @@ export const nightMarkup = (
     // the narrator is looking at around the real table. Ineligible players
     // are dimmed and unclickable rather than hidden, so the table stays
     // readable.
-    chooser =
-      layout === 'circle'
-        ? table({ pickAttr: 'target', eligible, selected: picked })
-        : listMarkup(state.players, 'target', eligible, picked)
+    chooser = table({ pickAttr: 'target', eligible, selected: picked })
     action = `<div class="actions"><button class="btn btn--ghost" type="button" data-skip>${esc(t.ui.night.noOne)}</button></div>`
   }
 
@@ -223,6 +216,7 @@ export const nightMarkup = (
         <p class="card__body">${esc(roleStrings.prompt)}</p>
         ${situation ? `<p class="card__situation">${esc(situation)}</p>` : ''}
         ${role.wakesAsGroup ? `<p class="card__aside">${esc(t.ui.night.wakeGroup)}</p>` : ''}
+        ${inCard}
       </div>
 
       ${hint}
@@ -409,13 +403,10 @@ export const dayMarkup = (
         <button class="icon-btn icon-btn--word" type="button" data-voting aria-pressed="${voting !== null}">${esc(voting ? t.ui.common.done : t.ui.day.votes)}</button>
       </div>
       ${tallyMarkup(state, locale)}
-      ${
-        layout === 'circle'
-          ? circleMarkup(state.players, locale, {
-              pickAttr, eligible, selected, showRoles: peek, revealTeams: peek, votes: counts, leader: top,
-            })
-          : listMarkup(state.players, pickAttr, eligible, selected)
-      }
+      ${circleMarkup(state.players, locale, {
+        pickAttr, eligible, selected, showRoles: peek, revealTeams: peek, votes: counts, leader: top,
+        list: layout === 'list',
+      })}
 
       <div class="actions">
         <button class="btn btn--primary" type="button" data-next-night>${esc(t.ui.day.nextNight)}</button>

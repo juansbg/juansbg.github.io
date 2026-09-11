@@ -70,6 +70,12 @@ export interface CircleOptions {
    * seat says may come from outside the perspective.
    */
   perspective?: Perspective
+  /**
+   * Rows instead of a ring: the narrator's list layout. The same seats, the
+   * same marks, stacked full width and scrolling, so nothing the circle
+   * shows is lost when there is no room for a circle.
+   */
+  list?: boolean
 }
 
 const ARTICLE = /^(the|el|la|los|las)\s+/i
@@ -82,7 +88,7 @@ export const circleMarkup = (
   const t = strings(locale)
   const {
     pickAttr, eligible, selected = [], showRoles = false, compact = false, revealTeams = false,
-    perspective, votes, leader = null,
+    perspective, votes, leader = null, list = false,
   } = options
   // The tile has room for one word, not a title: "Bodyguard", not "The
   // Bodyguard"; "Santera", not "La Santera". The sigil above it already says
@@ -138,27 +144,38 @@ export const circleMarkup = (
   // The wrapper is a size container: the circle measures the room it has been
   // given (width *and* height) and shrinks to fit, so the whole table stays on
   // one phone screen instead of pushing the buttons below it off the bottom.
-  return `<div class="table${compact ? ' table--compact' : ''}"><div class="circle${compact ? ' circle--compact' : ''}" style="--seats: ${players.length}">${seats}</div></div>`
+  const tableClass = `table${compact ? ' table--compact' : ''}${list ? ' table--list' : ''}`
+  const circleClass = `circle${compact ? ' circle--compact' : ''}${list ? ' circle--list' : ''}`
+  return `<div class="${tableClass}"><div class="${circleClass}" style="--seats: ${players.length}">${seats}</div></div>`
 }
 
-/** A plain list of the same choices, for narrators who prefer names to seats. */
-export const listMarkup = (
-  players: readonly Player[],
-  pickAttr: string,
-  eligible: readonly PlayerId[],
-  selected: readonly PlayerId[] = [],
-): string => {
-  const options = players
-    .filter((p) => eligible.includes(p.id))
-    .map(
-      (p) =>
-        `<button class="target" type="button" data-${pickAttr}="${p.id}"${
-          selected.includes(p.id) ? ' data-picked' : ''
-        }>${esc(p.name)}</button>`,
-    )
-    .join('')
+/** The smallest tile a name still reads in, in px (3.5rem). Under it, rows. */
+export const SEAT_FLOOR = 56
 
-  return `<div class="table table--list"><div class="targets">${options}</div></div>`
+/**
+ * Lets a circle that cannot give every seat a readable tile fall back to
+ * rows, after a paint and on resize.
+ *
+ * The tile size is solved in CSS from the room the table is given (the
+ * `--avail` / `--seat` algebra on `.circle` in styles.css); this mirrors it
+ * so the decision can be made before the ring is drawn small. A short
+ * phone with a two-line report, an Apothecary's step with its vial row, or
+ * twelve seats at 375px all land under the floor, and the rows are the
+ * answer the design gives for that, now taken without a trip to the menu.
+ */
+export const fitTables = (root: ParentNode): void => {
+  const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16
+  for (const circle of root.querySelectorAll<HTMLElement>('.circle:not(.circle--list)')) {
+    const table = circle.parentElement
+    if (!table) continue
+    const seats = circle.querySelectorAll('.seat').length || 1
+    const box = table.getBoundingClientRect()
+    const cap = circle.classList.contains('circle--compact') ? 17 : 24.5
+    const avail = Math.max(Math.min(box.width, box.height, cap * rem), 9 * rem)
+    const gap = Math.sin(Math.PI / seats)
+    const seat = Math.min(avail * 0.31, (avail * gap) / (Math.SQRT2 + gap))
+    circle.toggleAttribute('data-rows', seat < SEAT_FLOOR)
+  }
 }
 
 /** Who currently holds a role — what the narrator actually needs to know. */

@@ -146,7 +146,13 @@ Rules:
   top for an odd count, and an even count straddles the top half a step
   either side. Tiles are sized from the chord between neighbours so upright
   squares never overlap (`--seat` in `styles.css` shows the algebra), down
-  to a 2rem floor; past that the list layout is the answer.
+  to a 3.5rem floor. **Under the floor the ring becomes rows** by itself
+  (`fitTables()` in `screens/circle.ts` mirrors the algebra after each
+  paint and on resize): the same seats stacked full width — number, sigil,
+  name, then the strike, the flag, the doom mark, the count and "you" at
+  the end of the row — scrolling inside the table's box, two columns from
+  40rem. The narrator's list layout in ⋯ is the same rows, chosen on
+  purpose. Nothing is ever drawn smaller than a thumb.
 - **The mark.** `.mark` is a 2rem square holding the role's sigil. Fill and
   ink come from `data-accent` (`crew` / `town` / `occult` / `system`), set
   from `src/ui/accent.ts`; the sigil is drawn in that ink. Colour says whose

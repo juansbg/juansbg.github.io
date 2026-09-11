@@ -472,11 +472,12 @@ body {
      45°, where that takes a distance of s·√2. Setting (avail − s)·sin(π/n)
      = s·√2 and solving gives s = avail · sin(π/n) / (√2 + sin(π/n)). The
      0.31 cap keeps four players as four big tiles rather than a filled
-     ring. The floor is the smallest tile a name still fits in; below it the
-     list layout is the answer, not a smaller square. */
+     ring. The floor is the smallest tile a name still reads in (3.5rem,
+     `SEAT_FLOOR` in circle.ts); when the room cannot give it, fitTables()
+     turns the ring into rows rather than drawing a smaller square. */
   --gap: sin(pi / var(--seats, 8));
   --seat: clamp(
-    2rem,
+    3.5rem,
     min(calc(var(--avail) * 0.31), calc(var(--avail) * var(--gap) / (sqrt(2) + var(--gap)))),
     7rem
   );
@@ -861,12 +862,130 @@ body {
   gap: var(--space-2);
 }
 
-/* A list of names instead of the circle: takes the same room, scrolls. */
-.table--list {
+/* The vials sit in the Apothecary's card, under the prompt. */
+.card__potion {
+  margin-top: var(--space-3);
+}
+
+/* ---------- Rows: the circle when there is no room for a ring ---------- */
+/* The narrator's list layout (.circle--list, from the menu) and the fallback
+   fitTables() takes when the tiles would drop under the floor ([data-rows])
+   are the same seats stacked full width: number, sigil, name, then the
+   marks, in a row the thumb can hit. The table scrolls instead of shrinking,
+   and nothing the ring shows is lost: the strike, the flag, the doom mark,
+   the count and "you" all keep their place at the end of the row. Two
+   columns once the screen is wide enough for two names side by side. */
+.table--list,
+.table:has(> .circle[data-rows]) {
   display: block;
   container-type: normal;
   min-height: 0;
   overflow-y: auto;
+}
+
+.circle--list,
+.circle[data-rows] {
+  --seat: 3rem;
+  position: static;
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-1);
+  width: 100%;
+  height: auto;
+}
+
+@media (min-width: 40rem) {
+  .circle--list,
+  .circle[data-rows] {
+    grid-template-columns: 1fr 1fr;
+    column-gap: var(--space-3);
+  }
+}
+
+.circle--list .seat,
+.circle[data-rows] .seat {
+  position: relative;
+  top: auto;
+  left: auto;
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: auto;
+  height: auto;
+  min-height: var(--touch);
+  margin: 0;
+  padding: 0 var(--space-3) 0 0;
+  transform: none;
+  container-type: normal;
+  text-align: left;
+}
+
+.circle--list .seat[data-selected],
+.circle[data-rows] .seat[data-selected] {
+  scale: none;
+}
+
+.circle--list .seat__n,
+.circle[data-rows] .seat__n {
+  position: static;
+  flex: none;
+  padding-left: var(--space-3);
+  font-size: var(--text-xs);
+}
+
+.circle--list .seat__sigil,
+.circle[data-rows] .seat__sigil {
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  margin: 0;
+}
+
+.circle--list .seat__name,
+.circle[data-rows] .seat__name {
+  flex: 1 1 auto;
+  max-width: none;
+  padding-top: 0;
+  font-size: var(--text-display-min);
+}
+
+.circle--list .seat__role,
+.circle[data-rows] .seat__role {
+  display: block;
+  flex: none;
+  max-width: none;
+  font-size: var(--text-xs);
+}
+
+.circle--list .seat__you,
+.circle[data-rows] .seat__you {
+  flex: none;
+  font-size: var(--text-xs);
+}
+
+.circle--list .seat__flag,
+.circle[data-rows] .seat__flag,
+.circle--list .seat__doom,
+.circle[data-rows] .seat__doom {
+  position: static;
+  flex: none;
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.circle--list .seat__votes,
+.circle[data-rows] .seat__votes {
+  --badge: 1.5rem;
+  position: static;
+  flex: none;
+  font-size: var(--text-xs);
+}
+
+/* The strike runs through the name, not the corner of a tile. */
+.circle--list .seat[data-dead]::after,
+.circle[data-rows] .seat[data-dead]::after {
+  inset: 50% var(--space-3) auto 4.5rem;
+  transform: none;
 }
 
 /* ---------- Day: the morning report as newsprint ---------- */
@@ -3210,4 +3329,23 @@ html[data-dawn] body {
   font-family: var(--font-display);
   letter-spacing: var(--track-display);
   border: 1px solid var(--hairline-strong);
+}
+
+/* ---------- Short phones ---------- */
+/* A short phone (an SE, an 8, a mini, or any phone with the keyboard bar
+   up): the prompt and the report give a little so the circle keeps its
+   floor. The prompt stays Plex, one size down; the report shows two rows
+   and scrolls. */
+@media (max-height: 700px) {
+  .card {
+    padding: var(--space-3) var(--space-4);
+  }
+
+  .card__body {
+    font-size: var(--text-sm);
+  }
+
+  .report--scroll {
+    max-height: 7.5rem;
+  }
 }
