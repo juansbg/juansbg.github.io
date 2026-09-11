@@ -1,4 +1,4 @@
-import { aggregate, type GameSummary } from '../../engine/summary'
+import { aggregate, nameKey, type GameSummary } from '../../engine/summary'
 import { strings, type Locale } from '../../i18n'
 import { esc } from '../dom'
 
@@ -7,11 +7,12 @@ import { esc } from '../dom'
  * who keep sitting at this table. A dark screen in the timeline's voice,
  * ledger lines under hairlines: one line for the table (who wins, how long a
  * game runs, how the Detective does) and one row per name, most games
- * first. The figures come from `aggregate()`; nothing is computed here.
- * Opened from ⋯, closed by its own Done, and the bar is not rendered while
- * it is up, like the paper.
+ * first, the people on tonight's names list ahead of everyone else in the
+ * list's own order. The figures come from `aggregate()`; only the shares
+ * are worked out here. Opened from ⋯ and closed by its own Done; the bar
+ * stays, since no player ever sees this screen.
  */
-export const statsMarkup = (games: readonly GameSummary[], locale: Locale): string => {
+export const statsMarkup = (games: readonly GameSummary[], locale: Locale, roster: readonly string[] = []): string => {
   const t = strings(locale)
   const s = t.ui.stats
   const done = `<div class="actions"><button class="btn btn--primary" type="button" data-stats-close>${esc(t.ui.common.done)}</button></div>`
@@ -34,19 +35,30 @@ export const statsMarkup = (games: readonly GameSummary[], locale: Locale): stri
   const { table, names } = aggregate(games)
   const first = games.reduce((earliest, g) => Math.min(earliest, g.endedAt), Infinity)
   const since = new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'long', year: 'numeric' }).format(first)
-  const fig = (n: string | number, label: string): string =>
-    `<span class="ledger__fig"><b>${esc(String(n))}</b> ${esc(label)}</span>`
+  const fig = (n: string | number, label: string, share: number | null = null): string =>
+    `<span class="ledger__fig"><b>${esc(String(n))}</b> ${esc(label)}${
+      share === null ? '' : ` <b>${Math.round(share * 100)}%</b>`
+    }</span>`
 
   const line = [
-    fig(table.town, s.table.town),
-    fig(table.crew, s.table.family),
-    table.lovers > 0 ? fig(table.lovers, s.table.pair) : '',
-    table.martyr > 0 ? fig(table.martyr, s.table.martyr) : '',
+    fig(table.town, s.table.town, table.town / table.games),
+    fig(table.crew, s.table.family, table.crew / table.games),
+    table.lovers > 0 ? fig(table.lovers, s.table.pair, table.lovers / table.games) : '',
+    table.martyr > 0 ? fig(table.martyr, s.table.martyr, table.martyr / table.games) : '',
     fig((table.nights / table.games).toFixed(1), s.table.nights),
-    table.looks > 0 ? fig(`${table.hits}/${table.looks}`, s.table.looks) : '',
+    table.looks > 0 ? fig(`${table.hits}/${table.looks}`, s.table.looks, table.hits / table.looks) : '',
   ].join('')
 
-  const rows = names
+  // Tonight's people first, in the order the narrator typed them; then
+  // everyone the record remembers, most games first.
+  const rank = new Map(roster.map((name, i) => [nameKey(name), i]))
+  const ordered = [...names].sort((a, b) => {
+    const ra = rank.get(nameKey(a.name)) ?? Infinity
+    const rb = rank.get(nameKey(b.name)) ?? Infinity
+    return ra - rb
+  })
+
+  const rows = ordered
     .map(
       (n) => `
         <li class="ledger__row">

@@ -523,7 +523,7 @@ function render(entering = false): void {
   } else if (askIntro && flaggedNow.length > 0) {
     body = questionsIntroMarkup(flaggedNow, state.locale)
   } else if (statsOpen) {
-    body = statsMarkup(loadStats(), state.locale)
+    body = statsMarkup(loadStats(), state.locale, names)
   } else if (tableView) {
     // The room's screen wins over every screen of the narrator's, the lobby included.
     body = tableMarkup(projectionNow())
@@ -683,7 +683,6 @@ function render(entering = false): void {
     if (dawn !== null) return ''
     // The paper, likewise: the phone may be facing the town.
     if (paperOpen) return ''
-    if (statsOpen) return ''
     // The whole room is looking at the screen.
     if (tableView) return ''
     // A player is looking at the screen: the timeline would show them every
@@ -1609,8 +1608,9 @@ function bind(): void {
     setState({})
   })
 
-  // The ledger, from ⋯: a full screen with its own Done, over whatever the
-  // game is showing, and the record can be wiped from it after a question.
+  // The ledger, from ⋯: a full screen with its own Done over whatever the
+  // game is showing (the bar stays: no player sees it), and the record can
+  // be wiped from it after a question.
   on(root, '[data-stats]', 'click', () => {
     menuOpen = false
     statsOpen = true

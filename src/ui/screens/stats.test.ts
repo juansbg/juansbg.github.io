@@ -42,10 +42,10 @@ describe('the ledger', () => {
     expect(flat).toContain(t.games(2))
     expect(flat).toContain('2026')
     // The table's line: one win each, two and a half nights a game, one hit in three looks.
-    expect(flat).toContain(`1 ${t.table.town}`)
-    expect(flat).toContain(`1 ${t.table.family}`)
+    expect(flat).toContain(`1 ${t.table.town} 50%`)
+    expect(flat).toContain(`1 ${t.table.family} 50%`)
     expect(flat).toContain(`2.5 ${t.table.nights}`)
-    expect(flat).toContain(`1/3 ${t.table.looks}`)
+    expect(flat).toContain(`1/3 ${t.table.looks} 33%`)
     // "Ana" and "ana" are one person; Beto has played every game and won both.
     const rows = html.match(/ledger__row/g) ?? []
     expect(rows).toHaveLength(3)
@@ -61,6 +61,12 @@ describe('the ledger', () => {
     expect(ana).toContain(`1 ${t.columns.killed}`)
     expect(html).toContain('data-stats-close')
     expect(html).toContain('data-stats-clear')
+  })
+
+  it('puts tonight’s names first, in the order they were typed, then the rest by games', () => {
+    const html = statsMarkup(games, 'en', ['Caro', ' ANA '])
+    const order = [...html.matchAll(/ledger__name">([^<]+)</g)].map((m) => m[1])
+    expect(order).toEqual(['Caro', 'ana', 'Beto'])
   })
 
   it.each(LOCALES)('says so when nothing has been played, with nothing to clear (%s)', (locale) => {

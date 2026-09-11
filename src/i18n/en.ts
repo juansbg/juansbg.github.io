@@ -353,7 +353,7 @@ export const en: Strings = {
       title: 'The ledger',
       games: (n) => (n === 1 ? '1 game' : `${n} games`),
       since: (date) => `since ${date}`,
-      empty: 'No game has ended on this phone yet. The ledger fills in as they do.',
+      empty: 'The ledger starts with the first finished game.',
       table: { town: 'town wins', family: 'Family wins', pair: 'the pair', martyr: 'the Martyr', nights: 'nights a game', looks: 'Detective hits' },
       columns: { games: 'games', wins: 'wins', family: 'Family', hanged: 'hanged', killed: 'killed', survived: 'stood' },
       clear: 'Clear the ledger',
