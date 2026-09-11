@@ -1250,6 +1250,19 @@ body {
   background: var(--surface);
 }
 
+/* Before the game there is no timeline to open: the bar keeps only its ⋯
+   square, bottom right, on no surface, so the names screen is not carrying
+   a 56px strip with nothing in it. */
+.bar--quiet {
+  justify-content: flex-end;
+  border-top: 0;
+  background: transparent;
+}
+
+.bar--quiet .bar__menu {
+  border: 1px solid var(--hairline);
+}
+
 .bar__btn {
   min-height: calc(var(--touch) + var(--space-2));
   padding: 0 var(--space-2);
@@ -1466,7 +1479,9 @@ body.is-revealing .bar {
   height: 4px;
   transform-origin: left center;
   scale: 0 1;
-  background: var(--vendetta);
+  /* Ledger, the narrator's hand: Vendetta is for blood, the crew and the
+     button that kills, and a progress bar is none of those. */
+  background: var(--fg);
 }
 
 .reveal__hold[data-charging] .reveal__fill {
@@ -3529,4 +3544,10 @@ html[data-dawn] body {
   .report--scroll {
     max-height: 7.5rem;
   }
+}
+
+/* The wordmark on the names screen sat 8px under the top edge of a phone
+   without a notch. */
+.screen--names {
+  padding-top: var(--space-3);
 }
