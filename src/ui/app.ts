@@ -673,7 +673,7 @@ function render(entering = false): void {
       ? `<button class="bar__btn" type="button" data-log>${esc(t.ui.timeline.open)}</button>`
       : '<span></span>'
     return `
-      <nav class="bar">
+      <nav class="bar${inGame ? '' : ' bar--quiet'}">
         ${timeline}
         <button class="bar__menu" type="button" data-menu aria-haspopup="dialog"
                 aria-label="${esc(t.ui.menu.more)}" title="${esc(t.ui.menu.more)}">⋯</button>
