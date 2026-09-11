@@ -103,7 +103,7 @@ Three faces, one job each. All three are self-hosted through `@fontsource`
 
 | Role | Face | Where |
 |---|---|---|
-| Display | **Bebas Neue** | Titles, buttons, seat names, menu items, the marks. Always caps, tracked `0.02–0.05em`, line-height `0.9`. Never below `1.25rem` (`--text-display-min`). Never for a sentence that is read aloud. |
+| Display | **Bebas Neue** | Titles, buttons, seat names, menu items, the marks. Always caps, tracked `0.02–0.05em`, line-height `0.9`. Never below `1.25rem` (`--text-display-min`), with one sanctioned exception: the name inside a seat tile, a label of one word, may go down to `0.75rem`, and the tile itself never goes under `3.5rem`. Never for a sentence that is read aloud. |
 | Body | **IBM Plex Sans** 400 / 500 / 600 | Anything the narrator reads aloud: the night prompt, the report, outcome text. Never caps. |
 | Data | **IBM Plex Mono** 400 / 500 | Seat numbers, night counters, timestamps, eyebrow labels. Always `tabular-nums`. |
 
