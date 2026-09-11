@@ -14,8 +14,8 @@ export default defineConfig({
       registerType: 'autoUpdate',
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       manifest: {
-        name: 'Omertà',
-        short_name: 'Omertà',
+        name: 'The Family',
+        short_name: 'The Family',
         id: '/',
         start_url: '/',
         scope: '/',

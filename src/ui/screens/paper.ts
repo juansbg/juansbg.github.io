@@ -686,7 +686,7 @@ export const sharePaper = async (state: GameState, locale: Locale): Promise<Shar
   const blob = await paperImage(state, locale)
   if (blob === null) return { kind: 'unavailable' }
   const t = strings(locale)
-  const file = new File([blob], `${t.appName.toLowerCase()}-${Date.now()}.png`, { type: 'image/png' })
+  const file = new File([blob], `${t.appName.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}.png`, { type: 'image/png' })
   const nav = navigator as Navigator & { canShare?: (data: ShareData) => boolean }
   if (typeof nav.share === 'function' && nav.canShare?.({ files: [file] })) {
     try {

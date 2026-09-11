@@ -4,6 +4,16 @@ import type { DeathCause } from '../engine/types'
 export const LOCALES = ['es', 'en'] as const
 export type Locale = (typeof LOCALES)[number]
 
+/**
+ * The game's name, one brand for both languages. It is the wordmark on the
+ * setup screen, the paper's masthead, the TV's title and the share file;
+ * the manifest and the page titles carry the same words by hand. The crew
+ * is "the Family" / "la Familia" in play, so the title and the game speak
+ * with one voice. (Renamed from Omertà on 2026-09-11: user testing found
+ * the old name obscure and forgettable.)
+ */
+export const APP_NAME = 'The Family'
+
 export interface RoleStrings {
   /** Display name, e.g. "El Padrino". */
   name: string

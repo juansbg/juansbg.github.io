@@ -86,9 +86,10 @@ describe('string tables', () => {
     expect(differing.length).toBeGreaterThan(ROLE_IDS.length / 2)
   })
 
-  it('share one app name across languages', () => {
-    expect(strings('es').appName).toBe('Omertà')
-    expect(strings('en').appName).toBe('Omertà')
+  it('share one app name across languages, and the TV carries the same', () => {
+    expect(strings('es').appName).toBe('The Family')
+    expect(strings('en').appName).toBe('The Family')
+    for (const locale of LOCALES) expect(strings(locale).ui.tv.title).toBe(strings(locale).appName)
   })
 
   it('cover every death cause in both languages', () => {

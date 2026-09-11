@@ -1,10 +1,10 @@
-import type { Strings } from './strings'
+import { APP_NAME, type Strings } from './strings'
 
 const cap = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1)
 const doors = (n: number): string => (n === 1 ? 'one door' : `${n} doors`)
 
 export const en: Strings = {
-  appName: 'Omertà',
+  appName: APP_NAME,
   locale: 'en',
   languageName: 'English',
 
@@ -711,7 +711,7 @@ export const en: Strings = {
       refusedBody: 'Ask the narrator to add you, then join again.',
     },
     tv: {
-      title: 'Omertà',
+      title: APP_NAME,
       noRoom: 'No room in this address',
       waiting: 'Waiting for the narrator…',
       reconnecting: 'Reconnecting…',

@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## What this is
 
-**Omertà** — a narrator assistant for a social-deduction party game in the Werewolf/Mafia family. It is a tool for the single person running the game, not for the players. It tracks who has which role, walks the narrator through the night step by step in script order, resolves kills and protections, and prints a morning report.
+**The Family** — a narrator assistant for a social-deduction party game in the Werewolf/Mafia family. It is a tool for the single person running the game, not for the players. It tracks who has which role, walks the narrator through the night step by step in script order, resolves kills and protections, and prints a morning report.
+
+The game was called **Omertà** until 2026-09-11; user testing found the name obscure and forgettable, and a sweep of the app stores, the board game listings and the trade mark registers ruled out Alibi (a same-named pass-and-play social deduction app), Vendetta ("Mafia: Vendetta") and Silencio (a Zoch card game) before The Family came through clean. It is one brand for both languages, and the crew is already "the Family" / "la Familia" in play. `APP_NAME` in `src/i18n/strings.ts` is the one place the name is written for the app: both tables' `appName` and `ui.tv.title` read it, and the setup wordmark, the paper's mastheads and the share file derive from it; the manifest (`vite.config.ts`) and the three page titles carry the same words by hand. The `omerta:*` storage keys and the `omerta-relay` worker keep their names on purpose: invisible to players, and a rename would cost every installed phone its saved game and the relay its address.
 
 The game is themed around **organised crime**, with a light occult streak on two roles. It began as a Spanish werewolf game (*Pueblo Duerme*, still live in `legacy/`) and was re-themed during the v3 rewrite. It ships in Spanish and English.
 

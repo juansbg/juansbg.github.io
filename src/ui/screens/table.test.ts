@@ -135,7 +135,9 @@ describe('the paper on the table', () => {
       expect(open).toContain(t.roles.PLAIN.name)
       expect(open).not.toContain('data-paper-close')
       expect(open).not.toContain('data-table')
-      for (const id of ['KILLER', 'INSPECT', 'GUARD'] as const) expect(open).not.toContain(t.roles[id].name)
+      // The masthead is the app's name, which is also the crew's; look past it for a leaked role.
+      const body = open.replace(/<p class="paper__name">[^<]*<\/p>/, '')
+      for (const id of ['KILLER', 'INSPECT', 'GUARD'] as const) expect(body).not.toContain(t.roles[id].name)
     }
   })
 })
