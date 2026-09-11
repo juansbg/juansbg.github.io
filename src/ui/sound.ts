@@ -10,7 +10,10 @@
  * Browsers refuse to start audio outside a user gesture, so the context is
  * made in the first tap or key press on the page and whatever the app asked
  * for before that (a night resumed from a save) starts then. The mute is
- * the narrator's preference and lives under its own key.
+ * the narrator's preference and lives under its own key. **Sound is off
+ * until the narrator turns it on** (user, 2026-09-11: a wind that starts by
+ * itself from every open tab, the tests' and the dev servers' included, is a
+ * nuisance): only a stored `on` makes a sound, anything else is muted.
  */
 
 const KEY = 'omerta:sound'
@@ -42,16 +45,16 @@ export interface Sound {
 
 const loadMuted = (): boolean => {
   try {
-    return localStorage.getItem(KEY) === 'muted'
+    return localStorage.getItem(KEY) !== 'on'
   } catch {
-    return false
+    return true
   }
 }
 
 const saveMuted = (muted: boolean): void => {
   try {
-    if (muted) localStorage.setItem(KEY, 'muted')
-    else localStorage.removeItem(KEY)
+    if (muted) localStorage.removeItem(KEY)
+    else localStorage.setItem(KEY, 'on')
   } catch {
     // Private mode. The choice holds until the page closes.
   }

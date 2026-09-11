@@ -66,22 +66,31 @@ const fakeContext = (): Fake => {
 }
 
 describe('sound', () => {
-  it('makes no context at all while muted, and remembers the mute', () => {
+  it('is muted until the narrator turns it on, makes no context while muted, and remembers the choice', () => {
     let made = 0
+    // Nothing stored: silence. A tab opened for a test or a dev server must never start the wind.
     const s = createSound(() => { made++; return fakeContext() })
-    s.setMuted(true)
+    expect(s.muted()).toBe(true)
     s.night(true)
     s.drum()
     s.tick()
     expect(made).toBe(0)
-    expect(localStorage.getItem('omerta:sound')).toBe('muted')
-    // A fresh instance reads the preference back.
+    expect(localStorage.getItem('omerta:sound')).toBeNull()
+    // Turned on: remembered as the one value that makes a sound.
+    s.setMuted(false)
+    expect(localStorage.getItem('omerta:sound')).toBe('on')
+    expect(createSound(() => null).muted()).toBe(false)
+    // Muted again: back to the default, and a stale 'muted' from before reads as muted too.
+    s.setMuted(true)
+    expect(localStorage.getItem('omerta:sound')).toBeNull()
+    localStorage.setItem('omerta:sound', 'muted')
     expect(createSound(() => null).muted()).toBe(true)
   })
 
   it('fades the night in once, and out when the day comes', () => {
     const ctx = fakeContext()
     const s = createSound(() => ctx)
+    s.setMuted(false) // the wind is asked for with sound on; the default is silence
     s.night(true)
     s.night(true)
     expect(ctx.ramps).toEqual([0.0001, 0.5])
@@ -92,6 +101,7 @@ describe('sound', () => {
   it('starts a night asked for before the first gesture when it is unlocked', () => {
     let ctx: Fake | null = null
     const s = createSound(() => (ctx = fakeContext()))
+    s.setMuted(false)
     // Nothing can be built before a gesture; the request is kept.
     s.setMuted(true)
     s.night(true)
@@ -102,6 +112,7 @@ describe('sound', () => {
 
   it('survives a browser with no Web Audio', () => {
     const s = createSound(() => null)
+    s.setMuted(false)
     expect(() => { s.night(true); s.drum(); s.tick(); s.unlock() }).not.toThrow()
   })
 })
