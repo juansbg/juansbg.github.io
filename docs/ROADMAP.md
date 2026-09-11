@@ -292,10 +292,13 @@ Phased so that each step is worth shipping alone:
    reveal kept. Retires pass-the-phone, the slowest part of setup.
 3. **Voting from phones.** A tally on the TV, votes revealed one by one, the
    extra vote and the silence applied by the engine instead of from memory.
-4. **Night actions from phones.** The narrator becomes optional and the product
-   changes from a narrator's assistant to a full game app. Not planned: the
-   narrator reading the night aloud is most of the atmosphere. If it is ever
-   built it is a separate mode.
+4. **Night actions from phones.** Asked for by the user on 2026-09-11 once
+   1–3 were live: the point of the QR codes is that a player acts and votes
+   from their own phone and the narrator stops carrying the one device with
+   every choice. Designed in `docs/BIG-SCREEN.md` §10 as a layer on the same
+   room, not a separate mode: the narrator still reads the night, every phone
+   stays lit and identical, the acting seat's phone alone carries the
+   question, and a seat without a phone plays as today.
 
 Steps 1–3 are roughly the size of the engine rewrite: three or four sprints, plus
 the first piece of infrastructure the project owns. **The design is in
@@ -383,6 +386,10 @@ CLAUDE.md only in their own bullets.
 - **The design audit** (`docs/DESIGN-AUDIT.md`, Session B, 2026-09-11): sixteen
   findings fixed in one pass; the seating circle now holds its floor and the
   block above it yields, the TV scales, tablets get two columns.
+- **The night from the phones** (user, 2026-09-11): `docs/BIG-SCREEN.md` §10.
+  Session A the contract (`SeatNight` on the seat projection and its leak
+  tests), `src/room/actions.ts`, the relay's `mark` and `act`, the narrator's
+  handler; Session B the phone's night screens, the wake lock, the strings.
 - **The Cultist stays out for now** (decided 2026-09-04): a pending feature,
   not planned, until the user chooses a rule for it. The card remains
   assignable by hand and the split still works; nothing more is built on it.

@@ -53,6 +53,8 @@ export const nightMarkup = (
   picked: readonly PlayerId[] = [],
   layout: Layout = 'circle',
   peek = false,
+  /** Seats acting from their own phones tonight (docs/BIG-SCREEN.md §10). */
+  phones: ReadonlySet<PlayerId> = new Set(),
 ): string => {
   const t = strings(locale)
   const roleId = currentStep(state)
@@ -93,6 +95,12 @@ export const nightMarkup = (
   const who =
     holders.length > 0
       ? `<p class="card__who">${holders.map((p) => esc(p.name)).join(' · ')}</p>`
+      : ''
+  // Everyone this step wakes holds a phone: the answer comes from there, and
+  // the seats below stay tappable for a narrator who has to step in.
+  const waiting =
+    holders.length > 0 && holders.every((p) => phones.has(p.id))
+      ? `<p class="card__situation" data-on-phones>${esc(t.ui.night.onPhones(holders.map((p) => p.name)))}</p>`
       : ''
 
   const needed = picksNeeded(roleId)
@@ -215,6 +223,7 @@ export const nightMarkup = (
         ${who}
         <p class="card__body">${esc(roleStrings.prompt)}</p>
         ${situation ? `<p class="card__situation">${esc(situation)}</p>` : ''}
+        ${waiting}
         ${role.wakesAsGroup ? `<p class="card__aside">${esc(t.ui.night.wakeGroup)}</p>` : ''}
         ${inCard}
       </div>

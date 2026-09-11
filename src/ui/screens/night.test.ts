@@ -578,3 +578,27 @@ describe('who the narrator wakes for the Family', () => {
     expect(who(html)).toBe('P1')
   })
 })
+
+describe('a step taken from a phone', () => {
+  it('says who is choosing on their phone only when every seat the step wakes holds one', () => {
+    // The Bodyguard's step first (seat 1), then the Family's (seat 0).
+    const state = night(['KILLER', 'GUARD', 'PLAIN', 'PLAIN', 'PLAIN'])
+    for (const locale of LOCALES) {
+      const t = strings(locale)
+      const line = t.ui.night.onPhones(['P1'])
+      expect(nightMarkup(state, locale, [], 'circle', false, new Set([1]))).toContain(line)
+      expect(nightMarkup(state, locale, [], 'circle', false, new Set([1]))).toContain('data-on-phones')
+      expect(nightMarkup(state, locale)).not.toContain('data-on-phones')
+      expect(nightMarkup(state, locale, [], 'circle', false, new Set([0, 2]))).not.toContain('data-on-phones')
+      // The seats stay tappable for the narrator underneath.
+      expect(nightMarkup(state, locale, [], 'circle', false, new Set([1]))).toContain('data-target="2"')
+    }
+  })
+
+  it('names every Family member at the Family’s step, and waits only when all of them hold phones', () => {
+    const state = atRole(['CONVERT', 'KILLER', 'GUARD', 'PLAIN', 'PLAIN', 'PLAIN'], 'KILLER')
+    const t = strings('en')
+    expect(nightMarkup(state, 'en', [], 'circle', false, new Set([0, 1]))).toContain(t.ui.night.onPhones(['P0', 'P1']))
+    expect(nightMarkup(state, 'en', [], 'circle', false, new Set([1]))).not.toContain('data-on-phones')
+  })
+})

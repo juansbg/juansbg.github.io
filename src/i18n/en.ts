@@ -206,6 +206,8 @@ export const en: Strings = {
       asList: 'Show a list',
       convertOffer: (name) => `The Family chose ${name}. Does the Godfather take them in instead?`,
       convertNoVictim: 'The Family chose no one tonight, so there is nobody to take in.',
+      onPhones: (names) =>
+        names.length === 1 ? `${names[0]} is choosing on their phone.` : `${names.join(', ')} are choosing on their phones.`,
       convert: 'Take them in',
       convertDecline: 'Let the hit go ahead',
       joinCrew: 'Joins the Family',

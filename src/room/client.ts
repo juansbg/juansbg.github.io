@@ -1,4 +1,5 @@
 import type { TvProjection } from './projections'
+import type { SeatAction } from './actions'
 
 /**
  * The narrator's side of the relay (docs/BIG-SCREEN.md §5, §7).
@@ -148,6 +149,10 @@ export type FromRelay =
   | { kind: 'join'; cid: string; name: string; pub: string }
   | { kind: 'left'; cid: string }
   | { kind: 'vote'; cid: string; target: number | null }
+  /** The Family's mark moved from a phone; a proposal, not a record. */
+  | { kind: 'mark'; cid: string; target: number | null }
+  /** A night step taken from a phone, shape-checked by the relay, judged by the narrator. */
+  | { kind: 'act'; cid: string; action: SeatAction }
 
 /** What the narrator sends besides the TV projection. */
 export type ToRelay =
@@ -330,9 +335,16 @@ export interface PlayerHandlers {
   onSealed: (payload: string) => void
 }
 
+/** What a phone says: who it is, its vote, and at night its mark and its move. */
+export type ToNarrator =
+  | { kind: 'join'; name: string; pub: string }
+  | { kind: 'vote'; target: number | null }
+  | { kind: 'mark'; target: number | null }
+  | { kind: 'act'; action: SeatAction }
+
 /**
- * A player's side: one socket as `cid`, kept up like the screen's, and two
- * things to say — a join and a vote.
+ * A player's side: one socket as `cid`, kept up like the screen's, and four
+ * things to say — a join, a vote, a mark and a night action.
  */
 export class PlayerLink {
   private ws: WebSocket | null = null
@@ -348,7 +360,7 @@ export class PlayerLink {
     this.connect()
   }
 
-  send(message: { kind: 'join'; name: string; pub: string } | { kind: 'vote'; target: number | null }): boolean {
+  send(message: ToNarrator): boolean {
     if (this.ws === null || this.ws.readyState !== WebSocket.OPEN) return false
     this.ws.send(JSON.stringify(message))
     return true

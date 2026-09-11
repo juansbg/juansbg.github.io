@@ -1,9 +1,13 @@
-import { canVote, leader, revealedDead, tally, winner, type Winner } from '../engine/state'
-import type { RoleId } from '../engine/roles'
-import type { GameState, Outcome, PlayerId } from '../engine/types'
+import { spareCards } from '../engine/cards'
+import { canVote, currentStep, leader, revealedDead, tally, winner, type Winner } from '../engine/state'
+import { ROLES, type RoleId } from '../engine/roles'
+import type { GameState, Outcome, Player, PlayerId } from '../engine/types'
 import type { Locale } from '../i18n'
+import type { Perspective } from '../ui/screens/circle'
 import type { Reading, Slide } from '../ui/screens/dawn'
+import { familyVictim, perspectiveFor } from '../ui/screens/night'
 import type { TimerView } from '../ui/screens/timer'
+import { actsAt, eligibleAt } from './actions'
 
 /**
  * What the whole town may see.
@@ -146,13 +150,90 @@ export interface SeatProjection {
   /** Who this seat may vote for: the living, themselves excluded. */
   eligible: { id: PlayerId; name: string }[]
   winner: Winner
+  /** The table, for the phone to draw the ring: names and who is dead, public already. */
+  players: { id: PlayerId; name: string; alive: boolean }[]
+  /** The night as this seat may see it (docs/BIG-SCREEN.md §10); null by day. */
+  tonight: SeatNight | null
+}
+
+/**
+ * What one phone is shown and asked at night. Every phone gets the step being
+ * read, since the narrator says it aloud; the rest is the seat's own
+ * knowledge, `perspectiveFor()` as data plus what its card holds: the
+ * Family sees the Family and its mark, the Godfather and the Renegade the
+ * pick, the Apothecary who is doomed and her vials, the Chameleon the centre,
+ * the Detective the card he looked at. A citizen's block is a step and empty
+ * lists. `playthrough.test.ts` holds every seat to this at every step.
+ */
+export interface SeatNight {
+  /** The role being read right now: public, the narrator says it. */
+  step: RoleId | null
+  /** This seat holds the step, or wakes with the Family at the Family's step. */
+  acting: boolean
+  /** What the role knows of the table tonight; empty lists for a citizen. */
+  view: { self: PlayerId[]; crew: PlayerId[]; doomed: PlayerId[]; marked: PlayerId[] }
+  /** The seats this step may pick among; empty unless acting. */
+  eligible: PlayerId[]
+  /** The Apothecary's vials, still available or not; hers alone. */
+  vials: { heal: boolean; poison: boolean } | null
+  /** The Godfather's one conversion, still available or not; his alone. */
+  convertLeft: boolean | null
+  /** The Family's pick tonight once recorded; the Godfather's and the Renegade's. */
+  victim: PlayerId | null
+  /** The cards left in the centre, on the Chameleon's phone at his step. */
+  spare: RoleId[]
+  /** Who the Detective looked at tonight and what they are; his alone, for the rest of the night. */
+  looked: { target: PlayerId; roleId: RoleId } | null
+}
+
+const plain = (view: Perspective): SeatNight['view'] => ({
+  self: [...view.self],
+  crew: [...view.crew],
+  doomed: [...view.doomed],
+  marked: [...view.marked],
+})
+
+export const seatNight = (state: GameState, me: Player, picked: readonly PlayerId[]): SeatNight | null => {
+  if (state.phase !== 'night') return null
+  const step = currentStep(state)
+  const acting = actsAt(me, step)
+  // The mark is the acting seats' business; nobody else's phone sees whose it is.
+  const view = plain(perspectiveFor(state, me.roleId, acting ? picked : []))
+  const crewViewer = me.alive && ROLES[me.roleId].team === 'crew' && me.roleId !== 'PICK_SIDE'
+  // perspectiveFor marks every holder of a role as "you" for the narrator's
+  // Show; a phone is one seat, so a citizen's phone must not mark the citizens.
+  view.self = crewViewer ? [] : [me.id]
+  // Who is doomed is the Apothecary's to know at her step, not a moment before.
+  if (!(acting && me.roleId === 'MEDIC')) view.doomed = []
+  // The dead see the night like everyone else, whatever they were.
+  if (!me.alive) {
+    view.crew = []
+    view.marked = []
+  }
+  const look = me.roleId === 'INSPECT'
+    ? state.pending.find((a) => a.kind === 'target' && a.roleId === 'INSPECT')
+    : undefined
+  const lookedAt = look !== undefined && look.kind === 'target'
+    ? state.players.find((p) => p.id === look.target)
+    : undefined
+  return {
+    step,
+    acting,
+    view,
+    eligible: acting && step !== null ? eligibleAt(state, step) : [],
+    vials: me.roleId === 'MEDIC' ? { heal: !state.healUsed, poison: !state.poisonUsed } : null,
+    convertLeft: me.roleId === 'CONVERT' ? !state.infectionUsed : null,
+    victim: crewViewer && me.roleId !== 'KILLER' ? (familyVictim(state)?.id ?? null) : null,
+    spare: acting && me.roleId === 'SWAP' ? spareCards(state.players) : [],
+    looked: lookedAt !== undefined ? { target: lookedAt.id, roleId: lookedAt.roleId } : null,
+  }
 }
 
 export const seatProjection = (
   state: GameState,
   seat: PlayerId,
   locale: Locale,
-  context: { dealt: boolean },
+  context: { dealt: boolean; picked?: readonly PlayerId[] },
 ): SeatProjection | null => {
   const me = state.players.find((p) => p.id === seat)
   if (!me) return null
@@ -174,6 +255,8 @@ export const seatProjection = (
       ? state.players.filter((p) => p.alive && p.id !== seat).map((p) => ({ id: p.id, name: p.name }))
       : [],
     winner: winner(state),
+    players: state.players.map((p) => ({ id: p.id, name: p.name, alive: p.alive })),
+    tonight: context.dealt ? seatNight(state, me, context.picked ?? []) : null,
   }
 }
 
@@ -193,4 +276,6 @@ export const waitingSeat = (seat: PlayerId, name: string, locale: Locale): SeatP
   vote: null,
   eligible: [],
   winner: null,
+  players: [],
+  tonight: null,
 })

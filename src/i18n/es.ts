@@ -206,6 +206,8 @@ export const es: Strings = {
       asList: 'Ver en lista',
       convertOffer: (name) => `La Familia ha elegido a ${name}. ¿El Padrino le acoge en la Familia en vez de matarle?`,
       convertNoVictim: 'La Familia no ha elegido a nadie esta noche, así que no hay a quién acoger.',
+      onPhones: (names) =>
+        names.length === 1 ? `${names[0]} está eligiendo en su móvil.` : `${names.join(', ')} están eligiendo en sus móviles.`,
       convert: 'Acogerle en la Familia',
       convertDecline: 'Que siga el golpe',
       joinCrew: 'Se une a la Familia',

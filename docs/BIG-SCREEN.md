@@ -46,9 +46,10 @@ before anyone builds it. It ends with the decisions the user has to make.
 
 **Non-goals**
 
-- Night actions from the phones (phase 4 in the roadmap). The narrator reading
-  the night aloud is most of the atmosphere; a phone that lights up during the
-  night also says who is awake. Not designed here.
+- ~~Night actions from the phones (phase 4 in the roadmap).~~ Designed in
+  §10 (2026-09-11) once the room, the cards and the votes were live: the
+  narrator still reads the night, every phone stays lit and identical, and
+  the acting seat's phone alone carries the question.
 - Persistence on the server. The relay holds nothing that survives the room.
 - Accounts, logins, a lobby. A room is a code and a QR.
 
@@ -263,3 +264,174 @@ decided, so it is the one to start with.
    add a runoff? Recommended: keep it.
 5. **Language on the TV and the seats.** Follow the narrator's phone
    (recommended), or let each seat pick its own.
+
+## 10. Phase 4 — the night from the phones (designed 2026-09-11)
+
+The user's brief: the whole point of the QR codes is that every player acts
+from their own phone, at night as well as by day, the TV shows the count and
+never the voters, and the narrator, who still carries the admin device, stops
+walking the one phone that holds every choice around the table.
+
+By day this already holds: a phone votes through `castVote`, the ballot is
+sealed on the TV with a running count of how many have voted, Reveal puts the
+count against each seat and never a voter, and the execution stays the
+narrator's tap. What is missing is the night. Section 1 called it a non-goal
+for phase 1; this section designs it as **a layer on the same room**, not a
+separate mode: a seat with a phone acts from it, a seat without one is acted
+for by the narrator as today, and the two mix at one table.
+
+### 10.1 Principles
+
+- **The narrator still reads the night.** Nothing advances by itself. The
+  narrator says "Detective, wake up", the Detective's phone carries the
+  question, the answer arrives and the step moves on, the narrator reads the
+  next line. No step has a timer. The narrator's own screen keeps every seat
+  tappable, so a dead battery or a player who has fallen asleep costs one tap,
+  not the game.
+- **Every phone shows the same night.** A lit phone must not say who is
+  awake, so every seat's phone stays on the whole night (a screen wake lock
+  where the browser gives one) and shows the same screen at every step: the
+  night's ground, the role being read, the table as a plain circle. Only the
+  acting seat's screen answers a tap. The rule the narrator reads out at the
+  first night: *keep your phone in your hand and look at it at every step.*
+  Thumbs are the residual leak, as in every phone-based game of this kind; the
+  narrator's reading is the cover.
+- **A phone knows what its card knows and nothing more.** The night block of
+  the seat projection is `perspectiveFor()` made data: the Family sees the
+  Family and its pick, the Godfather the victim, the Apothecary who is doomed
+  and her vials, the Chameleon the centre, the Detective the card he looked
+  at, everyone else their own seat. The playthrough test holds every seat to
+  it at every step of 150 simulated games. **Those tests are the security
+  model; do not weaken them.**
+- **The engine does not change.** A phone's action becomes the same
+  `NightAction` the narrator's tap would have made, recorded through
+  `recordAction` and `mutate`, so the log, undo and the rewind cover it and
+  `legalTargets` is the one rule for who may be picked.
+
+### 10.2 What travels
+
+The seat projection gains `players: { id; name; alive }[]` at every phase (the
+table, public already, so the phone can draw the ring) and one block,
+`tonight: SeatNight | null` (`night` is already the night's number), built
+only while the phase is night and the cards are dealt:
+
+```ts
+interface SeatNight {
+  /** The role being read right now. The narrator says it aloud, so every phone may show it. */
+  step: RoleId | null
+  /** This seat holds that role, or wakes with it: its phone carries the question. */
+  acting: boolean
+  /** What the role knows of the table tonight (perspectiveFor): empty lists for a citizen. */
+  view: { self: PlayerId[]; crew: PlayerId[]; doomed: PlayerId[]; marked: PlayerId[] }
+  /** The seats this role may pick tonight (legalTargets); empty unless acting. */
+  eligible: PlayerId[]
+  /** The Apothecary's vials, on her phone alone. */
+  vials: { heal: boolean; poison: boolean } | null
+  /** The Godfather's one conversion, on his phone alone. */
+  convertLeft: boolean | null
+  /** The Family's pick tonight, for the Godfather and the Renegade. */
+  victim: PlayerId | null
+  /** The cards left in the centre, for the Chameleon. */
+  spare: RoleId[]
+  /** Who the Detective looked at tonight and what they are, on his phone, for the rest of the night. */
+  looked: { target: PlayerId; roleId: RoleId } | null
+}
+```
+
+`acting` is true for a living seat whose role is the step; at the Family's
+step, for every living crew member but an Associate who has not joined (the
+same set the narrator's card names). `eligible` is `legalTargets` for a
+`player` step, the living for a pair or the split, and the Apothecary's
+targets for the potion. `looked` is read off the pending Detective action
+while the night lasts, the way the narrator's inspection card is.
+
+Seat → relay → narrator, beside `join` and `vote`:
+
+```ts
+{ kind: 'mark'; target: PlayerId | null }      // a proposal, not a record: the Family's shared pick
+{ kind: 'act'; action: SeatAction }
+type SeatAction =
+  | { kind: 'target'; target: PlayerId }
+  | { kind: 'pair'; first: PlayerId; second: PlayerId }
+  | { kind: 'potion'; target: PlayerId; potion: 'heal' | 'kill' }
+  | { kind: 'split'; sectOne: PlayerId[] }
+  | { kind: 'chooseRole'; newRole: RoleId }
+  | { kind: 'confirm' }
+  | { kind: 'skip' }
+```
+
+The relay checks shapes and sizes and forwards each with the socket's own
+`cid`, as it does a vote. It learns nothing: a target is a seat number.
+
+### 10.3 The narrator's phone
+
+`acceptAction(state, seat, action)` in `src/room/actions.ts` is the pure
+gate, tested on its own: the sender must be acting at the current step; a
+target must be in `legalTargets`; a pair is two distinct living seats; a
+potion respects the vials and `doomedTonight`; a split leaves someone on both
+sides; a card taken must be in `spareCards`; the Associate may choose only
+`KILLER` or `PLAIN`; `confirm` only where the step offers it. What passes is
+recorded through `mutate` as a `'action'` timeline entry, exactly as a tap.
+What fails is dropped and the phone is republished, so it sees the step
+unchanged.
+
+A `mark` from an acting seat sets the narrator's `picked` for a `player`
+step, which every Family phone sees through `view.marked`: any of them can
+move the mark, any of them confirms with `act`. The Godfather and the Renegade
+see the recorded pick as `victim`, as today.
+
+The night screen says who it is waiting for: when every seat named on the
+card holds a phone, the situation line reads that they are choosing on their
+phone, and the seats stay tappable underneath. The Detective's inspection card
+is not shown on the narrator's device when the look came from a phone; it goes
+to the Detective's phone as `looked`.
+
+### 10.4 The phones
+
+Every step, every phone: the step's role name and sigil, the plain circle, the
+night's cold ground. The acting phone alone gets the chooser, mirroring the
+narrator's: tap a seat for a `player` step (with "Nobody" where the narrator
+has it); two taps for the pair; a seat then a vial for the Apothecary, the
+vials locked the way hers are; tap the first faction then confirm for the
+Cultist; the centre's cards for the Chameleon; take him in or let the hit go
+for the Godfather; the two sides for the Associate. The Detective's phone shows
+the card he looked at, the same card the narrator held up, for the rest of the
+night. The dead see the night like everyone else and can do nothing.
+
+By day nothing changes but polish: after voting, the phone says it is waiting
+for the others; while the narrator counts, that the count is with the narrator.
+
+### 10.5 The TV
+
+Nothing new. The night is "the town sleeps" and the step being read; the
+ballot is sealed with the count of how many have voted; Reveal shows counts
+against seats and never who voted; the execution is the narrator's. The one
+open dial is whether the per-seat count goes live as votes come in instead
+of on Reveal; the decision of 2026-09-04 (sealed) stands until the user says
+otherwise.
+
+### 10.6 Decisions taken (recommendations, standing until the user objects)
+
+1. Every phone is lit and identical through the night; only the actor's
+   answers. No fake taps are asked of anyone.
+2. The Family's hit is a shared mark that any Family phone may move and any
+   may confirm. No vote among them, no seniority.
+3. The narrator keeps every seat tappable and undo covers a phone's action.
+   Nothing advances on a timer.
+4. Mixed tables are first class: a seat without a phone plays as today.
+5. The ballot stays sealed with a live count; Reveal shows counts, never
+   voters.
+
+### 10.7 Who builds what
+
+**Session A** (engine, room, relay): the contract first, so B can build
+against it: `SeatNight` on the projection with its leak tests in
+`projections.test.ts` and `playthrough.test.ts`; `src/room/actions.ts` and its
+tests; the relay's two new message kinds; the narrator's handler and the
+"choosing on their phone" line; the relay deploy.
+
+**Session B** (the phone and the screen): the seat page's night — the common
+step screen, the chooser per step kind, the Detective's card, the wake lock,
+the strings in both languages, the day's waiting lines — in `screens/seat.ts`
+and `seat.ts`, on the contract above; the TV's night caption; `docs/DESIGN.md`
+for the new screens.

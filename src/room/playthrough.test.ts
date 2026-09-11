@@ -4,14 +4,15 @@ import { ROLE_IDS, ROLES, type RoleId } from '../engine/roles'
 import { seeded } from '../engine/rng'
 import { playGame } from '../engine/sim/play'
 import { POLICIES } from '../engine/sim/policies'
-import { canVote, revealedDead, winner } from '../engine/state'
-import type { GameState } from '../engine/types'
+import { canVote, currentStep, revealedDead, winner } from '../engine/state'
+import type { GameState, Player } from '../engine/types'
 import { LOCALES, renderWinner, strings, type Locale } from '../i18n'
 import { dawnSlides, verdictSlides } from '../ui/screens/dawn'
 import { roleCardMarkup } from '../ui/screens/reveal'
 import { seatMarkup, seatPlayer } from '../ui/screens/seat'
 import { tableMarkup } from '../ui/screens/table'
-import { seatProjection, tvProjection } from './projections'
+import { actsAt } from './actions'
+import { seatProjection, tvProjection, type SeatProjection } from './projections'
 
 /**
  * Whole games, every screen, every step.
@@ -85,6 +86,57 @@ const checkTv = (state: GameState, locale: Locale, sealed: boolean): void => {
   }
 }
 
+/**
+ * The seat's projection as data (docs/BIG-SCREEN.md §10): the only role ids
+ * on a phone are its own card, the step being read (public: the narrator
+ * says it), the centre on the Chameleon's phone at his step and the card the
+ * Detective looked at on his; and the night block carries exactly what the
+ * card knows. This is the security model of the night from the phones.
+ */
+const checkSeatNight = (state: GameState, me: Player, p: SeatProjection): void => {
+  const json = JSON.stringify(p)
+  const night = p.tonight
+  const allowed = new Set<RoleId>([me.roleId])
+  if (night !== null) {
+    if (night.step !== null) allowed.add(night.step)
+    for (const id of night.spare) allowed.add(id)
+    if (night.looked !== null) allowed.add(night.looked.roleId)
+  }
+  for (const id of ROLE_IDS) {
+    if (!allowed.has(id)) expect(json, `${me.name}'s phone carries role ${id}`).not.toContain(`"${id}"`)
+  }
+  expect(json).not.toContain('voter')
+  expect(json).not.toContain('"public"')
+  expect(p.players.map((s) => s.id)).toEqual(state.players.map((s) => s.id))
+
+  if (state.phase !== 'night') {
+    expect(night).toBeNull()
+    return
+  }
+  expect(night).not.toBeNull()
+  if (night === null) return
+  const step = currentStep(state)
+  expect(night.step).toBe(step)
+  expect(night.acting).toBe(actsAt(me, step))
+  const crewViewer = me.alive && ROLES[me.roleId].team === 'crew' && me.roleId !== 'PICK_SIDE'
+  const crew = state.players.filter((o) => o.alive && ROLES[o.roleId].team === 'crew').map((o) => o.id)
+  expect(night.view.self, `${me.name} sees "you"`).toEqual(crewViewer ? [] : [me.id])
+  expect(night.view.crew, `${me.name} sees the Family`).toEqual(crewViewer ? crew : [])
+  if (!night.acting) {
+    expect(night.eligible).toEqual([])
+    expect(night.spare).toEqual([])
+  }
+  for (const id of night.eligible) expect(state.players.find((o) => o.id === id)?.alive).toBe(true)
+  if (night.view.doomed.length > 0) expect(night.acting && me.roleId === 'MEDIC').toBe(true)
+  if (night.spare.length > 0) expect(night.acting && me.roleId === 'SWAP').toBe(true)
+  expect(night.vials !== null).toBe(me.roleId === 'MEDIC')
+  expect(night.convertLeft !== null).toBe(me.roleId === 'CONVERT')
+  if (night.looked !== null) expect(me.roleId).toBe('INSPECT')
+  if (night.victim !== null) expect(crewViewer && me.roleId !== 'KILLER').toBe(true)
+  // With no mark passed in, the only thing marked is the pick a Godfather or a Renegade already saw.
+  if (night.view.marked.length > 0) expect(night.view.marked).toEqual([night.victim])
+}
+
 const checkSeats = (state: GameState, locale: Locale): void => {
   const t = strings(locale)
   const win = winner(state)
@@ -95,12 +147,7 @@ const checkSeats = (state: GameState, locale: Locale): void => {
     expect(p.alive).toBe(me.alive)
     expect(p.winner).toBe(win)
 
-    const json = JSON.stringify(p)
-    for (const id of ROLE_IDS) {
-      if (id === me.roleId) continue
-      expect(json, `${me.name}'s phone carries role ${id}`).not.toContain(`"${id}"`)
-    }
-    expect(json.split(`"${me.roleId}"`).length - 1).toBe(1)
+    checkSeatNight(state, me, p)
 
     // Voting: only by day, only alive, only the unsilenced, never for oneself or the dead.
     const may = state.phase === 'day' && me.alive && canVote(state, me.id)

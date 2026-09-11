@@ -180,6 +180,8 @@ export interface Strings {
       /** The Godfather's step: who the Family chose, and the one-time choice. */
       convertOffer: (name: string) => string
       convertNoVictim: string
+      /** The step's holders all hold phones: the narrator waits, and may still tap for them. */
+      onPhones: (names: string[]) => string
       convert: string
       convertDecline: string
       /** The Associate's first-night choice of side. */

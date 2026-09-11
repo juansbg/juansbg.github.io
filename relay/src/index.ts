@@ -151,9 +151,44 @@ type Published =
 type FromPlayer =
   | { kind: 'join'; name: string; pub: string }
   | { kind: 'vote'; target: number | null }
+  /** The seat the Family is looking at tonight: a proposal, not a record. */
+  | { kind: 'mark'; target: number | null }
+  /** A night step taken from the phone; the narrator checks it against the game. */
+  | { kind: 'act'; action: unknown }
 
 const seatOf = (value: unknown): number | null =>
   typeof value === 'number' && Number.isInteger(value) && value >= 0 && value < 64 ? value : null
+
+/**
+ * A night action's shape, and only its shape: seat numbers where seats go, a
+ * vial that is a vial, a card name that looks like one. Whether it is allowed
+ * is the narrator's to decide; the relay only refuses junk.
+ */
+const seatAction = (value: unknown): Record<string, unknown> | null => {
+  if (typeof value !== 'object' || value === null) return null
+  const a = value as Record<string, unknown>
+  switch (a.kind) {
+    case 'target':
+      return seatOf(a.target) === null ? null : { kind: 'target', target: a.target }
+    case 'pair':
+      return seatOf(a.first) === null || seatOf(a.second) === null ? null : { kind: 'pair', first: a.first, second: a.second }
+    case 'potion':
+      return seatOf(a.target) === null || (a.potion !== 'heal' && a.potion !== 'kill')
+        ? null
+        : { kind: 'potion', target: a.target, potion: a.potion }
+    case 'split':
+      return Array.isArray(a.sectOne) && a.sectOne.length <= 64 && a.sectOne.every((s) => seatOf(s) !== null)
+        ? { kind: 'split', sectOne: a.sectOne }
+        : null
+    case 'chooseRole':
+      return typeof a.newRole === 'string' && /^[A-Z_]{1,32}$/.test(a.newRole) ? { kind: 'chooseRole', newRole: a.newRole } : null
+    case 'confirm':
+    case 'skip':
+      return { kind: a.kind }
+    default:
+      return null
+  }
+}
 
 export class Room extends DurableObject<Env> {
   /** Message counts for the current second, per socket. In memory only. */
@@ -270,6 +305,13 @@ export class Room extends DurableObject<Env> {
       } else if (msg.kind === 'vote') {
         if (msg.target !== null && seatOf(msg.target) === null) return
         this.tellNarrator({ kind: 'vote', cid, target: msg.target })
+      } else if (msg.kind === 'mark') {
+        if (msg.target !== null && seatOf(msg.target) === null) return
+        this.tellNarrator({ kind: 'mark', cid, target: msg.target })
+      } else if (msg.kind === 'act') {
+        const action = seatAction(msg.action)
+        if (action === null) return
+        this.tellNarrator({ kind: 'act', cid, action })
       } else {
         return
       }

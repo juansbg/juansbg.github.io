@@ -56,6 +56,7 @@ import {
 } from '../room/client'
 import { makeKeys, seal, sharedKey, type KeyPair } from '../room/crypto'
 import { seatProjection, waitingSeat, type SeatProjection } from '../room/projections'
+import { acceptAction, acceptMark } from '../room/actions'
 import { qrSvg } from '../room/qr'
 import { timelineMarkup } from './screens/timeline'
 import { fitTables } from './screens/circle'
@@ -217,6 +218,40 @@ function handleRoomMessage(message: FromRelay): void {
       }
       return
     }
+    // The night from a phone (docs/BIG-SCREEN.md §10): the mark is a
+    // proposal the acting seats share, the act is the tap the narrator would
+    // have made, checked against the game before it is recorded. A refusal
+    // sends the phone its unchanged step again, so it never believes a tap
+    // that did not land.
+    case 'mark': {
+      const guest = guests.get(message.cid)
+      if (!guest || guest.seat === null || state.screen !== 'night') return
+      const next = acceptMark(state.session.current, guest.seat, message.target)
+      if (next === null) {
+        guest.lastSent = null
+        publishSeats()
+        return
+      }
+      picked = next
+      setState({}, false)
+      return
+    }
+    case 'act': {
+      const guest = guests.get(message.cid)
+      const game = state.session.current
+      if (!guest || guest.seat === null || state.screen !== 'night') return
+      const action = acceptAction(game, guest.seat, message.action)
+      if (action === null) {
+        guest.lastSent = null
+        publishSeats()
+        return
+      }
+      picked = []
+      buzz()
+      sound.tick()
+      mutate((s) => recordAction(s, action), { night: game.night, kind: 'action', roleId: action.roleId, action })
+      return
+    }
   }
   if (roomOpen) setState({}, false)
 }
@@ -248,7 +283,9 @@ function seatNow(guest: Guest): SeatProjection | { kind: 'refused' } {
   if (state.screen === 'setup' && game.players.length === 0) {
     return waitingSeat(guest.seat, names[guest.seat] ?? guest.name, state.locale)
   }
-  return seatProjection(game, guest.seat, state.locale, { dealt: state.screen !== 'setup' }) ?? { kind: 'refused' }
+  return (
+    seatProjection(game, guest.seat, state.locale, { dealt: state.screen !== 'setup', picked }) ?? { kind: 'refused' }
+  )
 }
 
 function publishSeats(): void {
@@ -557,7 +594,7 @@ function render(entering = false): void {
         ? nightDoneMarkup()
         : showingPlayer
           ? playerViewMarkup(game, state.locale, picked)
-          : nightMarkup(game, state.locale, picked, state.layout, peeking)
+          : nightMarkup(game, state.locale, picked, state.layout, peeking, seatedFromPhones())
   } else if (state.screen === 'day') {
     body =
       game.awaitingHunterShot !== null

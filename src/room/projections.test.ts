@@ -5,6 +5,7 @@ import { ROLE_IDS, type RoleId } from '../engine/roles'
 import {
   castVote,
   createGame,
+  currentStep,
   endNight,
   lynch,
   recordAction,
@@ -13,6 +14,8 @@ import {
 } from '../engine/state'
 import type { GameState } from '../engine/types'
 import { dawnSlides } from '../ui/screens/dawn'
+import { legalTargets } from '../engine/targets'
+import type { SeatNight } from './projections'
 
 const cast = (roles: RoleId[], names?: string[]): PlayerSetup[] =>
   roles.map((roleId, i) => ({ name: names?.[i] ?? `P${i}`, roleId }))
@@ -187,5 +190,102 @@ describe('a seat’s own projection', () => {
     expect(w.roleId).toBeNull()
     expect(w.phase).toBe('setup')
     expect(JSON.parse(JSON.stringify(w))).toEqual(w)
+  })
+})
+
+describe('a seat’s night', () => {
+  /** Night one, stopped at the Arsonist's step: the Bodyguard has shielded Fer, the Detective has looked at Ana. */
+  const midnight = (): GameState => {
+    let state = createGame(
+      cast(['CONVERT', 'KILLER', 'INSPECT', 'GUARD', 'SILENCE', 'PLAIN', 'PLAIN'],
+           ['Ana', 'Beto', 'Caro', 'Dani', 'Eva', 'Fer', 'Gus']),
+    )
+    state = startNight(state)
+    state = recordAction(state, { kind: 'target', roleId: 'GUARD', actor: 3, target: 5 })
+    state = recordAction(state, { kind: 'target', roleId: 'INSPECT', actor: 2, target: 0 })
+    return state
+  }
+  const tonight = (state: GameState, seat: number, picked: number[] = []): SeatNight =>
+    seatProjection(state, seat, 'en', { dealt: true, picked })!.tonight!
+  const rolesIn = (state: GameState, seat: number): Set<RoleId> => {
+    const json = JSON.stringify(seatProjection(state, seat, 'en', { dealt: true }))
+    return new Set(ROLE_IDS.filter((id) => json.includes(`"${id}"`)))
+  }
+
+  it('tells every phone the step being read, and each only what its own card knows', () => {
+    const s = midnight()
+    const citizen = tonight(s, 5)
+    expect(citizen).toEqual({
+      step: 'SILENCE', acting: false,
+      view: { self: [5], crew: [], doomed: [], marked: [] },
+      eligible: [], vials: null, convertLeft: null, victim: null, spare: [], looked: null,
+    })
+    expect(rolesIn(s, 5)).toEqual(new Set(['PLAIN', 'SILENCE']))
+    expect(seatProjection(s, 5, 'en', { dealt: true })!.players.map((p) => p.name)).toEqual(['Ana', 'Beto', 'Caro', 'Dani', 'Eva', 'Fer', 'Gus'])
+
+    const arsonist = tonight(s, 4)
+    expect(arsonist.acting).toBe(true)
+    expect(arsonist.eligible).toEqual(legalTargets(s, 'SILENCE').map((p) => p.id))
+    expect(arsonist.eligible).not.toContain(4)
+
+    const detective = tonight(s, 2)
+    expect(detective.acting).toBe(false)
+    expect(detective.looked).toEqual({ target: 0, roleId: 'CONVERT' })
+    expect(rolesIn(s, 2)).toEqual(new Set(['INSPECT', 'SILENCE', 'CONVERT']))
+    expect(tonight(s, 3).looked).toBeNull()
+  })
+
+  it('shows the Family its Family and its mark, and nobody else either', () => {
+    let s = recordAction(midnight(), { kind: 'target', roleId: 'SILENCE', actor: 4, target: 6 })
+    const family = tonight(s, 1, [5])
+    expect(family.step).toBe('KILLER')
+    expect(family.acting).toBe(true)
+    expect(family.view).toEqual({ self: [], crew: [0, 1], doomed: [], marked: [5] })
+    expect(family.eligible).toEqual([2, 3, 4, 5, 6])
+    const godfather = tonight(s, 0, [5])
+    expect(godfather.acting).toBe(true)
+    expect(godfather.view.marked).toEqual([5])
+    expect(godfather.convertLeft).toBe(true)
+    expect(godfather.victim).toBeNull()
+    expect(tonight(s, 3, [5]).view).toEqual({ self: [3], crew: [], doomed: [], marked: [] })
+    expect(tonight(s, 2, [5]).view.marked).toEqual([])
+
+    s = recordAction(s, { kind: 'target', roleId: 'KILLER', actor: 1, target: 5 })
+    const deciding = tonight(s, 0)
+    expect(deciding.step).toBe('CONVERT')
+    expect(deciding.acting).toBe(true)
+    expect(deciding.victim).toBe(5)
+    expect(deciding.view.marked).toEqual([5])
+    expect(deciding.eligible).toEqual([])
+    const done = tonight(s, 1)
+    expect(done.acting).toBe(false)
+    expect(done.victim).toBeNull()
+    expect(done.view.marked).toEqual([])
+  })
+
+  it('gives the Apothecary the doomed at her step alone, and the dead a plain night', () => {
+    let s = startNight(createGame(cast(['KILLER', 'MEDIC', 'GUARD', 'PLAIN', 'PLAIN'])))
+    expect(tonight(s, 1)).toMatchObject({ step: 'GUARD', acting: false, vials: { heal: true, poison: true } })
+    expect(tonight(s, 1).view.doomed).toEqual([])
+    s = recordAction(s, { kind: 'target', roleId: 'GUARD', actor: 2, target: 3 })
+    s = recordAction(s, { kind: 'target', roleId: 'KILLER', actor: 0, target: 4 })
+    const apothecary = tonight(s, 1)
+    expect(apothecary.step).toBe('MEDIC')
+    expect(apothecary.acting).toBe(true)
+    expect(apothecary.view.doomed).toEqual([4])
+    expect(apothecary.eligible).toEqual([0, 1, 2, 3, 4])
+    expect(tonight({ ...s, healUsed: true }, 1).vials).toEqual({ heal: false, poison: true })
+
+    const dead = { ...s, players: s.players.map((p) => (p.id === 0 ? { ...p, alive: false } : p)) }
+    expect(tonight(dead, 0)).toMatchObject({ acting: false, eligible: [], view: { self: [0], crew: [], doomed: [], marked: [] } })
+  })
+
+  it('has no night by day, before the deal, or for a seat that is only a name', () => {
+    let s = midnight()
+    expect(seatProjection(s, 5, 'en', { dealt: false })!.tonight).toBeNull()
+    while (currentStep(s) !== null) s = recordAction(s, { kind: 'skip', roleId: currentStep(s) as RoleId })
+    s = endNight(s)
+    expect(seatProjection(s, 5, 'en', { dealt: true })!.tonight).toBeNull()
+    expect(waitingSeat(3, 'Dani', 'es').tonight).toBeNull()
   })
 })
