@@ -133,6 +133,19 @@ export interface Strings {
       rearrange: string
       rearrangeHint: string
       rearrangeDone: string
+      /** Joining the big screen's room from the names screen (docs/BIG-SCREEN.md §11). */
+      screen: string
+      screenCode: string
+      screenJoin: string
+      screenJoining: string
+      /** Where the TV goes to start a room; the address is set as a link a TV on the root page can follow. */
+      screenHint: (address: string) => string
+      screenKeyHint: string
+      noSuchScreen: string
+      /** The line at the top of the names screen once this phone is a room's narrator. */
+      onScreen: (code: string) => string
+      /** The address link's title, for a TV that was pointed at the site's root. */
+      thisIsScreen: string
       moveLeft: string
       moveRight: string
     }
@@ -407,6 +420,10 @@ export interface Strings {
       keyHint: string
       /** The relay refused the key. */
       refused: string
+      /** The no-TV evening: this phone opens and shows the room. */
+      openHere: string
+      /** A second screen joins an open room by this address. */
+      secondScreen: string
       open: string
       opening: string
       close: string

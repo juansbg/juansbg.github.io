@@ -3740,6 +3740,74 @@ html[data-dawn] body {
   padding-top: var(--space-3);
 }
 
+/* ---------- The big screen, from the names screen ---------- */
+
+/* The code the TV shows, typed here: five letters in the display face,
+   tracked wide and centred, so the field reads like the code on the wall.
+   The key sits under it the first time only. */
+.screen-join {
+  display: grid;
+  gap: var(--space-2);
+}
+
+.screen-join__row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: var(--space-2);
+}
+
+.screen-join__input {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  letter-spacing: 0.35em;
+  text-align: center;
+  text-transform: uppercase;
+  /* The tracking trails the last glyph; pull the text back to centre. */
+  text-indent: 0.35em;
+}
+
+.screen-join__input::placeholder {
+  color: var(--fg-muted);
+  letter-spacing: 0.35em;
+}
+
+/* One line once this phone runs a screen: which one, and who is on it. */
+.room-line {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-1) var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--hairline-strong);
+}
+
+.room-line__code {
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.room-line__status {
+  color: var(--fg-muted);
+  font-size: var(--text-xs);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+}
+
+/* The address in the hint is the way out for a TV pointed at the site's root. */
+.screen-link {
+  color: var(--fg);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+.screen-link:focus-visible {
+  outline: 2px solid var(--fg);
+  outline-offset: 2px;
+}
+
 /* ---------- The ledger: statistics across games ---------- */
 
 /* The timeline's voice: ledger lines under hairlines on the dark ground,

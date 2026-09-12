@@ -5,8 +5,10 @@ import type { SeatAction } from './actions'
  * The narrator's side of the relay (docs/BIG-SCREEN.md §5, §7).
  *
  * A room is a code the screens join with and a secret only the narrator's
- * phone holds; the relay stores the secret's hash and nothing else. This
- * module opens rooms, keeps one WebSocket up with reconnects, and publishes
+ * phone holds; the relay stores the secret's hash and nothing else. A screen
+ * asks for the room and shows the code; the narrator claims it by that code
+ * with the room key (docs/BIG-SCREEN.md §11). This module opens, requests
+ * and claims rooms, keeps one WebSocket up with reconnects, and publishes
  * projections. What goes out is decided in `projections.ts`; this file only
  * carries it. Nothing here touches `GameState`.
  */
@@ -18,7 +20,7 @@ const RELAY_KEY = 'omerta:relay'
 const ROOM_KEY = 'omerta:room'
 const ROOM_PASS_KEY = 'omerta:roomKey'
 
-/** The key the relay asks for before it opens a room. The narrator's, kept on the phone. */
+/** The key the relay asks for before it makes a phone a room's narrator. Kept on the phone. */
 export const loadRoomKey = (): string => {
   try {
     return localStorage.getItem(ROOM_PASS_KEY) ?? ''
@@ -102,28 +104,59 @@ export class RelayRefused extends Error {
   }
 }
 
-/** Opens a room on the relay. Throws RelayRefused on a refusal, Error when unreachable. */
-export const openRoom = async (relay: string, key = ''): Promise<Room> => {
-  const base = normalizeRelay(relay)
-  const secret = randomSecret()
+const post = async (url: string, body: unknown, key = ''): Promise<string> => {
   const headers: Record<string, string> = { 'Content-Type': 'application/json' }
   if (key !== '') headers['X-Room-Key'] = key
-  const response = await fetch(`${base}/rooms`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify({ secretHash: await sha256(secret) }),
-  })
+  const response = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) })
   if (!response.ok) throw new RelayRefused(response.status)
-  const body = (await response.json()) as { code?: unknown }
-  if (typeof body.code !== 'string') throw new Error('relay: no code')
-  return { code: body.code, secret, relay: base }
+  const answer = (await response.json()) as { code?: unknown }
+  if (typeof answer.code !== 'string') throw new Error('relay: no code')
+  return answer.code
 }
 
 /**
- * The address a TV opens. The room code travels in the fragment, which never
- * reaches a server; the relay is named only when it is not the built-in one.
+ * Opens a room from this phone, claimed at once: the no-TV evening. Throws
+ * RelayRefused on a refusal (403: the key), Error when unreachable.
  */
-export const tvUrl = (room: Room, site: string): string => {
+export const openRoom = async (relay: string, key = ''): Promise<Room> => {
+  const base = normalizeRelay(relay)
+  const secret = randomSecret()
+  const code = await post(`${base}/rooms`, { secretHash: await sha256(secret) }, key)
+  return { code, secret, relay: base }
+}
+
+/** A room and where it is, as a screen knows it: no secret, since a screen is nobody's. */
+export interface OpenRoom {
+  code: string
+  relay: string
+}
+
+/** A screen asks for a room to show. No key: anyone may, and the room waits fifteen minutes for a narrator. */
+export const requestRoom = async (relay: string): Promise<OpenRoom> => {
+  const base = normalizeRelay(relay)
+  return { code: await post(`${base}/rooms`, {}), relay: base }
+}
+
+/**
+ * The narrator claims the room a screen shows, by its code, with the key.
+ * Throws RelayRefused: 404 is no such room, 403 the key.
+ */
+export const claimRoom = async (relay: string, code: string, key: string): Promise<Room> => {
+  const base = normalizeRelay(relay)
+  const secret = randomSecret()
+  await post(`${base}/rooms/${code}/claim`, { secretHash: await sha256(secret) }, key)
+  return { code, secret, relay: base }
+}
+
+/** The address a TV opens to start a room: the site's `/tv`, no code. */
+export const screenUrl = (site: string): string => `${site.replace(/\/+$/, '')}/tv`
+
+/**
+ * The address a second screen opens to join a room that exists. The code
+ * travels in the fragment, which never reaches a server; the relay is named
+ * only when it is not the built-in one.
+ */
+export const tvUrl = (room: OpenRoom, site: string): string => {
   const params = new URLSearchParams({ room: room.code })
   if (room.relay !== normalizeRelay(DEFAULT_RELAY)) params.set('relay', room.relay)
   return `${site.replace(/\/+$/, '')}/tv.html#${params.toString()}`
@@ -143,7 +176,8 @@ export type LinkStatus = 'connecting' | 'open' | 'closed'
 
 /** What the relay sends the narrator. `cid` is a player's connection, chosen by their page. */
 export type FromRelay =
-  | { kind: 'present'; players: string[]; tvs: number }
+  /** Who is on the room as the socket opens: every phone's last join, so none is lost. */
+  | { kind: 'present'; players: { cid: string; name: string; pub: string }[]; tvs: number }
   | { kind: 'tvs'; count: number }
   /** A player asked for a seat by name, with the public half of their key. */
   | { kind: 'join'; cid: string; name: string; pub: string }
@@ -160,7 +194,7 @@ export type ToRelay =
   | { kind: 'player'; cid: string; payload: string }
 
 /** The address a player opens: one for the whole table, the code in the fragment. */
-export const seatUrl = (room: Room, site: string): string => {
+export const seatUrl = (room: OpenRoom, site: string): string => {
   const params = new URLSearchParams({ room: room.code })
   if (room.relay !== normalizeRelay(DEFAULT_RELAY)) params.set('relay', room.relay)
   return `${site.replace(/\/+$/, '')}/seat.html#${params.toString()}`
@@ -254,8 +288,8 @@ export class NarratorLink {
     ws.onclose = (event) => {
       this.stopPing()
       if (this.ws === ws) this.ws = null
-      // Replaced by a newer narrator socket, or the room is gone: stop.
-      if (event.code === 4000 || event.code === 4001 || this.closed) {
+      // Replaced by a newer narrator socket, or the room is gone (4001 closed, 4004 no such room): stop.
+      if (event.code === 4000 || event.code === 4001 || event.code === 4004 || this.closed) {
         this.closed = true
         this.handlers.onStatus?.('closed')
         return

@@ -35,7 +35,9 @@ export default defineConfig({
         globPatterns: ['**/*.{js,css,html,svg,png,woff2}'],
         // The beta's own files are not this app's shell; they retire it.
         globIgnores: ['beta/**'],
-        navigateFallbackDenylist: [/^\/beta\//],
+        // The screen and the seat are their own pages: a TV that once opened
+        // the narrator app must not be handed it again at /tv.
+        navigateFallbackDenylist: [/^\/beta\//, /^\/tv$/, /^\/seat$/],
       },
     }),
   ],

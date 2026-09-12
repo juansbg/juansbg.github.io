@@ -86,6 +86,56 @@ describe('the names screen', () => {
   })
 })
 
+describe('the big screen from the names screen', () => {
+  const idle = { room: null, needsKey: false, busy: false, error: null, address: 'juansbg.github.io/tv' } as const
+  const four = ['Ana', 'Beto', 'Caro', 'Dani']
+
+  it('asks for the code the TV shows, and says where the TV goes, when no room is open', () => {
+    for (const locale of ['en', 'es'] as const) {
+      const t = strings(locale)
+      const html = namesMarkup(four, locale, new Set(), idle)
+      expect(html).toContain('data-screen-form')
+      expect(html).toMatch(/data-screen-code[^>]*maxlength="5"/)
+      // The address in the hint is a link a TV on the root page can follow.
+      expect(html).toMatch(/<a[^>]*href="tv.html"[^>]*data-this-is-screen[^>]*>juansbg.github.io\/tv<\/a>/)
+      expect(html).toContain(t.ui.setup.screenHint('').trim().split(/\s+/)[0] as string)
+      expect(html).not.toContain('data-screen-key')
+      expect(html).not.toContain('data-room-line')
+      // The names still start a phoneless evening.
+      expect(html).toContain(t.ui.setup.namesReady(4))
+    }
+  })
+
+  it('asks for the key under the code the first time, and again when the relay refused it', () => {
+    expect(namesMarkup(four, 'en', new Set(), { ...idle, needsKey: true })).toContain('data-screen-key')
+    const refused = namesMarkup(four, 'en', new Set(), { ...idle, needsKey: true, error: 'key' })
+    expect(refused).toContain('data-screen-key')
+    expect(refused).toContain(strings('en').ui.room.refused)
+    expect(namesMarkup(four, 'en', new Set(), { ...idle, error: 'room' })).toContain(strings('en').ui.setup.noSuchScreen)
+  })
+
+  it('shows the screen this phone runs, and no code field or QR, once a room is open', () => {
+    const html = namesMarkup(four, 'en', new Set([0, 2]), { ...idle, room: { code: 'AB2CD', tvs: 1, phones: 2 } })
+    expect(html).toContain('data-room-line')
+    expect(html).toContain(strings('en').ui.setup.onScreen('AB2CD'))
+    expect(html).toContain(strings('en').ui.room.tvs(1))
+    expect(html).toContain(strings('en').ui.room.players(2))
+    expect(html).not.toContain('data-screen-form')
+    expect(html).not.toContain('<svg')
+    expect(html).not.toContain('data-this-is-screen')
+    // The door reads "Everyone is in" and the phones are marked on the list.
+    expect(html).toContain(strings('en').ui.table.proceed)
+    expect(html.match(/data-joined/g)?.length).toBe(2)
+  })
+
+  it('shows nothing of the screen when no relay is configured', () => {
+    const html = namesMarkup(four, 'en')
+    expect(html).not.toContain('data-screen-form')
+    expect(html).not.toContain('data-room-line')
+    expect(html).not.toContain('data-this-is-screen')
+  })
+})
+
 describe('report lines carry the side of their cause', () => {
   const players = createGame(cast(['KILLER', 'PLAIN', 'MEDIC'], ['Ana', 'Beto', 'Caro'])).players
 

@@ -77,6 +77,9 @@ answer and the right one.
 
 ## 3. Rooms, codes and QR
 
+> Superseded by §11 (2026-09-12): the screen opens the room and the
+> narrator joins it by code. Kept for the seat-key idea, which is history.
+
 - The narrator opens a room from ⋯ ("Big screen"). The phone generates a room
   code (four words from a small list, or five letters, readable across a room)
   and a **room secret** and a **seat key** per seat, all random, all on the
@@ -164,7 +167,8 @@ alive, free at this scale, one ordered hub per room, WebSockets built in,
 rooms evict themselves. The whole server is one file.
 
 - `POST /rooms` → `{ code }` (the phone supplies the room secret's hash; the
-  object stores only the hash).
+  object stores only the hash). *Since §11 a screen may open a room with no
+  hash and no key, and the narrator claims it: see 11.3.*
 - `GET /rooms/:code/ws?as=narrator&secret=…` — one narrator; rejected if the
   secret does not match the hash.
 - `GET /rooms/:code/ws?as=tv` — any number.
@@ -455,3 +459,129 @@ step screen, the chooser per step kind, the Detective's card, the wake lock,
 the strings in both languages, the day's waiting lines — in `screens/seat.ts`
 and `seat.ts`, on the contract above; the TV's night caption; `docs/DESIGN.md`
 for the new screens.
+
+## 11. Phase 5 — the screen opens the room (designed 2026-09-12)
+
+The user's verdict on the flow as built: "super clunky". The room was built
+from the wrong end. The narrator's phone opened it, turned itself into the
+lobby with the players' QR, and the TV came last, by an address typed into
+its browser with a fragment on the end. The one device that must never be
+shared was the one everyone gathered round, and a player who scanned before
+the narrator's socket was up was lost (the relay forwards a join only to a
+narrator that exists).
+
+### 11.1 The evening, as it should go
+
+1. **The TV opens the room.** Someone opens the site's `/tv` address on the
+   TV (GitHub Pages serves it without the `.html`), or opens the site and
+   picks "This device is the big screen". The page asks the relay for a
+   room, no key needed, and is the lobby from its first second: the code,
+   the players' QR, and one line for the narrator ("Open The Family on your
+   phone and enter this code"). A refresh rejoins the same room
+   (`omerta:screen` in the TV's `localStorage`); a room the relay has
+   forgotten gets a fresh one.
+2. **The narrator joins by code.** The setup screen carries a "Big screen
+   code" field: five letters read off the TV. The phone claims the
+   narrator's seat of that room with the room key it stores (typed once,
+   the first time the field is used, and never again), so a player who can
+   read the code off the TV cannot claim it. The relay address and the key
+   live in the ⋯ sheet as settings, off the evening's path.
+3. **The narrator's phone never shows a QR.** In setup with a room the
+   names screen is the lobby: the code and the screen count in a line at
+   the top, the roster filling in from the phones (each name marked once a
+   phone holds it, the name field still there for someone without one), and
+   "Everyone is in" where "Let's go" was.
+4. **Players scan the TV.** As today. A seat page opened with no code asks
+   for the one on the screen. A phone that scanned before the narrator
+   arrived is not lost: the relay remembers each phone's last join and hands
+   the list to the narrator's socket when it connects.
+5. **No TV at all** stays possible: "Open a room from this phone" in the ⋯
+   sheet opens and claims a room in one go, as before, and turns the phone
+   to the lobby with the QR since there is nothing else to show it on. It
+   is the secondary road now, not the main one.
+
+### 11.2 Principles
+
+- **A screen is the anchor; a phone is the authority.** Anyone may open a
+  room (a code, a QR, fifteen minutes to live). Only a phone with the key
+  may be its narrator. The projections, the sealing, the night from the
+  phones and the vote are untouched: the narrator's secret is still made on
+  the phone, still hashed at the relay, and the key still never leaves the
+  narrator's `localStorage`.
+- **The free plan stays safe.** An unclaimed room is a code and an alarm.
+  Opening one is rate-limited per address like every other request, a room
+  nobody claims deletes itself after fifteen minutes, and a claimed one
+  after six idle hours as before.
+- **Nothing on the narrator's phone is for the table to read**, in setup as
+  in play. The lobby with the QR is the screen's; the narrator's lobby is a
+  list of names.
+
+### 11.3 The relay and the client (Session A)
+
+- `POST /rooms` with an empty body, no key: opens an **unclaimed** room and
+  answers `{ code }`. With `{ secretHash }` and `X-Room-Key`: opens and
+  claims at once (today's call, the no-TV path).
+- `POST /rooms/:code/claim` with `{ secretHash }` and `X-Room-Key`: sets the
+  narrator's secret for that room and answers `{ code }`. 404 when no such
+  room, 403 on the key, 400 on the hash. A claim with a valid key always
+  wins, replacing an earlier narrator (a phone that lost its storage, a
+  second device), and closes its socket.
+- Screens and players may join an unclaimed room; a narrator socket needs
+  the hash, so none exists before a claim. The alarm is fifteen minutes
+  while unclaimed, six idle hours once claimed.
+- The object keeps each player's last `join` (`join:<cid>`: name and public
+  key) and the narrator's `present` message carries them:
+  `{ kind: 'present', players: { cid, name, pub }[], tvs }`. The narrator
+  admits each as if it had just joined.
+- `src/room/client.ts`: `requestRoom(relay)` for a screen (no key, returns
+  `{ code, relay }`), `claimRoom(relay, code, key)` for the narrator (makes
+  the secret, returns a `Room`), `openRoom(relay, key)` as before for the
+  no-TV path. `screenUrl(site)` is the plain `/tv` address; `tvUrl` keeps
+  the code in the fragment for a second screen joining an existing room.
+- `vite.config.ts`: `/tv` and `/seat` on the service worker's
+  `navigateFallbackDenylist`, so a TV that once opened the narrator app is
+  not sent back to it.
+
+### 11.4 The narrator's phone (Session A)
+
+- `namesMarkup` gains the code field (Plex Mono, five cells wide, uppercase,
+  `autocapitalize="characters"`, `inputmode="latin"`, a Join button) and,
+  until a key is stored, the key field under it. While a room is open it
+  shows instead the room line (the code, screens on, phones seated) and the
+  done button reads "Everyone is in". The names list marks the phones as it
+  does today.
+- The ⋯ "Big screen" sheet becomes settings and the secondary road: the
+  relay address and the key, "Open a room from this phone", and, with a
+  room open, the code, the status line, the address for a second screen,
+  and "Close the room". No QR on the sheet.
+- Joining a room during setup empties the typed names (the table is
+  whoever joins) as opening one did; it does not flip to the table view.
+- A quiet link at the foot of the names screen, "This device is the big
+  screen", opens `/tv`, for a TV that was pointed at the site's root.
+
+### 11.5 The screen and the seat page (Session B)
+
+- `tv.html` / `src/tv.ts`: no fragment → `requestRoom(relay)`, remember the
+  room in `omerta:screen`, connect as a screen, and render the lobby at
+  once from what the page knows: the code, `seatUrl` as a QR, the line for
+  the narrator, the status. When the first projection lands, render it as
+  today (`tableMarkup`); in setup that is `lobbyMarkup` with the roster
+  filling. A remembered room the relay answers 404 for (`ScreenLink` sees
+  the socket refused) → request a fresh one. With a fragment: join that
+  room as today (a second screen).
+- `seat.html` / `src/seat.ts`: no fragment → a code field in place of the
+  "No room at this address" line; entering one sets the fragment and joins.
+- Strings in both languages for the screen's lobby and the seat's code
+  field; `docs/DESIGN.md` if a new component appears. The code on the TV
+  reads from a sofa; the QR is the largest thing on the screen until the
+  roster needs the room.
+
+### 11.6 Decisions taken (standing until the user objects)
+
+1. A claim with the key replaces the sitting narrator rather than being
+   refused: the key is the proof, and the replaced socket learns it.
+2. The relay address and the key stay user-editable, in the sheet, not on
+   the setup screen.
+3. The phone-opened room keeps the QR lobby on the phone: it is the no-TV
+   evening and there is nothing else to show it on.
+

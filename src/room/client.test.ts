@@ -1,17 +1,23 @@
 import { describe, expect, it } from 'vitest'
-import { normalizeRelay, parseFragment, seatUrl, tvUrl } from './client'
+import { normalizeRelay, parseFragment, screenUrl, seatUrl, tvUrl, type Room } from './client'
+
+const room: Room = { code: 'AB2CD', secret: 's', relay: 'https://relay.example' }
 
 describe('the room address', () => {
   it('puts the code in the fragment, where no server sees it', () => {
-    const url = tvUrl({ code: 'AB2CD', secret: 's', relay: 'https://relay.example' }, 'https://juansbg.github.io/')
+    const url = tvUrl(room, 'https://juansbg.github.io/')
     expect(url).toBe('https://juansbg.github.io/tv.html#room=AB2CD&relay=https%3A%2F%2Frelay.example')
     expect(url).not.toContain('secret')
   })
 
   it('gives the players one address of their own, with the code and no secret', () => {
-    const url = seatUrl({ code: 'AB2CD', secret: 's', relay: 'https://relay.example' }, 'https://juansbg.github.io')
+    const url = seatUrl(room, 'https://juansbg.github.io')
     expect(url).toBe('https://juansbg.github.io/seat.html#room=AB2CD&relay=https%3A%2F%2Frelay.example')
     expect(url).not.toContain('secret')
+  })
+
+  it('gives a TV a plain address to start a room from, no code, no page name', () => {
+    expect(screenUrl('https://juansbg.github.io/')).toBe('https://juansbg.github.io/tv')
   })
 
   it('reads the fragment back, and rejects a code that is not one', () => {

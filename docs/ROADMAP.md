@@ -390,6 +390,13 @@ CLAUDE.md only in their own bullets.
   Session A the contract (`SeatNight` on the seat projection and its leak
   tests), `src/room/actions.ts`, the relay's `mark` and `act`, the narrator's
   handler; Session B the phone's night screens, the wake lock, the strings.
+- **The screen opens the room** (user, 2026-09-12: "super clunky"):
+  `docs/BIG-SCREEN.md` §11. The TV opens the room and shows the code and the
+  players' QR; the narrator joins it by code from the setup screen with the
+  key the phone stores; the narrator's phone never shows a QR. Session A the
+  relay (unclaimed rooms, the claim, joins remembered), the client, the
+  setup screen and the sheet; Session B the TV page as a room opener and the
+  seat page's code field.
 - **The Cultist stays out for now** (decided 2026-09-04): a pending feature,
   not planned, until the user chooses a rule for it. The card remains
   assignable by hand and the split still works; nothing more is built on it.

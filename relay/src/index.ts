@@ -12,6 +12,11 @@
  *
  * One Worker routes; one Durable Object per room keeps the sockets. Rooms
  * evict themselves after six idle hours. Nothing here survives a room.
+ *
+ * A room is opened by a screen (docs/BIG-SCREEN.md §11): anyone may ask for
+ * a code, and the room lives fifteen minutes unclaimed. Only a phone that
+ * knows the room key may claim it as narrator, with the hash of a secret
+ * the phone made; the secret itself is what its socket presents.
  */
 
 import { DurableObject } from 'cloudflare:workers'
@@ -26,15 +31,16 @@ export interface Env {
   RATE: RateLimiter
   /** Comma-separated origins allowed to use the relay, or "*" locally. */
   ALLOWED_ORIGINS: string
-  /** Needed to open a room. A secret, set with wrangler; unset means nobody may. */
+  /** Needed to claim a room's narrator. A secret, set with wrangler; unset means nobody may. */
   ROOM_KEY?: string
 }
 
 /**
  * The site is public and the relay is metered, so three doors are kept shut
  * until release: only pages from our origin are answered, only a phone that
- * knows the room key may open a room, and one address gets thirty handshakes
- * a minute. None of this costs a request beyond the one being refused.
+ * knows the room key may be a room's narrator, and one address gets thirty
+ * handshakes a minute. None of this costs a request beyond the one being
+ * refused, and an unclaimed room is a code and an alarm.
  */
 const allowedOrigin = (request: Request, env: Env): boolean => {
   if (env.ALLOWED_ORIGINS === '*') return true
@@ -65,6 +71,8 @@ const ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
 const CODE_LENGTH = 5
 const CODE = new RegExp(`^[${ALPHABET}]{${CODE_LENGTH}}$`)
 
+const validHash = (value: unknown): value is string => typeof value === 'string' && /^[0-9a-f]{64}$/.test(value)
+
 const randomCode = (): string => {
   const bytes = crypto.getRandomValues(new Uint8Array(CODE_LENGTH))
   return Array.from(bytes, (b) => ALPHABET[b % ALPHABET.length]).join('')
@@ -92,22 +100,38 @@ export default {
     if (!allowedOrigin(request, env)) return new Response('origin', { status: 403, headers: CORS })
     if (!(await withinRate(request, env))) return new Response('slow down', { status: 429, headers: CORS })
 
-    // The phone opens a room with the hash of its secret; the code comes back.
+    // A screen opens a room with an empty body and gets a code to show; a
+    // phone that sends the hash of its secret with the key opens one claimed.
     if (request.method === 'POST' && url.pathname === '/rooms') {
-      if (!hasRoomKey(request, env)) return json({ error: 'key' }, 403)
       const body = (await request.json().catch(() => null)) as { secretHash?: unknown } | null
-      const secretHash = body?.secretHash
-      if (typeof secretHash !== 'string' || !/^[0-9a-f]{64}$/.test(secretHash)) {
-        return json({ error: 'secretHash' }, 400)
+      let secretHash: string | null = null
+      if (body?.secretHash !== undefined) {
+        if (!hasRoomKey(request, env)) return json({ error: 'key' }, 403)
+        if (!validHash(body.secretHash)) return json({ error: 'secretHash' }, 400)
+        secretHash = body.secretHash
       }
       // A code is free while no object claims it; collisions are rare and retried.
       for (let attempt = 0; attempt < 5; attempt++) {
         const code = randomCode()
         const room = env.ROOM.get(env.ROOM.idFromName(code))
-        const claimed = await room.create(secretHash)
-        if (claimed) return json({ code })
+        const opened = await room.create(secretHash)
+        if (opened) return json({ code })
       }
       return json({ error: 'busy' }, 503)
+    }
+
+    // The narrator claims a room a screen opened: the key, and the hash of
+    // the secret the phone will present. A claim with the key always wins.
+    const claim = url.pathname.match(/^\/rooms\/([A-Z0-9]{5})\/claim$/)
+    if (claim && request.method === 'POST') {
+      const code = claim[1] as string
+      if (!CODE.test(code)) return json({ error: 'room' }, 404)
+      if (!hasRoomKey(request, env)) return json({ error: 'key' }, 403)
+      const body = (await request.json().catch(() => null)) as { secretHash?: unknown } | null
+      if (!validHash(body?.secretHash)) return json({ error: 'secretHash' }, 400)
+      const room = env.ROOM.get(env.ROOM.idFromName(code))
+      const claimed = await room.claim(body.secretHash)
+      return claimed ? json({ code }) : json({ error: 'room' }, 404)
     }
 
     const match = url.pathname.match(/^\/rooms\/([A-Z0-9]{5})\/ws$/)
@@ -131,9 +155,13 @@ type Role = 'narrator' | 'tv' | 'player'
 const MAX_MESSAGE = 16 * 1024
 /** Sockets one room will hold: a table, a few screens, some reconnect slack. */
 const MAX_SOCKETS = 40
+/** The close code for a room that does not exist or has expired: 4000 is "replaced", 4001 "closed". */
+const GONE = 4004
 /** Messages allowed per socket per second before it is dropped. */
 const RATE = 20
 const IDLE_MS = 6 * 60 * 60 * 1000
+/** A room nobody has claimed is a code on a screen; it waits this long for a narrator. */
+const UNCLAIMED_MS = 15 * 60 * 1000
 /** A player's connection id: chosen by the page, random hex, kept for reconnects. */
 const CID = /^[0-9a-f]{16,64}$/
 const MAX_NAME = 40
@@ -155,6 +183,13 @@ type FromPlayer =
   | { kind: 'mark'; target: number | null }
   /** A night step taken from the phone; the narrator checks it against the game. */
   | { kind: 'act'; action: unknown }
+
+/** A phone's join, kept so the narrator's socket learns it whenever it connects. */
+interface Join {
+  cid: string
+  name: string
+  pub: string
+}
 
 const seatOf = (value: unknown): number | null =>
   typeof value === 'number' && Number.isInteger(value) && value >= 0 && value < 64 ? value : null
@@ -201,26 +236,40 @@ export class Room extends DurableObject<Env> {
     this.ctx.setWebSocketAutoResponse(new WebSocketRequestResponsePair('ping', 'pong'))
   }
 
-  /** Claims the code for this room. False if the room is already someone's. */
-  async create(secretHash: string): Promise<boolean> {
-    const existing = await this.ctx.storage.get<string>('secretHash')
-    if (existing !== undefined) return false
+  /** Takes the code for this room, claimed or not. False if the code is already a room. */
+  async create(secretHash: string | null): Promise<boolean> {
+    if ((await this.ctx.storage.get<boolean>('open')) === true) return false
+    await this.ctx.storage.put('open', true)
+    if (secretHash !== null) await this.ctx.storage.put('secretHash', secretHash)
+    await this.touch()
+    return true
+  }
+
+  /** Makes the phone presenting this secret the narrator. False if there is no such room. */
+  async claim(secretHash: string): Promise<boolean> {
+    if ((await this.ctx.storage.get<boolean>('open')) !== true) return false
     await this.ctx.storage.put('secretHash', secretHash)
+    for (const old of this.ctx.getWebSockets('narrator')) old.close(4000, 'replaced')
     await this.touch()
     return true
   }
 
   override async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url)
-    const secretHash = await this.ctx.storage.get<string>('secretHash')
-    if (secretHash === undefined) return new Response('no such room', { status: 404 })
+    // A room that is not there is told so over the socket: a refused upgrade
+    // reaches a browser as any other failure, and a screen must know the
+    // difference between the relay being down and its room being gone.
+    if ((await this.ctx.storage.get<boolean>('open')) !== true) return gone()
     if (this.ctx.getWebSockets().length >= MAX_SOCKETS) return new Response('room full', { status: 429 })
 
     const as = url.searchParams.get('as')
     let tags: string[]
     if (as === 'narrator') {
+      const secretHash = await this.ctx.storage.get<string>('secretHash')
       const secret = url.searchParams.get('secret') ?? ''
-      if ((await sha256(secret)) !== secretHash) return new Response('wrong secret', { status: 403 })
+      if (secretHash === undefined || (await sha256(secret)) !== secretHash) {
+        return new Response('wrong secret', { status: 403 })
+      }
       // One narrator. A newer phone (a reload, a second device) replaces the old.
       for (const old of this.ctx.getWebSockets('narrator')) old.close(4000, 'replaced')
       tags = ['narrator']
@@ -251,8 +300,9 @@ export class Room extends DurableObject<Env> {
       const last = await this.ctx.storage.get<string>(`last:player:${url.searchParams.get('cid')}`)
       if (last !== undefined) server.send(last)
     } else {
-      // The narrator learns who is in the room already.
-      server.send(JSON.stringify({ kind: 'present', players: this.cids(), tvs: this.ctx.getWebSockets('tv').length }))
+      // The narrator learns who is in the room already, joins included, so a
+      // phone that scanned before the narrator arrived is not lost.
+      server.send(JSON.stringify({ kind: 'present', players: await this.joins(), tvs: this.ctx.getWebSockets('tv').length }))
     }
 
     await this.touch()
@@ -301,7 +351,9 @@ export class Room extends DurableObject<Env> {
       if (msg.kind === 'join') {
         if (typeof msg.name !== 'string' || typeof msg.pub !== 'string') return
         if (msg.name.trim() === '' || msg.name.length > MAX_NAME || msg.pub.length > MAX_KEY) return
-        this.tellNarrator({ kind: 'join', cid, name: msg.name.trim(), pub: msg.pub })
+        const join: Join = { cid, name: msg.name.trim(), pub: msg.pub }
+        await this.ctx.storage.put(`join:${cid}`, join)
+        this.tellNarrator({ kind: 'join', ...join })
       } else if (msg.kind === 'vote') {
         if (msg.target !== null && seatOf(msg.target) === null) return
         this.tellNarrator({ kind: 'vote', cid, target: msg.target })
@@ -334,9 +386,9 @@ export class Room extends DurableObject<Env> {
     ws.close(1011, 'error')
   }
 
-  /** Six idle hours and the room is gone, sockets and all. */
+  /** The alarm: the room is gone, sockets and all. */
   override async alarm(): Promise<void> {
-    for (const ws of this.ctx.getWebSockets()) ws.close(4001, 'room closed')
+    for (const ws of this.ctx.getWebSockets()) ws.close(GONE, 'no such room')
     await this.ctx.storage.deleteAll()
   }
 
@@ -352,6 +404,17 @@ export class Room extends DurableObject<Env> {
     ]
   }
 
+  /** The joins of the phones on the room now: what each last said its name was. */
+  private async joins(): Promise<Join[]> {
+    const cids = this.cids()
+    if (cids.length === 0) return []
+    const stored = await this.ctx.storage.get<Join>(cids.map((cid) => `join:${cid}`))
+    return cids.flatMap((cid) => {
+      const join = stored.get(`join:${cid}`)
+      return join === undefined ? [] : [join]
+    })
+  }
+
   private tellNarrator(message: unknown): void {
     const text = JSON.stringify(message)
     for (const n of this.ctx.getWebSockets('narrator')) n.send(text)
@@ -363,8 +426,10 @@ export class Room extends DurableObject<Env> {
     this.tellNarrator({ kind: 'tvs', count })
   }
 
+  /** Six idle hours for a claimed room; fifteen minutes for a code nobody has claimed. */
   private async touch(): Promise<void> {
-    await this.ctx.storage.setAlarm(Date.now() + IDLE_MS)
+    const claimed = (await this.ctx.storage.get<string>('secretHash')) !== undefined
+    await this.ctx.storage.setAlarm(Date.now() + (claimed ? IDLE_MS : UNCLAIMED_MS))
   }
 
   private allow(ws: WebSocket): boolean {
@@ -377,6 +442,15 @@ export class Room extends DurableObject<Env> {
     count.n += 1
     return count.n <= RATE
   }
+}
+
+/** Closes a fresh socket at once with the "no such room" code, so the page can tell. */
+const gone = (): Response => {
+  const pair = new WebSocketPair()
+  const [client, server] = [pair[0], pair[1]]
+  server.accept()
+  server.close(GONE, 'no such room')
+  return new Response(null, { status: 101, webSocket: client })
 }
 
 const sha256 = async (text: string): Promise<string> => {

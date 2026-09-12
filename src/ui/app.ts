@@ -31,7 +31,7 @@ import { sound, unlockOnGesture } from './sound'
 import { clear, clearRoster, clearStats, load, loadRoster, loadStats, loadTimer, recordGame, save, saveRoster, saveTimer, type AppState } from './store'
 import { statsMarkup } from './screens/stats'
 import { summarise } from '../engine/summary'
-import { editorMarkup, MAX_PLAYERS, MIN_PLAYERS, namesMarkup, rosterMarkup } from './screens/setup'
+import { editorMarkup, MAX_PLAYERS, MIN_PLAYERS, namesMarkup, rosterMarkup, type ScreenJoin } from './screens/setup'
 import { dealRoles, systemRandom, type Complexity } from '../engine/deal'
 import { dayMarkup, inspectionMarkup, nightMarkup, playerViewMarkup, questionCardMarkup, questionsIntroMarkup } from './screens/night'
 import { countOrder } from './screens/vote'
@@ -46,6 +46,8 @@ import {
   loadRoomKey,
   normalizeRelay,
   openRoom,
+  claimRoom,
+  screenUrl,
   saveRelay,
   saveRoom,
   saveRoomKey,
@@ -58,7 +60,6 @@ import {
 import { makeKeys, seal, sharedKey, type KeyPair } from '../room/crypto'
 import { seatProjection, waitingSeat, type SeatProjection } from '../room/projections'
 import { acceptAction, acceptMark } from '../room/actions'
-import { qrSvg } from '../room/qr'
 import { timelineMarkup } from './screens/timeline'
 import { fitTables } from './screens/circle'
 import { dailyMarkup, edition, paperMarkup, sharePaper, type ShareResult } from './screens/paper'
@@ -125,8 +126,8 @@ let roomStatus: LinkStatus = 'closed'
 /** Screens on the room, as the relay reports them. */
 let tvs = 0
 let roomBusy = false
-/** Why the last attempt failed: the relay refused the key, or did not answer. */
-let roomError: 'key' | 'relay' | null = null
+/** Why the last attempt failed: the relay refused the key, knows no such room, or did not answer. */
+let roomError: 'key' | 'relay' | 'room' | null = null
 
 /**
  * A player who joined from their own phone: a name they typed, the public
@@ -210,6 +211,8 @@ function handleRoomMessage(message: FromRelay): void {
       break
     case 'present':
       tvs = message.tvs
+      // The phones that scanned before this socket was up, joins and all.
+      for (const p of message.players) void admit(p.cid, p.name, p.pub)
       break
     case 'join':
       void admit(message.cid, message.name, message.pub)
@@ -288,6 +291,22 @@ function connectRoom(): void {
     },
     onMessage: handleRoomMessage,
   })
+}
+
+/**
+ * The big screen's block on the names screen: the room this phone runs, or
+ * the field for the code a TV shows. Nothing when no relay is configured.
+ */
+function screenJoin(): ScreenJoin | null {
+  const relay = loadRelay()
+  if (relay === '') return null
+  return {
+    room: room === null ? null : { code: room.code, tvs, phones: seatedFromPhones().size },
+    needsKey: loadRoomKey() === '' || roomError === 'key',
+    busy: roomBusy,
+    error: roomError,
+    address: screenUrl(location.origin).replace(/^https?:\/\//, ''),
+  }
 }
 
 /** What one guest should see now, or a refusal if they have no seat. */
@@ -586,7 +605,7 @@ function render(entering = false): void {
     body = tableMarkup(projectionNow())
   } else if (state.screen === 'setup') {
     body = game.players.length === 0
-      ? namesMarkup(names, state.locale, seatedFromPhones())
+      ? namesMarkup(names, state.locale, seatedFromPhones(), screenJoin())
       : rosterMarkup(game.players, state.locale, complexity, rearranging, armedSeat)
     if (editing !== null) {
       const player = game.players.find((p) => p.id === editing)
@@ -771,19 +790,12 @@ function render(entering = false): void {
     let body: string
     if (room !== null) {
       const tv = tvUrl(room, location.origin)
-      const seats = seatUrl(room, location.origin)
       const seated = [...guests.values()].filter((g) => g.seat !== null)
       const status = roomStatus !== 'open' ? r.reconnecting : `${tvs > 0 ? r.tvs(tvs) : r.noTv} · ${r.players(seated.length)}`
-      const who = seated.length === 0
-        ? `<p class="room__hint">${esc(r.nobodyYet)}</p>`
-        : `<ul class="room__names">${seated.map((g) => `<li>${esc(g.name)}</li>`).join('')}</ul>`
       body = `
         <p class="title room__code" aria-label="${esc(r.code)}">${esc(room.code)}</p>
-        <div class="room__qr" aria-hidden="true">${qrSvg(seats)}</div>
-        <p class="room__hint">${esc(r.scanPlayers)}</p>
-        ${who}
         <p class="room__status" data-room-status>${esc(status)}</p>
-        <p class="room__hint">${esc(r.openOnTv)}</p>
+        <p class="room__hint">${esc(r.secondScreen)}</p>
         <p class="room__url">${esc(tv)}</p>
         <button class="btn btn--ghost" type="button" data-room-close>${esc(r.close)}</button>
       `
@@ -801,8 +813,8 @@ function render(entering = false): void {
                  autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="off">
         </label>
         <p class="room__hint">${esc(r.keyHint)}</p>
-        ${roomError !== null ? `<p class="notice">${esc(roomError === 'key' ? r.refused : r.failed)}</p>` : ''}
-        <button class="btn btn--primary" type="button" data-room-open${roomBusy ? ' disabled' : ''}>${esc(roomBusy ? r.opening : r.open)}</button>
+        ${roomError !== null ? `<p class="notice">${esc(roomError === 'key' ? r.refused : roomError === 'room' ? t.ui.setup.noSuchScreen : r.failed)}</p>` : ''}
+        <button class="btn btn--primary" type="button" data-room-open${roomBusy ? ' disabled' : ''}>${esc(roomBusy ? r.opening : r.openHere)}</button>
       `
     }
     return `
@@ -1470,10 +1482,54 @@ function bind(): void {
       })
   })
 
+  // The big screen's code, typed on the names screen: this phone claims the
+  // room the TV opened. Five letters submit by themselves.
+  on(root, '[data-screen-code]', 'input', (_e, el) => {
+    const input = el as HTMLInputElement
+    input.value = input.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 5)
+    if (input.value.length === 5 && !(loadRoomKey() === '' || roomError === 'key')) {
+      input.form?.requestSubmit()
+    }
+  })
+
+  on(root, '[data-screen-form]', 'submit', (event) => {
+    event.preventDefault()
+    if (roomBusy) return
+    const code = (root.querySelector<HTMLInputElement>('[data-screen-code]')?.value ?? '').trim().toUpperCase()
+    const key = (root.querySelector<HTMLInputElement>('[data-screen-key]')?.value ?? loadRoomKey()).trim()
+    if (!/^[A-Z0-9]{5}$/.test(code)) return
+    if (key === '') {
+      roomError = 'key'
+      setState({}, false)
+      return
+    }
+    roomBusy = true
+    roomError = null
+    setState({}, false)
+    void claimRoom(loadRelay(), code, key)
+      .then((claimed) => {
+        saveRoomKey(key)
+        room = claimed
+        saveRoom(room)
+        connectRoom()
+        // The table is whoever joins: names typed for a phoneless evening step aside.
+        if (state.screen === 'setup' && state.session.current.players.length === 0) names = []
+        buzz()
+      })
+      .catch((error: unknown) => {
+        roomError = error instanceof RelayRefused ? (error.status === 403 ? 'key' : error.status === 404 ? 'room' : 'relay') : 'relay'
+      })
+      .then(() => {
+        roomBusy = false
+        setState({}, false)
+      })
+  })
+
   on(root, '[data-room-close]', 'click', () => {
     link?.close()
     link = null
     room = null
+    roomError = null
     tvs = 0
     guests.clear()
     roomStatus = 'closed'

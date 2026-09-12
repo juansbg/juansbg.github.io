@@ -11,6 +11,22 @@ export const MIN_PLAYERS = 4
 export const MAX_PLAYERS = 20
 
 /**
+ * The big screen, as the names screen shows it (docs/BIG-SCREEN.md §11).
+ * Before a room: the code field, and the key under it the first time. With
+ * a room: one line saying which screen this phone runs and who is on it;
+ * the QR is the screen's, never this phone's.
+ */
+export interface ScreenJoin {
+  room: { code: string; tvs: number; phones: number } | null
+  /** No key stored yet, or the relay refused the one there was. */
+  needsKey: boolean
+  busy: boolean
+  error: 'key' | 'relay' | 'room' | null
+  /** Where a TV goes to start a room, as something to read out. */
+  address: string
+}
+
+/**
  * Name entry. One field, Enter adds, repeat.
  *
  * This replaces the "how many players?" grid: the count is simply how many
@@ -18,13 +34,63 @@ export const MAX_PLAYERS = 20
  * needs to enter, and the list is remembered between games so the same group
  * never types it twice.
  */
+/** Stands in for the address in the hint until it is set as a link. */
+const ADDRESS = '\u0000address\u0000'
+
+/** The hint with the TV's address as a link a TV on the root page can follow. */
+const addressLine = (hint: string, address: string, title: string): string =>
+  esc(hint).replace(ADDRESS, `<a class="screen-link" href="tv.html" title="${esc(title)}" data-this-is-screen>${esc(address)}</a>`)
+
 export const namesMarkup = (
   names: readonly string[],
   locale: Locale,
   joined: ReadonlySet<number> = new Set(),
+  screen: ScreenJoin | null = null,
 ): string => {
   const t = strings(locale)
   const enough = names.length >= MIN_PLAYERS
+  const st = t.ui.setup
+  const r = t.ui.room
+
+  // The screen's block. With a room it is a status line; without, the
+  // field for the code the TV shows, and the key the first time.
+  let screenBlock = ''
+  if (screen !== null && screen.room !== null) {
+    const status = `${screen.room.tvs > 0 ? r.tvs(screen.room.tvs) : r.noTv} · ${r.players(screen.room.phones)}`
+    screenBlock = `
+      <div class="room-line" data-room-line>
+        <span class="room-line__code">${esc(st.onScreen(screen.room.code))}</span>
+        <span class="room-line__status">${esc(status)}</span>
+      </div>`
+  } else if (screen !== null) {
+    const error =
+      screen.error === 'room' ? st.noSuchScreen : screen.error === 'key' ? r.refused : screen.error === 'relay' ? r.failed : ''
+    screenBlock = `
+      <form class="screen-join" data-screen-form autocomplete="off">
+        <label class="field">
+          <span class="field__label">${esc(st.screenCode)}</span>
+          <div class="screen-join__row">
+            <input class="field__input screen-join__input" type="text" data-screen-code
+                   inputmode="latin" autocapitalize="characters" autocorrect="off" spellcheck="false"
+                   maxlength="5" pattern="[A-Za-z0-9]{5}" placeholder="·····"${screen.busy ? ' disabled' : ''}>
+            <button class="btn btn--primary" type="submit"${screen.busy ? ' disabled' : ''}>${esc(
+              screen.busy ? st.screenJoining : st.screenJoin,
+            )}</button>
+          </div>
+        </label>
+        ${
+          screen.needsKey
+            ? `<label class="field">
+                 <span class="field__label">${esc(r.key)}</span>
+                 <input class="field__input" type="text" data-screen-key
+                        autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="off">
+                 <span class="field__hint">${esc(st.screenKeyHint)}</span>
+               </label>`
+            : ''
+        }
+        ${error === '' ? `<p class="field__hint">${addressLine(st.screenHint(ADDRESS), screen.address, st.thisIsScreen)}</p>` : `<p class="notice" data-screen-error>${esc(error)}</p>`}
+      </form>`
+  }
 
   // A seat taken from a phone through the room carries a mark; the name
   // itself is the same list either way, typed here or there.
@@ -42,6 +108,7 @@ export const namesMarkup = (
   return `
     <section class="screen screen--names">
       <h1 class="title">${esc(t.appName)}</h1>
+      ${screenBlock}
       <p class="subtitle">${esc(t.ui.setup.whoIsPlaying)}</p>
 
       <form class="name-form" data-name-form autocomplete="off">
@@ -56,7 +123,13 @@ export const namesMarkup = (
 
       <div class="actions">
         <button class="btn btn--primary" type="button" data-names-done ${enough ? '' : 'disabled'}>
-          ${esc(enough ? t.ui.setup.namesReady(names.length) : t.ui.setup.minPlayers(MIN_PLAYERS))}
+          ${esc(
+            !enough
+              ? t.ui.setup.minPlayers(MIN_PLAYERS)
+              : screen?.room !== null && screen !== null
+                ? t.ui.table.proceed
+                : t.ui.setup.namesReady(names.length),
+          )}
         </button>
         ${names.length > 0 ? `<button class="btn btn--ghost btn--small" type="button" data-clear-names>${esc(t.ui.setup.clearNames)}</button>` : ''}
       </div>
