@@ -270,7 +270,8 @@ function handleRoomMessage(message: FromRelay): void {
       return
     }
   }
-  if (roomOpen) setState({}, false)
+  // The sheet and the names screen both show who is on the room.
+  if (roomOpen || state.screen === 'setup') setState({}, false)
 }
 
 function connectRoom(): void {

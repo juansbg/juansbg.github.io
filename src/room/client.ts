@@ -216,6 +216,9 @@ const wsUrl = (relay: string): string => relay.replace(/^http/, 'ws')
  * timers stay quiet, and coalesces publishes to one per frame: the app
  * repaints on every tap and the TV only needs the last state.
  */
+/** How long paints are collected before one message goes out. */
+const FRAME_MS = 16
+
 export class NarratorLink {
   private ws: WebSocket | null = null
   private closed = false
@@ -232,13 +235,19 @@ export class NarratorLink {
     this.connect()
   }
 
+  /**
+   * One message per frame at most: paints within the same beat collapse
+   * into the last. A timer rather than requestAnimationFrame, which a
+   * hidden page never fires: the narrator's phone must keep the room
+   * current from a pocket, a switched app or a second screen's tab.
+   */
   publish(projection: TvProjection): void {
     this.pending = projection
     if (this.frame !== null) return
-    this.frame = requestAnimationFrame(() => {
+    this.frame = window.setTimeout(() => {
       this.frame = null
       this.flush()
-    })
+    }, FRAME_MS)
   }
 
   /** A message straight through: the hello, a player's sealed card. Dropped while the socket is down. */
