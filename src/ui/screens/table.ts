@@ -1,5 +1,5 @@
 import type { Player } from '../../engine/types'
-import { renderWinner, strings } from '../../i18n'
+import { renderWinner, strings, type Locale } from '../../i18n'
 import type { PlayerId } from '../../engine/types'
 import type { TvProjection, TvSeat } from '../../room/projections'
 import { esc } from '../dom'
@@ -42,7 +42,7 @@ const seatOf = (s: TvSeat): Player => ({
 
 export const tableMarkup = (p: TvProjection, controls = true): string => {
   const t = strings(p.locale)
-  if (p.phase === 'setup') return lobbyMarkup(p, controls, t)
+  if (p.phase === 'setup') return lobbyMarkup({ code: codeOf(p.join), join: p.join, roster: p.roster }, controls, p.locale)
   // The engine's phase stays where the game ended; a winner is what "over" means.
   const over = p.winner !== null
   const caption = over
@@ -167,42 +167,74 @@ const readingMarkup = (p: TvProjection, controls: boolean): string => {
   `
 }
 
+/** What the lobby is drawn from: the projection's slice of it, or what a screen knows on its own. */
+export interface Lobby {
+  /** The room code, read from the sofa. */
+  code: string | null
+  /** The players' address, drawn as the QR. */
+  join: string | null
+  /**
+   * The names at the table, each marked once a phone holds it; null while no
+   * narrator has claimed the room (docs/BIG-SCREEN.md §11), when the screen
+   * has opened it by itself and the column carries the narrator's line instead.
+   */
+  roster: { name: string; joined: boolean }[] | null
+  /** One quiet line under the narrator's: the relay's state, when it is not simply open. */
+  note?: string
+}
+
+/** The code inside a join address, so the projection need not carry it twice. */
+export const codeOf = (join: string | null): string | null =>
+  join === null ? null : new URLSearchParams(join.split('#')[1] ?? '').get('room')
+
 /**
  * Before the game: the screen everyone looks at shows the code and the QR the
  * players join with, and the roster filling up. The narrator's own device
- * gets the button to go on; a TV through the relay just shows.
+ * gets the button to go on; a TV through the relay just shows. A TV that
+ * opened the room itself paints the same screen before any narrator is on
+ * it, with the narrator's one instruction where the roster will be, so the
+ * claim swaps a column and never the screen.
  */
-const lobbyMarkup = (p: TvProjection, controls: boolean, t: ReturnType<typeof strings>): string => {
-  const code = p.join === null ? null : new URLSearchParams(p.join.split('#')[1] ?? '').get('room')
-  const joined = p.roster.filter((r) => r.joined).length
-  const enough = p.roster.length >= MIN_PLAYERS
-  const names = p.roster
+export const lobbyMarkup = (lobby: Lobby, controls: boolean, locale: Locale): string => {
+  const t = strings(locale)
+  const roster = lobby.roster ?? []
+  const joined = roster.filter((r) => r.joined).length
+  const enough = roster.length >= MIN_PLAYERS
+  const names = roster
     .map(
       (r) => `<li class="lobby__name"${r.joined ? ' data-joined' : ''}>${esc(r.name)}${
         r.joined ? `<span class="lobby__mark" aria-label="${esc(t.ui.table.onPhone)}">●</span>` : ''
       }</li>`,
     )
     .join('')
+  const column =
+    lobby.roster === null
+      ? `<div class="lobby__narrator">
+           <p class="label">${esc(t.ui.tv.forNarrator)}</p>
+           <p class="lobby__ask">${esc(t.ui.tv.enterCode)}</p>
+           ${lobby.note === undefined ? '' : `<p class="lobby__note">${esc(lobby.note)}</p>`}
+         </div>`
+      : `<div class="lobby__roster">
+           <p class="label">${esc(t.ui.table.joined(joined, roster.length))}</p>
+           <ul class="lobby__names">${names}</ul>
+           ${
+             controls
+               ? `<div class="actions">
+                    <button class="btn btn--primary" type="button" data-table-proceed${enough ? '' : ' disabled'}>${esc(
+                      enough ? t.ui.table.proceed : t.ui.setup.minPlayers(MIN_PLAYERS),
+                    )}</button>
+                  </div>`
+               : ''
+           }
+         </div>`
   return `
-    <section class="screen screen--lobby" data-table data-phase="setup">
+    <section class="screen screen--lobby" data-table data-phase="setup"${lobby.roster === null ? ' data-unclaimed' : ''}>
       <div class="lobby__code">
         <p class="label">${esc(t.ui.table.scanToJoin)}</p>
-        ${code === null ? '' : `<p class="title lobby__room">${esc(code)}</p>`}
-        ${p.join === null ? '' : `<div class="room__qr lobby__qr" aria-hidden="true">${qrSvg(p.join)}</div>`}
+        ${lobby.code === null ? '' : `<p class="title lobby__room">${esc(lobby.code)}</p>`}
+        ${lobby.join === null ? '' : `<div class="room__qr lobby__qr" aria-hidden="true">${qrSvg(lobby.join)}</div>`}
       </div>
-      <div class="lobby__roster">
-        <p class="label">${esc(t.ui.table.joined(joined, p.roster.length))}</p>
-        <ul class="lobby__names">${names}</ul>
-        ${
-          controls
-            ? `<div class="actions">
-                 <button class="btn btn--primary" type="button" data-table-proceed${enough ? '' : ' disabled'}>${esc(
-                   enough ? t.ui.table.proceed : t.ui.setup.minPlayers(MIN_PLAYERS),
-                 )}</button>
-               </div>`
-            : ''
-        }
-      </div>
+      ${column}
     </section>
   `
 }

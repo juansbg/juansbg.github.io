@@ -446,6 +446,11 @@ export interface Strings {
       title: string
       yourName: string
       join: string
+      /** A phone opened without a room in its address: the code is typed off the screen (docs/BIG-SCREEN.md §11). */
+      roomCode: string
+      codeHint: string
+      /** The room in the address has closed or expired: back to the code. */
+      roomGone: string
       joined: (name: string) => string
       waiting: string
       waitingForDeal: string
@@ -486,6 +491,10 @@ export interface Strings {
       noRoom: string
       waiting: string
       reconnecting: string
+      /** The screen opened the room itself and no narrator has claimed it yet (docs/BIG-SCREEN.md §11). */
+      forNarrator: string
+      enterCode: string
+      relayDown: string
     }
     timeline: {
       title: string

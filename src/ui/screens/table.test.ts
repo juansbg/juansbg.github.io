@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { tableMarkup } from './table'
+import { lobbyMarkup, tableMarkup } from './table'
 import { dawnSlides, verdictSlides } from './dawn'
 import { tvProjection } from '../../room/projections'
 import { LOCALES, strings } from '../../i18n'
@@ -189,5 +189,41 @@ describe('the vote on the table', () => {
     const html = tableMarkup(tvProjection(state, 'es', { shown: 2 }))
     expect(html).toContain('Empate · Ana · Caro')
     expect(html).not.toContain('data-leader')
+  })
+})
+
+describe('the lobby a screen opens by itself', () => {
+  it('shows the code and the QR with the narrator’s line where the roster will be, in both languages', () => {
+    for (const locale of LOCALES) {
+      const html = lobbyMarkup({ code: 'AB2CD', join: 'https://site/seat.html#room=AB2CD', roster: null }, false, locale)
+      const t = strings(locale).ui
+      expect(html).toContain('AB2CD')
+      expect(html).toContain('<svg')
+      expect(html).toContain('data-unclaimed')
+      expect(html).toContain(t.tv.forNarrator)
+      expect(html).toContain(t.tv.enterCode)
+      expect(html).not.toContain('lobby__names')
+      expect(html).not.toContain('data-table-proceed')
+      expect(html).not.toContain(t.table.joined(0, 0))
+    }
+  })
+
+  it('carries the relay’s state as one quiet line, and drops it when there is nothing to say', () => {
+    const lobby = { code: 'AB2CD', join: 'https://site/seat.html#room=AB2CD', roster: null }
+    expect(lobbyMarkup({ ...lobby, note: 'Reconnecting…' }, false, 'en')).toContain('lobby__note">Reconnecting…')
+    expect(lobbyMarkup(lobby, false, 'en')).not.toContain('lobby__note')
+  })
+
+  it('is the same screen once a narrator claims it: the code stays put and the roster takes the column', () => {
+    const before = lobbyMarkup({ code: 'AB2CD', join: 'https://site/seat.html#room=AB2CD', roster: null }, false, 'en')
+    const after = lobbyMarkup(
+      { code: 'AB2CD', join: 'https://site/seat.html#room=AB2CD', roster: [{ name: 'Ana', joined: true }] },
+      false,
+      'en',
+    )
+    const left = (html: string): string => html.slice(html.indexOf('<div class="lobby__code">'), html.indexOf('</div>') + 6)
+    expect(left(after)).toBe(left(before))
+    expect(after).not.toContain('data-unclaimed')
+    expect(after).toContain('lobby__names')
   })
 })

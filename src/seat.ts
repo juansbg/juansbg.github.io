@@ -22,6 +22,8 @@ import { ROLES } from './engine/roles'
 import { fitTables } from './ui/screens/circle'
 import { bindHold, roleCardMarkup } from './ui/screens/reveal'
 import {
+  CODE_SHAPE,
+  codeMarkup,
   nextGate,
   seatAction,
   seatCenter as center,
@@ -100,8 +102,11 @@ const render = (): void => {
   releaseHold = null
 
   let body: string
-  if (room === null || relay === '') {
+  if (relay === '') {
     body = center(`<h1 class="title title--sm">${esc(t.ui.tv.noRoom)}</h1>`)
+  } else if (room === null || status === 'gone') {
+    // No room in the address, or the one in it has closed: the code is on the screen, typed here (§11).
+    body = codeMarkup(locale, status === 'gone')
   } else if (refused) {
     body = center(`<h1 class="title title--sm">${esc(s.refused)}</h1><p class="subtitle">${esc(s.refusedBody)}</p>`)
   } else if (!joined) {
@@ -234,6 +239,22 @@ const start = async (): Promise<void> => {
 
 // `on` binds to the elements that exist now, so it runs after every paint.
 const bind = (): void => {
+  // The code typed off the screen becomes the address, and the page starts over from it.
+  on(root, '[data-room-code]', 'input', (_event, el) => {
+    const input = el as HTMLInputElement
+    const clean = input.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 5)
+    if (input.value !== clean) input.value = clean
+  })
+
+  on(root, '[data-code-form]', 'submit', (event) => {
+    event.preventDefault()
+    const code = root.querySelector<HTMLInputElement>('[data-room-code]')?.value.trim().toUpperCase() ?? ''
+    if (!CODE_SHAPE.test(code)) return
+    buzz()
+    location.hash = new URLSearchParams({ room: code }).toString()
+    location.reload()
+  })
+
   on(root, '[data-join-form]', 'submit', (event) => {
     event.preventDefault()
     const input = root.querySelector<HTMLInputElement>('[data-seat-name]')

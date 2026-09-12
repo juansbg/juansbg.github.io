@@ -172,7 +172,11 @@ export const parseFragment = (hash: string): { room: string | null; relay: strin
   }
 }
 
-export type LinkStatus = 'connecting' | 'open' | 'closed'
+/** `gone` is final: the relay closed the socket with 4004, no such room, and the link stops trying. */
+export type LinkStatus = 'connecting' | 'open' | 'closed' | 'gone'
+
+/** The relay's close code for a room that does not exist or has expired (docs/BIG-SCREEN.md §11). */
+export const NO_SUCH_ROOM = 4004
 
 /** What the relay sends the narrator. `cid` is a player's connection, chosen by their page. */
 export type FromRelay =
@@ -350,9 +354,14 @@ export class ScreenLink {
         // Not ours.
       }
     }
-    ws.onclose = () => {
+    ws.onclose = (event) => {
       if (this.ping !== null) window.clearInterval(this.ping)
       this.ping = null
+      // The room is gone: a screen that opened it asks for a fresh one, a screen that joined it says so.
+      if (event.code === NO_SUCH_ROOM) {
+        this.onStatus('gone')
+        return
+      }
       this.onStatus('closed')
       this.attempt += 1
       setTimeout(() => this.connect(), Math.min(30_000, 500 * 2 ** Math.min(this.attempt, 6)))
@@ -423,6 +432,11 @@ export class PlayerLink {
       if (this.ping !== null) window.clearInterval(this.ping)
       this.ping = null
       if (this.ws === ws) this.ws = null
+      // The room is gone: the phone goes back to asking for a code.
+      if (event.code === NO_SUCH_ROOM) {
+        this.handlers.onStatus('gone')
+        return
+      }
       this.handlers.onStatus('closed')
       // Replaced by this phone's own newer socket: that one carries on.
       if (event.code === 4000) return

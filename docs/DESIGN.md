@@ -301,6 +301,21 @@ Rules:
   own dawn slide does, and a death paints the whole TV Vendetta. The
   paper has its own TV scale beside it. Only the caps change; the phone's
   rules and the projection are the same.
+- **The lobby.** Before the game the screen is two columns: on the left
+  "Scan to take a seat", the code in Bebas at 18vmin, and the players' QR
+  as the largest thing on the screen (58vmin, Midnight on a Ledger square);
+  on the right whatever the room needs from the sofa. A screen that opened
+  the room itself (`tv.html` without a fragment, BIG-SCREEN §11) has no
+  narrator yet, and the right column is one eyebrow, "For the narrator",
+  over one sentence in Plex Sans at 4vmin, "Open The Family on your phone
+  and enter this code", with the relay's state as a quiet mono line under
+  it when it is not simply open. When the narrator claims the room the
+  roster takes that column and nothing on the left moves: the claim swaps a
+  column, never the screen. Portrait stacks the two. The phone that came
+  without a room (`seat.html` bare) types the code into a field set like
+  the code it copies: Bebas, tracked 0.18em, centred, uppercased as it is
+  typed, with "It is on the screen" as the hint, so what is typed looks like
+  what is being read.
 - **Wide screens.** From 600px the ring may use the column it has
   (34rem instead of the phone's 24.5rem cap), so an iPad held upright gets
   7rem tiles. From 900px — an iPad on its side, a laptop — the night, the

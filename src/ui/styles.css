@@ -3643,6 +3643,84 @@ html[data-dawn] body {
   color: var(--accent);
 }
 
+/* No narrator on the room yet: the roster's column carries the one line for them. */
+.lobby__narrator {
+  display: grid;
+  gap: var(--space-3);
+  align-content: center;
+  justify-self: center;
+}
+
+.lobby__ask {
+  max-width: 16ch;
+  margin: 0;
+  font-size: clamp(var(--text-xl), 4vmin, 3rem);
+  line-height: 1.25;
+  text-wrap: balance;
+}
+
+.lobby__note {
+  margin: 0;
+  color: var(--fg-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+
+@media (orientation: portrait) {
+  .lobby__narrator {
+    justify-self: stretch;
+    text-align: center;
+  }
+
+  .lobby__ask {
+    max-width: none;
+  }
+}
+
+/* On a TV the lobby is read from the sofa: the QR is the largest thing on it until the roster needs the room. */
+.stage--tv .screen--lobby .label {
+  color: var(--fg-2);
+  font-size: clamp(1rem, 2.2vmin, 2rem);
+}
+
+.stage--tv .lobby__room {
+  font-size: clamp(4rem, 18vmin, 14rem);
+}
+
+.stage--tv .lobby__qr svg {
+  width: min(58vmin, 40rem);
+}
+
+.stage--tv .lobby__name {
+  font-size: clamp(1.25rem, 3.2vmin, 3rem);
+}
+
+.stage--tv .lobby__note {
+  font-size: clamp(0.875rem, 1.8vmin, 1.5rem);
+}
+
+/* The code typed on a phone that came without one: set like the code it copies. */
+.mine__join--code .field {
+  text-align: center;
+}
+
+.mine__code {
+  width: 100%;
+  min-width: 0;
+  min-height: calc(var(--touch) * 1.6);
+  font-family: var(--font-display);
+  font-size: clamp(2.5rem, 14vw, 4rem);
+  line-height: 1;
+  letter-spacing: 0.18em;
+  text-align: center;
+  text-indent: 0.18em;
+  text-transform: uppercase;
+}
+
+.mine__code::placeholder {
+  color: var(--fg-muted);
+}
+
 .room__names {
   display: flex;
   flex-wrap: wrap;

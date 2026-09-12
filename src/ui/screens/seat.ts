@@ -128,6 +128,33 @@ export const nextGate = (gate: SeatGate | null, p: SeatProjection): SeatGate | n
 
 export const seatCenter = (inner: string): string => `<section class="screen screen--center mine">${inner}</section>`
 
+/** A room code is five of these, as the relay makes them. */
+export const CODE_SHAPE = /^[A-Z0-9]{5}$/
+
+/**
+ * A phone opened without a room in its address (docs/BIG-SCREEN.md §11): the
+ * code is read off the screen and typed here. The field is the code itself,
+ * set as the screen sets it, so what is typed looks like what is being read.
+ */
+export const codeMarkup = (locale: Locale, gone = false): string => {
+  const s = strings(locale).ui.seat
+  return `
+    <section class="screen screen--center mine">
+      <p class="label">${esc(s.title)}</p>
+      ${gone ? `<h1 class="title title--sm">${esc(s.roomGone)}</h1>` : ''}
+      <form class="mine__join mine__join--code" data-code-form>
+        <label class="field">
+          <span class="field__label">${esc(s.roomCode)}</span>
+          <input class="field__input mine__code" type="text" data-room-code size="5" maxlength="5" pattern="[A-Za-z0-9]{5}"
+                 inputmode="text" autocomplete="one-time-code" autocapitalize="characters" autocorrect="off"
+                 spellcheck="false" required>
+          <span class="field__hint">${esc(s.codeHint)}</span>
+        </label>
+        <button class="btn btn--primary" type="submit">${esc(s.join)}</button>
+      </form>
+    </section>`
+}
+
 export const seatMarkup = (
   p: SeatProjection,
   locale: Locale,

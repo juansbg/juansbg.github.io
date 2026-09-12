@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { nextGate, seatAction, seatMarkup, settlePicks, stepKeyOf, type SeatGate, type SeatPicks } from './seat'
+import { codeMarkup, nextGate, seatAction, seatMarkup, settlePicks, stepKeyOf, type SeatGate, type SeatPicks } from './seat'
 import { LOCALES, strings } from '../../i18n'
 import { ROLE_IDS, type RoleId } from '../../engine/roles'
 import type { PlayerId } from '../../engine/types'
@@ -390,5 +390,21 @@ describe('the gate around the chooser', () => {
     const common = seatMarkup(p, 'en')
     expect(common).not.toContain('data-looked')
     expect(common).not.toContain(t.roles.CONVERT.name)
+  })
+})
+
+describe('a phone without a room in its address', () => {
+  it('asks for the code off the screen, five characters, and says when the old room has closed', () => {
+    for (const locale of LOCALES) {
+      const s = strings(locale).ui.seat
+      const html = codeMarkup(locale)
+      expect(html).toContain('data-code-form')
+      expect(html).toMatch(/data-room-code[^>]*maxlength="5"/)
+      expect(html).toContain(s.roomCode)
+      expect(html).toContain(s.codeHint)
+      expect(html).toContain(s.join)
+      expect(html).not.toContain(s.roomGone)
+      expect(codeMarkup(locale, true)).toContain(s.roomGone)
+    }
   })
 })
