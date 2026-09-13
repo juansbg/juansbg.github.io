@@ -55,9 +55,19 @@ describe('the morning paper', () => {
     expect(paper.record[0]?.lines).toHaveLength(2)
     // Ana and Elena are left: the Family has parity.
     expect(paper.banner).toBe(strings('en').winner.crew)
-    // A game ended early has no winner and says so.
+    // A game ended early has no winner and says so — not "Game over", which
+    // is the screen's own title and left the same two words twice on a page.
     const open = { ...state, players: state.players.map((p) => (p.id === 2 ? { ...p, alive: true } : p)) }
-    expect(paperOf(open, 'en').banner).toBe(strings('en').ui.over.title)
+    expect(paperOf(open, 'en').banner).toBe(strings('en').ui.over.endedOn(open.night))
+    expect(paperOf(open, 'en').banner).not.toBe(strings('en').ui.over.title)
+    // Ended before anything happened: no record to print, so the heading and
+    // its rule do not appear over nothing.
+    const early = quietGame(setup(['KILLER', 'PLAIN', 'INSPECT', 'PLAIN', 'PLAIN'], ['Ana', 'Beto', 'Caro', 'Dani', 'Elena']))
+    expect(paperOf(early, 'en').record).toHaveLength(0)
+    for (const locale of LOCALES) {
+      expect(paperMarkup(early, locale), locale).not.toContain(strings(locale).ui.over.history)
+      expect(paperMarkup(early, locale), locale).not.toContain('paper__record')
+    }
     // A wipe-out — nobody left — is still a page, with everyone struck.
     const wiped = { ...state, players: state.players.map((p) => ({ ...p, alive: false })) }
     expect(paperOf(wiped, 'en').cast.every((c) => !c.alive)).toBe(true)

@@ -435,6 +435,12 @@ let timer: Timer = loadTimer() ?? freshTimer()
 let ticker: number | null = null
 /** The paper is being drawn for the share sheet; the button waits. */
 let sharing = false
+/**
+ * How long the share waits before it gives the button back. Long enough that
+ * a real sheet is never cut short — it sits over the page anyway — and short
+ * enough that a share which resolves neither way is not a dead end.
+ */
+const SHARE_TIMEOUT_MS = 10_000
 /** No canvas to draw the paper on at all. */
 let shareNotice = false
 /** The paper as an image, shown where the browser has no share sheet for files. */
@@ -769,7 +775,7 @@ function render(entering = false): void {
         ${paperMarkup(game, state.locale)}
         ${shareNotice ? `<p class="notice">${esc(t.ui.paper.cannotShare)}</p>` : ''}
         <div class="actions actions--row">
-          <button class="btn btn--ghost" type="button" data-share${sharing ? ' disabled' : ''}>${esc(t.ui.paper.share)}</button>
+          <button class="btn btn--ghost" type="button" data-share${sharing ? ' disabled' : ''}>${esc(sharing ? t.ui.paper.drawing : t.ui.paper.share)}</button>
           <button class="btn btn--primary" type="button" data-restart>${esc(t.ui.over.playAgain)}</button>
         </div>
       </section>
@@ -918,7 +924,7 @@ function render(entering = false): void {
         <div class="sheet__panel sheet__panel--tall" role="dialog" aria-modal="true" aria-label="${esc(t.ui.paper.title)}">
           <div class="sheet__head">
             <span class="sheet__handle" aria-hidden="true"></span>
-            <p class="sheet__title">${esc(t.ui.paper.holdHint)}</p>
+            <p class="sheet__title sheet__title--hint">${esc(t.ui.paper.holdHint)}</p>
           </div>
           <div class="shot"><img class="shot__img" src="${esc(url)}" alt="${esc(t.ui.paper.title)}"></div>
           <button class="btn btn--ghost" type="button" data-shot-close>${esc(t.ui.common.close)}</button>
@@ -1981,14 +1987,28 @@ function bind(): void {
     shareNotice = false
     buzz()
     setState({}, false)
+    // Drawing the page and handing it to the system sheet can end in neither
+    // a resolve nor a reject — a sheet dismissed by the system, a headless
+    // browser with no sheet at all — and the button was left dead for good.
+    // Whichever lands first wins; the other is ignored.
+    let settled = false
+    const done = (finish: () => void): void => {
+      if (settled) return
+      settled = true
+      sharing = false
+      finish()
+      if (state.screen === 'over') setState({}, false)
+      else closeShot()
+    }
+    const giveUp = window.setTimeout(() => done(() => {}), SHARE_TIMEOUT_MS)
     void sharePaper(game, state.locale)
       .catch((): ShareResult => ({ kind: 'unavailable' }))
       .then((result) => {
-        sharing = false
-        shareNotice = result.kind === 'unavailable'
-        if (result.kind === 'shown') paperShot = result.url
-        if (state.screen === 'over') setState({}, false)
-        else closeShot()
+        window.clearTimeout(giveUp)
+        done(() => {
+          shareNotice = result.kind === 'unavailable'
+          if (result.kind === 'shown') paperShot = result.url
+        })
       })
   })
 

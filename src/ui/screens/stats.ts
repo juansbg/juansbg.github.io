@@ -58,16 +58,27 @@ export const statsMarkup = (games: readonly GameSummary[], locale: Locale, roste
     return ra - rb
   })
 
+  // Only what happened to them. Every figure used to be printed whether or
+  // not it had ever occurred, so after one game a citizen read "1 game 1 win
+  // 0 times in the Family 0 hanged 0 killed 1 stood" over five wrapped
+  // lines — a dump nobody at the table would read aloud. The games played
+  // stay whatever the number, as the count the rest is measured against.
   const rows = ordered
-    .map(
-      (n) => `
+    .map((n) => {
+      const figs = [
+        fig(n.games, s.columns.games(n.games)),
+        n.wins > 0 ? fig(n.wins, s.columns.wins(n.wins)) : '',
+        n.family > 0 ? fig(n.family, s.columns.family(n.family)) : '',
+        n.hanged > 0 ? fig(n.hanged, s.columns.hanged(n.hanged)) : '',
+        n.killed > 0 ? fig(n.killed, s.columns.killed(n.killed)) : '',
+        n.survived > 0 ? fig(n.survived, s.columns.survived(n.survived)) : '',
+      ].join('')
+      return `
         <li class="ledger__row">
           <span class="ledger__name">${esc(n.name)}</span>
-          <span class="ledger__figs">
-            ${fig(n.games, s.columns.games(n.games))}${fig(n.wins, s.columns.wins(n.wins))}${fig(n.family, s.columns.family(n.family))}${fig(n.hanged, s.columns.hanged(n.hanged))}${fig(n.killed, s.columns.killed(n.killed))}${fig(n.survived, s.columns.survived(n.survived))}
-          </span>
-        </li>`,
-    )
+          <span class="ledger__figs">${figs}</span>
+        </li>`
+    })
     .join('')
 
   return `

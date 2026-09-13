@@ -317,6 +317,8 @@ export interface Strings {
       newTableConfirm: string
       finishNow: string
       history: string
+      /** The banner when the narrator ended it early and nobody won. */
+      endedOn: (night: number) => string
     }
     /** The game-over front page, on screen and as the shared image. */
     /** The ledger: the record of finished games, added up. */
@@ -341,7 +343,11 @@ export interface Strings {
       title: string
       /** The dateline under the masthead: how many nights, how many at the table. */
       edition: (nights: number, players: number) => string
+      /** The same line with the player count dropped, for a narrow phone. */
+      editionShort: (nights: number) => string
       whoWasWho: string
+      /** The share button while the page is being drawn. */
+      drawing: string
       share: string
       /** There was no canvas to draw the page on. */
       cannotShare: string

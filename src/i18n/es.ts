@@ -369,6 +369,7 @@ export const es: Strings = {
       newTableConfirm: '¿Una mesa nueva? Se olvidan la partida y los nombres; el registro se guarda.',
       finishNow: 'Terminar la partida',
       history: 'Toda la partida',
+      endedOn: (night) => `Terminada en la noche ${night}`,
     },
     stats: {
       open: 'Estadísticas',
@@ -387,7 +388,7 @@ export const es: Strings = {
         family: (n) => (n === 1 ? 'vez en la Familia' : 'veces en la Familia'),
         hanged: (n) => (n === 1 ? 'vez en la horca' : 'veces en la horca'),
         killed: (n) => (n === 1 ? 'muerte de noche' : 'muertes de noche'),
-        survived: (n) => (n === 1 ? 'vez en pie' : 'veces en pie'),
+        survived: (n) => (n === 1 ? 'vez con vida' : 'veces con vida'),
       },
       clear: 'Borrar el registro',
       clearConfirm: '¿Borrar el registro? Se olvidan todas las partidas terminadas en este móvil. Los nombres se guardan.',
@@ -396,7 +397,9 @@ export const es: Strings = {
       title: 'El periódico de la mañana',
       edition: (nights, players) =>
         `Última edición · Noche ${nights} · ${players} jugadores`,
+      editionShort: (nights) => `Última edición · Noche ${nights}`,
       whoWasWho: 'Quién era quién',
+      drawing: 'Dibujando…',
       share: 'Compartir',
       cannotShare: 'Este navegador no puede dibujar la página. Una captura de pantalla sirve.',
       holdHint: 'Mantén pulsada la imagen para guardarla o compartirla',

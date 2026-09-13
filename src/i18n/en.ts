@@ -369,6 +369,7 @@ export const en: Strings = {
       newTableConfirm: 'A new table? This forgets the game and the names. The record is kept.',
       finishNow: 'End the game',
       history: 'The whole game',
+      endedOn: (night) => `Ended on night ${night}`,
     },
     stats: {
       open: 'Statistics',
@@ -396,7 +397,9 @@ export const en: Strings = {
       title: 'The morning paper',
       edition: (nights, players) =>
         `Final edition · Night ${nights} · ${players} players`,
+      editionShort: (nights) => `Final edition · Night ${nights}`,
       whoWasWho: 'Who was who',
+      drawing: 'Drawing…',
       share: 'Share',
       cannotShare: 'This browser cannot draw the page. A screenshot will do.',
       holdHint: 'Press and hold the image to save or share it',

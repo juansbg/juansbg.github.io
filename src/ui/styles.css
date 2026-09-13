@@ -2337,11 +2337,29 @@ html[data-dawn] body {
   border-bottom: 3px solid var(--lethal);
 }
 
+/* The lead's follow-ups. CSS columns fill top to bottom, so four stories read
+   night 2 and night 3 across the top with night 2 again underneath — the
+   record of the game out of sequence — and a single follow-up sat in a 155px
+   half-column beside blank newsprint. A grid fills row by row, which is
+   chronological left to right, and splits in two only once `data-many` says
+   there are enough stories to be worth a second column. */
 .paper__columns {
-  columns: 2;
-  column-gap: var(--space-4);
-  column-rule: 1px solid var(--newsprint-rule);
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--space-4);
   padding-top: var(--space-1);
+}
+
+@media (min-width: 30rem) {
+  .paper__columns[data-many] {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  /* The rule between the columns, drawn by the piece on the right. */
+  .paper__columns[data-many] > .paper__article:nth-child(even) {
+    padding-left: var(--space-4);
+    border-left: 1px solid var(--newsprint-rule);
+  }
 }
 
 .paper__article {
@@ -2495,10 +2513,9 @@ html[data-dawn] body {
   overflow-wrap: anywhere;
 }
 
-.paper__columns .paper__dek {
-  font-size: var(--text-xs);
-}
-
+/* A dek in a column used to shrink to 12px, the smallest type on a page that
+   is read rather than scanned, in a dim room. The grid gives each piece a
+   real measure, so it keeps the reading size. */
 .paper__scribbles {
   display: grid;
   gap: 0.3rem;
@@ -2578,8 +2595,26 @@ html[data-dawn] body {
 
 .paper__role {
   color: var(--on-newsprint-muted);
-  font-size: var(--text-xs);
+  font-size: var(--text-sm);
   text-transform: uppercase;
+}
+
+/* The player count is the first thing to go when the line will not fit:
+   under 390px "ÚLTIMA EDICIÓN · NOCHE 3 · 5 JUGADORES" broke onto two lines
+   under the masthead, which on a newspaper reads as a page that did not fit
+   rather than as a design. */
+.paper__edition-short {
+  display: none;
+}
+
+@media (max-width: 24.375rem) {
+  .paper__edition-long {
+    display: none;
+  }
+
+  .paper__edition-short {
+    display: inline;
+  }
 }
 
 .paper__record {
@@ -2671,16 +2706,41 @@ html[data-dawn] body {
 }
 
 /* The drawn page, shown for a long press where there is no share sheet. */
+/* The drawn page, to press and hold. It used to scroll inside its own box —
+   467px of a 575px image on a small phone, with the bottom cut off — so the
+   long press fought the scroll. The whole page fits the sheet instead;
+   there is nothing to reach by scrolling, and the gesture is the only one. */
 .shot {
   min-height: 0;
-  overflow-y: auto;
+  overflow: hidden;
   border: 1px solid var(--hairline);
 }
 
 .shot__img {
   display: block;
   width: 100%;
-  height: auto;
+  height: 100%;
+  object-fit: contain;
+  object-position: top center;
+}
+
+/* An instruction, not a label: it is a sentence someone reads and follows,
+   so it is set in the reading face at reading size. As 12px tracked mono it
+   broke "it" onto a line of its own. */
+.sheet__title--hint {
+  justify-self: center;
+  color: var(--fg-2);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  letter-spacing: normal;
+  text-align: center;
+  text-transform: none;
+}
+
+/* Drawing the page takes a moment; a disabled button at full opacity looked
+   exactly like an idle one, so the tap read as nothing happening. */
+.btn[data-share]:disabled {
+  opacity: 0.6;
 }
 
 /* A line under the page when the browser cannot draw it. */

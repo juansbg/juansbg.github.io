@@ -311,16 +311,42 @@ const articleMarkup = (a: Article, i: number): string => `
     ${scribblesMarkup(i)}
   </article>`
 
-const mastheadMarkup = (name: string, dateline: string): string => `
+/**
+ * The masthead. A `short` dateline is the same line with the player count
+ * dropped: the full one broke onto two lines under 390px, which on a
+ * newspaper reads as a page that did not fit rather than as a design.
+ */
+const mastheadMarkup = (name: string, dateline: string, short: string | null = null): string => `
   <header class="paper__masthead">
     <p class="paper__name">${esc(name)}</p>
-    <p class="paper__edition">${esc(dateline)}</p>
+    <p class="paper__edition">${
+      short === null
+        ? esc(dateline)
+        : `<span><span class="paper__edition-long">${esc(dateline)}</span><span class="paper__edition-short">${esc(short)}</span></span>`
+    }</p>
   </header>`
 
-/** The lead across the top, the rest in two columns. */
+/**
+ * The lead across the top, the rest below it.
+ *
+ * They used to be CSS columns, filled top to bottom, so four stories read
+ * night 2 and night 3 across the top with night 2 again underneath — the
+ * record of the game out of order — and a single follow-up sat in a 155px
+ * half-column against blank newsprint. A grid fills row by row, which is
+ * chronological left to right, and it only splits in two once there are
+ * enough stories to be worth a second column.
+ */
+const COLUMN_FROM = 3
+
 const pageMarkup = (lead: Article | null, rest: readonly Article[]): string => `
   ${lead ? `<div class="paper__lead">${articleMarkup(lead, 0)}</div>` : ''}
-  ${rest.length > 0 ? `<div class="paper__columns">${rest.map((a, i) => articleMarkup(a, i + 1)).join('')}</div>` : ''}`
+  ${
+    rest.length > 0
+      ? `<div class="paper__columns"${rest.length >= COLUMN_FROM ? ' data-many' : ''}>${rest
+          .map((a, i) => articleMarkup(a, i + 1))
+          .join('')}</div>`
+      : ''
+  }`
 
 /** A morning edition as the page. */
 export const editionMarkup = (e: Edition, locale: Locale): string => {
@@ -372,6 +398,8 @@ export interface Casting {
 export interface Paper {
   masthead: string
   edition: string
+  /** The edition line without the player count, for a phone under 390px. */
+  editionShort: string
   banner: string
   stories: Story[]
   cast: Casting[]
@@ -419,7 +447,11 @@ export const paperOf = (state: GameState, locale: Locale): Paper => {
   return {
     masthead: t.appName,
     edition: t.ui.paper.edition(state.night, state.players.length),
-    banner: renderWinner(winner(state), locale) ?? t.ui.over.title,
+    editionShort: t.ui.paper.editionShort(state.night),
+    // Nobody won: the narrator ended it early. The page used to fall back to
+    // "Game over", which is also the screen's own title, so the same two
+    // words sat above and below the masthead saying nothing.
+    banner: renderWinner(winner(state), locale) ?? t.ui.over.endedOn(state.night),
     stories,
     cast,
     record,
@@ -466,17 +498,24 @@ export const paperMarkup = (state: GameState, locale: Locale): string => {
 
   return `
     <article class="paper" data-paper aria-label="${esc(t.ui.paper.title)}">
-      ${mastheadMarkup(paper.masthead, paper.edition)}
+      ${mastheadMarkup(paper.masthead, paper.edition, paper.editionShort)}
       <h2 class="paper__banner">${esc(paper.banner)}</h2>
       ${pageMarkup(lead, rest)}
       <section class="paper__section">
         <h3 class="paper__label">${esc(t.ui.paper.whoWasWho)}</h3>
         <ul class="paper__cast">${cast}</ul>
       </section>
-      <section class="paper__section">
+      ${
+        // A game ended on the first night has nothing to record yet, and the
+        // heading with its rule and nothing under it read as a template with
+        // the data missing.
+        paper.record.length === 0
+          ? ''
+          : `<section class="paper__section">
         <h3 class="paper__label">${esc(t.ui.over.history)}</h3>
         <dl class="paper__record">${record}</dl>
-      </section>
+      </section>`
+      }
     </article>
   `
 }
@@ -719,10 +758,15 @@ export const sharePaper = async (state: GameState, locale: Locale): Promise<Shar
   if (typeof nav.share === 'function' && nav.canShare?.({ files: [file] })) {
     try {
       await nav.share({ files: [file], title: t.ui.paper.title })
-    } catch {
-      // Cancelled, or refused mid-way: theirs to decide.
+      return { kind: 'shared' }
+    } catch (error) {
+      // AbortError is the one rejection that means the share worked as
+      // designed: the sheet opened and they closed it. Every other rejection
+      // means no sheet appeared at all — iOS refuses when the gesture has
+      // lapsed — and swallowing those left the button simply coming back,
+      // which reads as the app being broken. Fall through to the image.
+      if (error instanceof Error && error.name === 'AbortError') return { kind: 'shared' }
     }
-    return { kind: 'shared' }
   }
   return { kind: 'shown', url: URL.createObjectURL(blob) }
 }
