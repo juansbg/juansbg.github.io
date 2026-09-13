@@ -317,12 +317,15 @@ function seatNow(guest: Guest): SeatProjection | { kind: 'refused' } {
   if (guest.seat === null) return { kind: 'refused' }
   const game = state.session.current
   if (state.screen === 'setup' && game.players.length === 0) {
-    return waitingSeat(guest.seat, names[guest.seat] ?? guest.name, state.locale)
+    return waitingSeat(guest.seat, names[guest.seat] ?? guest.name, state.locale, lobbyRoster())
   }
   return (
     seatProjection(game, guest.seat, state.locale, {
       dealt: state.screen !== 'setup',
       over: state.screen === 'over',
+      roster: lobbyRoster(),
+      // While the narrator reads, the phones wait with the room.
+      reading: dawn !== null,
       picked,
       sealed: shown === null,
       ...(shown === null ? {} : { shown }),
@@ -1682,7 +1685,9 @@ function bind(): void {
   })
 
   on(root, '[data-room-close]', 'click', () => {
-    link?.close()
+    // A decision, not a disconnection: the relay drops the room and tells
+    // every screen and phone why (docs/BIG-SCREEN.md §12.2).
+    link?.end()
     link = null
     room = null
     roomError = null

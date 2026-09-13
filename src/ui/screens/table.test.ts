@@ -81,6 +81,44 @@ describe('the table for the room', () => {
     expect(html).toContain(strings('en').winner.town)
   })
 
+  it('puts the winner at display size in the middle of the ring, and shows who everyone was', () => {
+    const state = lynch(morning(), 0)
+    for (const locale of LOCALES) {
+      const t = strings(locale)
+      const p = tvProjection(state, locale)
+      expect(p.over).toBe(true)
+      const html = tableMarkup(p)
+      expect(html).toContain('data-over')
+      expect(html).toContain('tableview__result')
+      expect(html).toContain(strings(locale).winner.town)
+      expect(html).toContain('seat__sigil')
+      // The cast is public now, dead or alive: Ana's role (the Family, lynched)
+      // reads too — the tile drops a leading article the way every role tile
+      // does ("Bodyguard", not "The Bodyguard"), so check the same stripped word.
+      const tile = (name: string): string => name.replace(/^(the|el|la|los|las)\s+/i, '').trim()
+      expect(html).toContain(tile(t.roles.KILLER.name))
+      expect(html).toContain(tile(t.roles.INSPECT.name))
+      expect(html).toContain(tile(t.roles.GUARD.name))
+    }
+  })
+
+  it('glows only the living Family Vendetta once the game is over, and says the game ended without naming a side when the narrator stopped it early', () => {
+    const state = morning()
+    for (const locale of LOCALES) {
+      const t = strings(locale)
+      const p = tvProjection(state, locale, { over: true })
+      expect(p.winner).toBeNull()
+      const html = tableMarkup(p)
+      expect(html).toContain(t.ui.over.endedOn(state.night))
+      expect(html).not.toContain(t.winner.town)
+      expect(html).not.toContain(t.winner.crew)
+      // Ana (KILLER) is alive and Family; Caro and Dani are alive and town —
+      // only her seat glows.
+      expect(html).toMatch(/data-crew[^>]*>[\s\S]*?Ana/)
+      expect(html.match(/data-crew/g)).toHaveLength(1)
+    }
+  })
+
   it('is a lobby before the game: the code and QR to join, and who is in', () => {
     const fresh = createGame(cast(['PLAIN', 'PLAIN', 'PLAIN'], ['Ana', 'Beto', 'Caro']))
     const p = tvProjection(fresh, 'en', {
@@ -225,5 +263,26 @@ describe('the lobby a screen opens by itself', () => {
     expect(left(after)).toBe(left(before))
     expect(after).not.toContain('data-unclaimed')
     expect(after).toContain('lobby__names')
+  })
+
+  it('leads with the roster once everyone at the table already holds a phone, and demotes the code', () => {
+    const filling = lobbyMarkup(
+      { code: 'AB2CD', join: 'https://site/seat.html#room=AB2CD', roster: [{ name: 'Ana', joined: true }, { name: 'Beto', joined: false }] },
+      false,
+      'en',
+    )
+    expect(filling).not.toContain('data-settled')
+    expect(filling).not.toContain('lobby__headline')
+
+    const settled = lobbyMarkup(
+      { code: 'AB2CD', join: 'https://site/seat.html#room=AB2CD', roster: [{ name: 'Ana', joined: true }, { name: 'Beto', joined: true }] },
+      false,
+      'en',
+    )
+    expect(settled).toContain('data-settled')
+    expect(settled).toContain('lobby__headline')
+    // The code and QR are still there, for a latecomer or a second screen.
+    expect(settled).toContain('AB2CD')
+    expect(settled).toContain('<svg')
   })
 })

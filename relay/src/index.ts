@@ -155,8 +155,10 @@ type Role = 'narrator' | 'tv' | 'player'
 const MAX_MESSAGE = 16 * 1024
 /** Sockets one room will hold: a table, a few screens, some reconnect slack. */
 const MAX_SOCKETS = 40
-/** The close code for a room that does not exist or has expired: 4000 is "replaced", 4001 "closed". */
+/** The close code for a room that does not exist or has expired: 4000 is "replaced". */
 const GONE = 4004
+/** The narrator closed the room on purpose. A screen says so rather than waiting. */
+const ENDED = 4001
 /** Messages allowed per socket per second before it is dropped. */
 const RATE = 20
 const IDLE_MS = 6 * 60 * 60 * 1000
@@ -174,6 +176,11 @@ type Published =
   | { kind: 'hello'; pub: string }
   /** One player's projection, sealed for that player. */
   | { kind: 'player'; cid: string; payload: string }
+  /**
+   * The narrator closed the room (docs/BIG-SCREEN.md §12.2). A decision, not
+   * a dropped connection: the room goes, and every screen is told why.
+   */
+  | { kind: 'end' }
 
 /** What a player sends. Forwarded to the narrator with the socket's own cid. */
 type FromPlayer =
@@ -273,6 +280,8 @@ export class Room extends DurableObject<Env> {
       // One narrator. A newer phone (a reload, a second device) replaces the old.
       for (const old of this.ctx.getWebSockets('narrator')) old.close(4000, 'replaced')
       tags = ['narrator']
+      // A screen waiting on an empty room learns at once that somebody is running it.
+      this.tellRoom({ kind: 'narrator', here: true })
     } else if (as === 'tv') {
       tags = ['tv']
       this.tellTvs(1)
@@ -289,6 +298,14 @@ export class Room extends DurableObject<Env> {
     const pair = new WebSocketPair()
     const [client, server] = [pair[0], pair[1]]
     this.ctx.acceptWebSocket(server, tags)
+
+    // Whether anyone is running the game. A screen that joins a room nobody
+    // has claimed, or whose narrator has gone, says so instead of waiting
+    // silently on a table that will not move.
+    if (as !== 'narrator') {
+      const here = this.ctx.getWebSockets('narrator').length > 0
+      server.send(JSON.stringify({ kind: 'narrator', here }))
+    }
 
     // Whatever was last published for this screen, so it is current at once.
     if (as === 'tv') {
@@ -342,6 +359,9 @@ export class Room extends DurableObject<Env> {
         if (typeof msg.cid !== 'string' || !CID.test(msg.cid) || typeof msg.payload !== 'string') return
         await this.ctx.storage.put(`last:player:${msg.cid}`, message)
         for (const p of this.ctx.getWebSockets(`cid:${msg.cid}`)) p.send(message)
+      } else if (msg.kind === 'end') {
+        await this.end()
+        return
       }
       await this.touch()
     } else if (role === 'player') {
@@ -373,8 +393,35 @@ export class Room extends DurableObject<Env> {
   }
 
   override async webSocketClose(ws: WebSocket, code: number, reason: string): Promise<void> {
-    ws.close(code, reason)
+    // Who has to know comes first: closing our own end can throw on a socket
+    // the client has already dropped, and the room would never hear about it.
+    this.farewell(ws)
+    try {
+      ws.close(code, reason)
+    } catch {
+      // Already gone.
+    }
+  }
+
+  // A socket that dies without a goodbye reaches us as an error, not a close;
+  // the room must hear about that one the same way.
+  override async webSocketError(ws: WebSocket): Promise<void> {
+    this.farewell(ws)
+    try {
+      ws.close(1011, 'error')
+    } catch {
+      // Already gone.
+    }
+  }
+
+  /** One socket has gone, however it went: who has to know. */
+  private farewell(ws: WebSocket): void {
     const tags = this.ctx.getTags(ws)
+    // The narrator's phone went: a reload, a locked screen, a flat battery.
+    // The room is told so it can wait out loud; a replacement says `here` again.
+    if (tags.includes('narrator') && this.ctx.getWebSockets('narrator').length <= 1) {
+      this.tellRoom({ kind: 'narrator', here: false })
+    }
     if (tags.includes('tv')) this.tellTvs(0)
     const cid = tags.find((t) => t.startsWith('cid:'))?.slice(4)
     if (cid !== undefined && this.ctx.getWebSockets(`cid:${cid}`).length <= 1) {
@@ -382,14 +429,21 @@ export class Room extends DurableObject<Env> {
     }
   }
 
-  override async webSocketError(ws: WebSocket): Promise<void> {
-    ws.close(1011, 'error')
-  }
-
   /** The alarm: the room is gone, sockets and all. */
   override async alarm(): Promise<void> {
     for (const ws of this.ctx.getWebSockets()) ws.close(GONE, 'no such room')
     await this.ctx.storage.deleteAll()
+  }
+
+  /**
+   * The narrator closed the room. Everything goes, and every screen is closed
+   * with ENDED rather than GONE, so it can say the evening is over instead of
+   * hunting for a room that never existed.
+   */
+  private async end(): Promise<void> {
+    for (const ws of this.ctx.getWebSockets()) ws.close(ENDED, 'closed')
+    await this.ctx.storage.deleteAll()
+    await this.ctx.storage.deleteAlarm()
   }
 
   private cids(): string[] {
@@ -418,6 +472,12 @@ export class Room extends DurableObject<Env> {
   private tellNarrator(message: unknown): void {
     const text = JSON.stringify(message)
     for (const n of this.ctx.getWebSockets('narrator')) n.send(text)
+  }
+
+  /** Everyone watching: the screens and the phones, never the narrator. */
+  private tellRoom(message: unknown): void {
+    const text = JSON.stringify(message)
+    for (const ws of [...this.ctx.getWebSockets('tv'), ...this.ctx.getWebSockets('player')]) ws.send(text)
   }
 
   /** The narrator sees how many screens are on the room; `delta` counts the one joining or leaving. */

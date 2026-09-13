@@ -1,7 +1,7 @@
 import type { Player } from '../../engine/types'
 import { renderWinner, strings, type Locale } from '../../i18n'
 import type { PlayerId } from '../../engine/types'
-import type { TvProjection, TvSeat } from '../../room/projections'
+import type { TvCast, TvProjection, TvSeat } from '../../room/projections'
 import { esc } from '../dom'
 import { qrSvg } from '../../room/qr'
 import { circleMarkup } from './circle'
@@ -22,11 +22,16 @@ import { timerMarkup } from './timer'
  * own device); a TV through the relay renders it without.
  */
 
-/** The circle wants players; the projection has seats. Everyone is a Citizen here. */
-const seatOf = (s: TvSeat): Player => ({
+/**
+ * The circle wants players; the projection has seats. Everyone is a Citizen
+ * here — except once the game is over, when `cast` (from `p.cast`, empty
+ * until then) is the sanctioned way for the room to learn who was who: the
+ * one moment besides the paper's day-late reveal that a role reaches it.
+ */
+const seatOf = (s: TvSeat, cast?: TvCast): Player => ({
   id: s.id,
   name: s.name,
-  roleId: 'PLAIN',
+  roleId: cast?.roleId ?? 'PLAIN',
   alive: s.alive,
   protectedTonight: false,
   protectedLastNight: false,
@@ -37,7 +42,7 @@ const seatOf = (s: TvSeat): Player => ({
   sect: null,
   fatherOf: null,
   hasQuestion: s.hasQuestion,
-  trade: null,
+  trade: cast?.trade ?? null,
 })
 
 export const tableMarkup = (p: TvProjection, controls = true): string => {
@@ -53,7 +58,10 @@ export const tableMarkup = (p: TvProjection, controls = true): string => {
       : p.phase === 'day'
         ? t.ui.table.day(p.day)
         : ''
-  const line = over ? (renderWinner(p.winner, p.locale) ?? '') : ''
+  // Who was who, the paper's second and last way a role reaches the room:
+  // never before `over`, and `p.cast` is empty until then (`projections.ts`).
+  const castMap = new Map(p.cast.map((c) => [c.id, c]))
+  const ended = over ? (renderWinner(p.winner, p.locale) ?? t.ui.over.endedOn(p.night)) : ''
   const votes = new Map(p.tally.map((e) => [e.target, e.votes]))
   const complete = p.count !== null && p.count.total > 0 && p.count.shown >= p.count.total
   const verdict = complete ? verdictLine(p, t) : ''
@@ -66,13 +74,19 @@ export const tableMarkup = (p: TvProjection, controls = true): string => {
   }
 
   return `
-    <section class="screen screen--table" data-table data-phase="${p.phase}">
+    <section class="screen screen--table" data-table data-phase="${p.phase}"${over ? ' data-over' : ''}>
       <header class="tableview__head">
         <p class="label">${esc(caption)}</p>
         ${over || p.phase !== 'day' ? '' : ballotEyebrow(p, t)}
       </header>
       ${p.timer && p.phase === 'day' ? `<div class="tableview__clock">${timerMarkup(p.timer, p.locale)}</div>` : ''}
-      ${circleMarkup(p.players.map(seatOf), p.locale, {
+      ${circleMarkup(p.players.map((s) => seatOf(s, over ? castMap.get(s.id) : undefined)), p.locale, {
+        // The room already watched the reading name the winner; the ring is
+        // where it studies who everyone was, so the reveal carries roles and
+        // the crew glow the narrator otherwise sees alone (docs/DESIGN.md:
+        // the one moment colour may key off a role's team on this screen).
+        showRoles: over,
+        revealTeams: over,
         votes,
         leader: p.leader,
         // A hand up is marked while the ballot is sealed; once the count comes
@@ -80,13 +94,12 @@ export const tableMarkup = (p: TvProjection, controls = true): string => {
         cast: p.phase === 'day' && !over && p.count === null ? p.players.filter((s) => s.voted).map((s) => s.id) : [],
         fresh: p.count?.last ?? null,
         centre: over
-          ? ''
+          ? `<p class="tableview__result" data-result>${esc(ended)}</p>`
           : verdict
             ? `<p class="tableview__verdict" data-verdict>${esc(verdict)}</p>`
             : ballotMarkup(p, t),
       })}
       ${readingMarkup(p, controls)}
-      ${line ? `<p class="tableview__winner winner">${esc(line)}</p>` : ''}
       ${controls ? `<button class="icon-btn tableview__close" type="button" data-table-close aria-label="${esc(t.ui.common.back)}" title="${esc(t.ui.common.back)}">✕</button>` : ''}
     </section>
   `
@@ -201,6 +214,11 @@ export const lobbyMarkup = (lobby: Lobby, controls: boolean, locale: Locale): st
   const roster = lobby.roster ?? []
   const joined = roster.filter((r) => r.joined).length
   const enough = roster.length >= MIN_PLAYERS
+  // Everyone at the table already holds a phone — a fresh lobby that just
+  // filled, or a rematch where every phone reconnected under its old name in
+  // the seconds after "Play again". Either way the QR has done its job: the
+  // roster leads, and the code stays only for a latecomer or a second screen.
+  const settled = roster.length > 0 && joined === roster.length
   const names = roster
     .map(
       (r) => `<li class="lobby__name"${r.joined ? ' data-joined' : ''}>${esc(r.name)}${
@@ -216,7 +234,7 @@ export const lobbyMarkup = (lobby: Lobby, controls: boolean, locale: Locale): st
            ${lobby.note === undefined ? '' : `<p class="lobby__note">${esc(lobby.note)}</p>`}
          </div>`
       : `<div class="lobby__roster">
-           <p class="label">${esc(t.ui.table.joined(joined, roster.length))}</p>
+           <p class="${settled ? 'title title--sm lobby__headline' : 'label'}">${esc(t.ui.table.joined(joined, roster.length))}</p>
            <ul class="lobby__names">${names}</ul>
            ${
              controls
@@ -229,7 +247,7 @@ export const lobbyMarkup = (lobby: Lobby, controls: boolean, locale: Locale): st
            }
          </div>`
   return `
-    <section class="screen screen--lobby" data-table data-phase="setup"${lobby.roster === null ? ' data-unclaimed' : ''}>
+    <section class="screen screen--lobby" data-table data-phase="setup"${lobby.roster === null ? ' data-unclaimed' : ''}${settled ? ' data-settled' : ''}>
       <div class="lobby__code">
         <p class="label">${esc(t.ui.table.scanToJoin)}</p>
         ${lobby.code === null ? '' : `<p class="title lobby__room">${esc(lobby.code)}</p>`}

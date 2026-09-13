@@ -78,6 +78,8 @@ let narratorPub: string | null = null
 let pendingSealed: string[] = []
 
 let status: LinkStatus = 'connecting'
+/** Whether a narrator's phone is on the room right now; the relay says so. */
+let narratorHere = true
 let joined = false
 let refused = false
 let projection: SeatProjection | null = null
@@ -104,6 +106,10 @@ const render = (): void => {
   let body: string
   if (relay === '') {
     body = center(`<h1 class="title title--sm">${esc(t.ui.tv.noRoom)}</h1>`)
+  } else if (status === 'ended') {
+    // The narrator closed the room on purpose (§12.2): the evening is over,
+    // and this phone says so rather than offering to hunt for the code again.
+    body = center(`<h1 class="title title--sm">${esc(s.roomEnded)}</h1>`)
   } else if (room === null || status === 'gone') {
     // No room in the address, or the one in it has closed: the code is on the screen, typed here (§11).
     body = codeMarkup(locale, status === 'gone')
@@ -129,9 +135,18 @@ const render = (): void => {
     body = seatMarkup(projection, locale, picks, gate)
   }
 
+  // The foot says what the phone cannot do anything about: its own socket is
+  // down, or the narrator's phone has gone quiet. Never both, never an alarm.
+  const foot =
+    joined && status !== 'open' && status !== 'ended'
+      ? t.ui.tv.reconnecting
+      : joined && !narratorHere
+        ? s.narratorGone
+        : ''
+
   root.innerHTML = `
     <main class="stage stage--seat">${body}</main>
-    ${joined && status !== 'open' ? `<p class="tv__status">${esc(t.ui.tv.reconnecting)}</p>` : ''}
+    ${foot === '' ? '' : `<p class="tv__status">${esc(foot)}</p>`}
   `
 
   fitTables(root)
@@ -232,6 +247,10 @@ const start = async (): Promise<void> => {
     },
     onSealed: (payload) => {
       void applySealed(payload)
+    },
+    onNarrator: (here) => {
+      narratorHere = here
+      render()
     },
   })
   render()

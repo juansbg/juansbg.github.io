@@ -479,6 +479,16 @@ export interface Strings {
       joined: (name: string) => string
       waiting: string
       waitingForDeal: string
+      /** A seat taken, the table still filling up. */
+      atTheTable: string
+      /** How many of the table are on their phones. */
+      seated: (joined: number, total: number) => string
+      /** The narrator's phone has gone quiet mid-game. */
+      narratorGone: string
+      /** The narrator closed the room. */
+      roomEnded: string
+      /** The night is over and the narrator is reading it to the room. */
+      waking: string
       youAre: (seat: number) => string
       vote: string
       /** Under the label once a vote is cast: how to take it back. */
@@ -520,6 +530,10 @@ export interface Strings {
       forNarrator: string
       enterCode: string
       relayDown: string
+      /** The room has a narrator's phone on it, or has lost one. */
+      narratorGone: string
+      /** The narrator closed the room: the evening is over. */
+      ended: string
     }
     timeline: {
       title: string

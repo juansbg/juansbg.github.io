@@ -65,7 +65,31 @@ let projection: TvProjection | null = null
 let status: LinkStatus = 'connecting'
 /** The relay did not answer a request for a room; the screen keeps asking. */
 let relayDown = false
+/** Whether a narrator's phone is on the room right now; the relay says so. */
+let narratorHere = false
 const fallback: Locale = detectLocale(navigator.languages ?? [navigator.language])
+
+/**
+ * The scene on screen right now, coarse enough to ignore a tally tick or a
+ * reconnect flicker but not a name joining, a slide turning, an edition
+ * opening or the game ending — the things a person on the couch reads as
+ * "something happened", not "the same thing redrawn". Compared against the
+ * last render to decide whether this one enters (`data-enter`, the same
+ * convention `app.ts` uses on the narrator's own screen): the TV gets no
+ * entrances at all otherwise, since nothing here ever sets that attribute
+ * on its own the way a tap does there.
+ */
+const sceneKey = (): string => {
+  if (relay === '' || (!own && status === 'gone')) return 'error'
+  if (room === null) return 'connecting'
+  if (projection === null) return 'unclaimed'
+  const p = projection
+  if (p.phase === 'setup') return `lobby:${p.roster.map((r) => `${r.name}:${r.joined}`).join(',')}`
+  if (p.paper !== null) return `paper:${p.paper}`
+  if (p.reading !== null) return `reading:${p.reading.kind}:${p.reading.index}`
+  return `table:${p.phase}:${p.night}:${p.day}:${p.over}`
+}
+let lastScene: string | null = null
 
 const render = (): void => {
   const locale = projection?.locale ?? fallback
@@ -95,9 +119,25 @@ const render = (): void => {
     body = tableMarkup(withClock(projection), false)
   }
 
+  // One line along the bottom for anything the room should know that the game
+  // itself does not say: the relay dropped, or the narrator's phone has gone
+  // quiet. The table stays up behind it — nothing here is an error.
+  const note =
+    status === 'ended'
+      ? t.ended
+      : projection !== null && status !== 'open'
+        ? t.reconnecting
+        : projection !== null && !narratorHere
+          ? t.narratorGone
+          : ''
+
+  const scene = sceneKey()
+  const entering = scene !== lastScene
+  lastScene = scene
+
   root.innerHTML = `
-    <main class="stage stage--tv">${body}</main>
-    ${projection !== null && status !== 'open' ? `<p class="tv__status">${esc(t.reconnecting)}</p>` : ''}
+    <main class="stage stage--tv"${entering ? ' data-enter' : ''}>${body}</main>
+    ${note === '' ? '' : `<p class="tv__status">${esc(note)}</p>`}
   `
   keepAwake()
 }
@@ -121,6 +161,20 @@ const connect = (r: OpenRoom): void => {
     },
     (next) => {
       status = next
+      // The narrator closed the room: a screen that opened its own asks for
+      // another so the next game can start; one that joined says the evening
+      // is over rather than hunting for a room that has gone.
+      if (next === 'ended') {
+        narratorHere = false
+        if (own) {
+          room = null
+          projection = null
+          saveScreen(null)
+          render()
+          void open(0)
+          return
+        }
+      }
       // The room is gone (never claimed in time, or the relay forgot it):
       // a screen that opened it just opens another; a second screen says so.
       if (next === 'gone' && own) {
@@ -131,6 +185,10 @@ const connect = (r: OpenRoom): void => {
         void open(0)
         return
       }
+      render()
+    },
+    (here) => {
+      narratorHere = here
       render()
     },
   )

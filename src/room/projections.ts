@@ -227,6 +227,19 @@ export interface SeatProjection {
   won: boolean | null
   /** Who was who, once the game is over and never before. */
   cast: TvCast[]
+  /**
+   * The table as it is filling up, during setup only: the same names the TV's
+   * lobby shows, each marked when a phone holds it. A phone that has just taken
+   * a seat watches the others arrive instead of being told, untruthfully, that
+   * the cards are being dealt (docs/BIG-SCREEN.md §12.3).
+   */
+  roster: { name: string; joined: boolean }[]
+  /**
+   * The narrator is in the middle of a reading. The phone holds the morning
+   * back until the room has heard it: the dawn belongs to everyone at once,
+   * not to whoever looks down first.
+   */
+  reading: boolean
   /** The table, for the phone to draw the ring: names, who is dead, who has voted; public already. */
   players: { id: PlayerId; name: string; alive: boolean; voted: boolean }[]
   /** The night as this seat may see it (docs/BIG-SCREEN.md §10); null by day. */
@@ -310,7 +323,15 @@ export const seatProjection = (
   state: GameState,
   seat: PlayerId,
   locale: Locale,
-  context: { dealt: boolean; picked?: readonly PlayerId[]; sealed?: boolean; shown?: number; over?: boolean },
+  context: {
+    dealt: boolean
+    picked?: readonly PlayerId[]
+    sealed?: boolean
+    shown?: number
+    over?: boolean
+    roster?: { name: string; joined: boolean }[]
+    reading?: boolean
+  },
 ): SeatProjection | null => {
   const me = state.players.find((p) => p.id === seat)
   if (!me) return null
@@ -341,6 +362,8 @@ export const seatProjection = (
     over,
     won: won === null ? null : wonBy(me, won),
     cast: over ? castOf(state) : [],
+    roster: state.phase === 'setup' ? (context.roster ?? []) : [],
+    reading: context.reading === true,
     players: state.players.map((p) => ({ id: p.id, name: p.name, alive: p.alive, voted: state.votes.some((v) => v.voter === p.id) })),
     // A game the narrator has ended has no night left to play on a phone.
     tonight: context.dealt && context.over !== true ? seatNight(state, me, context.picked ?? []) : null,
@@ -348,7 +371,12 @@ export const seatProjection = (
 }
 
 /** A seat before there is a game: the roster is still names on the narrator's screen. */
-export const waitingSeat = (seat: PlayerId, name: string, locale: Locale): SeatProjection => ({
+export const waitingSeat = (
+  seat: PlayerId,
+  name: string,
+  locale: Locale,
+  roster: { name: string; joined: boolean }[] = [],
+): SeatProjection => ({
   kind: 'seat',
   locale,
   seat,
@@ -369,6 +397,8 @@ export const waitingSeat = (seat: PlayerId, name: string, locale: Locale): SeatP
   over: false,
   won: null,
   cast: [],
+  roster,
+  reading: false,
   players: [],
   tonight: null,
 })

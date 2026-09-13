@@ -3375,17 +3375,11 @@ html[data-dawn] body {
   font-size: var(--text-md);
 }
 
-.tableview__winner {
-  grid-row: 1;
-  grid-column: 1;
-  align-self: end;
-  margin: 0;
-  text-align: left;
-}
-
 /* The middle of the ring: the square the seats leave free, for the
-   ballot's figure and the verdict. Not drawn in rows, where there is no
-   middle; the phone's card says the same there. */
+   ballot's figure, the verdict, and — once the game is `[data-over]` — the
+   winner. Not drawn in rows otherwise, where there is no middle; the
+   phone's card says the same there. The over-state is the one exception:
+   a table pushed to rows still owes the room its winner. */
 .circle__centre {
   position: absolute;
   inset: var(--seat);
@@ -3396,8 +3390,8 @@ html[data-dawn] body {
   pointer-events: none;
 }
 
-.circle[data-rows] .circle__centre,
-.circle--list .circle__centre {
+.screen--table:not([data-over]) .circle[data-rows] .circle__centre,
+.screen--table:not([data-over]) .circle--list .circle__centre {
   display: none;
 }
 
@@ -3448,6 +3442,26 @@ html[data-dawn] body {
   animation: line-in var(--dur-slow) var(--ease-out) both;
 }
 
+/* The winner, once the game is over: the room already heard the reading
+   name it, so this is what it studies afterwards, at the same display size
+   as the verdict and in the same place — the one thing left standing in
+   the middle of the ring once the seats show who everyone was. An early
+   ending (the narrator stopped the game) reads "Ended on night N" instead
+   of naming a side, in the same voice as the final paper's own banner. */
+.tableview__result {
+  margin: 0;
+  max-width: 22ch;
+  color: var(--fg);
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  letter-spacing: var(--track-display);
+  line-height: 1;
+  text-align: center;
+  text-transform: uppercase;
+  text-wrap: balance;
+  animation: line-in var(--dur-slow) var(--ease-out) both;
+}
+
 .tableview__clock {
   grid-row: 1;
   grid-column: 3;
@@ -3489,11 +3503,6 @@ html[data-dawn] body {
   .tableview__clock {
     grid-row: 1;
     grid-column: 2;
-  }
-
-  .tableview__winner {
-    grid-row: 3;
-    grid-column: 1;
   }
 
   .tableview__close {
@@ -3601,10 +3610,29 @@ html[data-dawn] body {
   padding: var(--space-4);
 }
 
+/* Before any room is up — asking the relay, the relay not answering, or no
+   room at all (a bare address with no key) — the screen carries only a
+   couple of lines, but they are still read from the couch: scale them like
+   every other TV label instead of leaving them at a phone's rem sizes. */
+.stage--tv .screen--center .label {
+  font-size: clamp(1.25rem, 3.2vmin, 3rem);
+}
+
+.stage--tv .screen--center .subtitle {
+  font-size: clamp(1rem, 2.4vmin, 2.25rem);
+}
+
+.stage--tv .screen--center .title--sm {
+  font-size: clamp(2.5rem, 7vmin, 6rem);
+}
+
 .tv__code {
   letter-spacing: 0.18em;
 }
 
+/* The one line the room reads that the game itself does not say: the relay
+   dropped, the narrator's phone went quiet, the room was closed. It is read
+   from a sofa like everything else here, so it scales with the screen. */
 .tv__status {
   position: fixed;
   right: var(--space-3);
@@ -3612,6 +3640,11 @@ html[data-dawn] body {
   margin: 0;
   color: var(--fg-muted);
   font-size: var(--text-xs);
+}
+
+.stage--tv ~ .tv__status,
+.stage--seat ~ .tv__status {
+  font-size: clamp(var(--text-xs), 1.9vmin, 2.25rem);
 }
 
 /* A TV has no hands: the clock is a display there. */
@@ -3695,8 +3728,18 @@ html[data-dawn] body {
   font-size: clamp(1.5rem, 3.5vmin, 3rem);
 }
 
-.stage--tv .tableview__winner {
-  font-size: clamp(2rem, 5vmin, 4.5rem);
+.stage--tv .tableview__result {
+  font-size: clamp(2.5rem, 7vmin, 7rem);
+}
+
+/* A role label under a name, read from the sofa only at the one moment the
+   ring shows them: the cast, once the game is `[data-over]`. */
+.stage--tv .seat__role {
+  font-size: clamp(
+    1rem,
+    min(calc(var(--seat) * 0.14), calc((var(--seat) - 16px) / (var(--len, 8) * 0.6))),
+    3rem
+  );
 }
 
 .stage--tv .clock__label {
@@ -3708,7 +3751,9 @@ html[data-dawn] body {
   font-size: clamp(2.5rem, 7vmin, 6rem);
 }
 
-/* The reading fills the TV: a death paints the whole screen Vendetta. */
+/* The reading fills the TV: a death paints the whole screen Vendetta. Enters
+   on its own (not gated by data-enter): a fresh card is a new thing every
+   time it lands, the way a dawn slide is on the narrator's own phone. */
 .stage--tv .tableview__card {
   position: fixed;
   inset: 0;
@@ -3721,6 +3766,7 @@ html[data-dawn] body {
   align-content: center;
   justify-items: start;
   gap: 3vmin;
+  animation: card-in var(--dur-base) var(--ease-out) both;
 }
 
 .stage--tv .tableview__card .dawn__counter {
@@ -3737,6 +3783,17 @@ html[data-dawn] body {
 .stage--tv .tableview__card .dawn__name {
   font-size: clamp(6rem, 18vmin, 16rem);
   text-align: left;
+}
+
+/* A calm slide (a quiet night, a growl, a card taken, the paper's own
+   breadcrumb) has no victim, so the whole sentence takes `.dawn__name`'s
+   spot — but it is prose, not a stamp, and the name's own TV size above
+   (up to 16rem) ran a clue's full sentence off the edge of the screen
+   before this rule existed to take precedence back for it. Sized like
+   `.dawn__line` below it: display size for a sofa, not a name's. */
+.stage--tv .tableview__card .dawn__name--line {
+  max-width: 28ch;
+  font-size: clamp(2rem, 4.5vmin, 4.5rem);
 }
 
 .stage--tv .tableview__card .dawn__line {
@@ -3881,6 +3938,33 @@ html[data-dawn] body {
   opacity: 0.55;
 }
 
+/* The same roster on a phone that has just sat down: the screen's own list,
+   at a phone's size, with this seat's own name in the bright ink. */
+.mine--lobby {
+  align-content: start;
+  gap: var(--space-3);
+}
+
+.mine__guests {
+  grid-template-columns: repeat(auto-fill, minmax(7rem, 1fr));
+  font-size: var(--text-base);
+}
+
+.mine__guests .lobby__name[data-me] {
+  color: var(--fg);
+  border-color: var(--fg);
+}
+
+/* The night is read to the room before any phone shows the morning. */
+.mine__waking {
+  margin: 0;
+  max-width: 18rem;
+  font-size: var(--text-lg);
+  line-height: 1.3;
+  text-align: center;
+  color: var(--fg-2);
+}
+
 /* ---------- The lobby on the big screen ---------- */
 .screen--lobby {
   display: grid;
@@ -3933,6 +4017,8 @@ html[data-dawn] body {
   list-style: none;
 }
 
+/* A name lands, not pops: the same fade the seats use, and gated the same
+   way (off unless the stage is entering — a fresh lobby, a join, a leave). */
 .lobby__name {
   display: flex;
   justify-content: space-between;
@@ -3943,6 +4029,11 @@ html[data-dawn] body {
   letter-spacing: var(--track-display);
   color: var(--fg-muted);
   border: 1px solid var(--hairline);
+  animation: seat-in var(--dur-base) var(--ease-out) both;
+}
+
+.stage:not([data-enter]) .lobby__name {
+  animation-name: none;
 }
 
 .lobby__name[data-joined] {
@@ -3988,10 +4079,63 @@ html[data-dawn] body {
   }
 }
 
+/* Everyone at the table already has a phone — a fresh lobby that just
+   filled, or a rematch where every phone reconnected on its own in the
+   seconds after "Play again" (docs/BIG-SCREEN.md). Scanning again would be
+   busywork: the roster leads and the code shrinks to what a latecomer or a
+   second screen still needs. */
+.screen--lobby[data-settled] {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 2fr);
+}
+
+.screen--lobby[data-settled] .lobby__code {
+  justify-items: start;
+  text-align: left;
+}
+
+.screen--lobby[data-settled] .lobby__room {
+  font-size: clamp(1.5rem, 4vmin, 2.5rem);
+}
+
+.screen--lobby[data-settled] .lobby__qr svg {
+  width: min(18vmin, 7rem);
+}
+
+.lobby__headline {
+  text-align: left;
+}
+
+@media (orientation: portrait) {
+  .screen--lobby[data-settled] {
+    grid-template-columns: 1fr;
+  }
+
+  .screen--lobby[data-settled] .lobby__code {
+    justify-items: center;
+    text-align: center;
+  }
+
+  .lobby__headline {
+    text-align: center;
+  }
+}
+
 /* On a TV the lobby is read from the sofa: the QR is the largest thing on it until the roster needs the room. */
 .stage--tv .screen--lobby .label {
   color: var(--fg-2);
   font-size: clamp(1rem, 2.2vmin, 2rem);
+}
+
+.stage--tv .lobby__headline {
+  font-size: clamp(2.5rem, 6vmin, 6rem);
+}
+
+.stage--tv .screen--lobby[data-settled] .lobby__room {
+  font-size: clamp(1.25rem, 3vmin, 2.5rem);
+}
+
+.stage--tv .screen--lobby[data-settled] .lobby__qr svg {
+  width: min(14vmin, 9rem);
 }
 
 .stage--tv .lobby__room {

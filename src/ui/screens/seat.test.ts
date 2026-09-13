@@ -36,6 +36,8 @@ const seat = (id: PlayerId, roleId: RoleId, tonight: Partial<SeatNight>, extra: 
   over: false,
   won: null,
   cast: [],
+  roster: [],
+  reading: false,
   players,
   tonight: { ...quiet(), view: { self: [id], crew: [], doomed: [], marked: [] }, ...tonight },
   alive: id !== 5,

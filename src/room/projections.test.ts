@@ -192,6 +192,30 @@ describe('the projection for the whole town', () => {
     }
   })
 
+  it('carries the table filling up and the narrator reading, and drops both when they are over', () => {
+    const roster = [
+      { name: 'Ana', joined: true },
+      { name: 'Beto', joined: false },
+    ]
+    // Before the deal, a seat sees the same list the screen's lobby shows.
+    const waiting = waitingSeat(0, 'Ana', 'en', roster)
+    expect(waiting.roster).toEqual(roster)
+    expect(waiting.reading).toBe(false)
+
+    const table = createGame(cast(['KILLER', 'PLAIN', 'INSPECT', 'GUARD', 'PLAIN'], ['Ana', 'Beto', 'Caro', 'Dani', 'Eva']))
+    // Before the first night the game is still setting up, so the list travels.
+    expect(seatProjection(table, 1, 'en', { dealt: false, roster })!.roster).toEqual(roster)
+    const playing = startNight(table)
+    for (const locale of LOCALES) {
+      // Once the game is on, the roster belongs to the past: it is not carried.
+      const dealt = seatProjection(playing, 1, locale, { dealt: true, roster })!
+      expect(dealt.roster).toEqual([])
+      expect(dealt.reading).toBe(false)
+      // While the narrator reads, every phone knows to wait with the room.
+      expect(seatProjection(playing, 1, locale, { dealt: true, reading: true })!.reading).toBe(true)
+    }
+  })
+
   it('shows no winner to the room or a seat before the first night', () => {
     const state = createGame(cast(['PLAIN', 'PLAIN', 'PLAIN', 'PLAIN']))
     expect(tvProjection(state, 'en').winner).toBeNull()

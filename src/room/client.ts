@@ -173,10 +173,12 @@ export const parseFragment = (hash: string): { room: string | null; relay: strin
 }
 
 /** `gone` is final: the relay closed the socket with 4004, no such room, and the link stops trying. */
-export type LinkStatus = 'connecting' | 'open' | 'closed' | 'gone'
+export type LinkStatus = 'connecting' | 'open' | 'closed' | 'gone' | 'ended'
 
 /** The relay's close code for a room that does not exist or has expired (docs/BIG-SCREEN.md §11). */
 export const NO_SUCH_ROOM = 4004
+/** The narrator closed the room on purpose (docs/BIG-SCREEN.md §12.2). */
+export const ROOM_ENDED = 4001
 
 /** What the relay sends the narrator. `cid` is a player's connection, chosen by their page. */
 export type FromRelay =
@@ -255,6 +257,16 @@ export class NarratorLink {
     if (this.ws === null || this.ws.readyState !== WebSocket.OPEN) return false
     this.ws.send(JSON.stringify(message))
     return true
+  }
+
+  /**
+   * Close the room itself, not just this socket: the relay drops it and tells
+   * every screen and phone why (docs/BIG-SCREEN.md §12.2). "Close the room" is
+   * a decision and must not look like a flat battery.
+   */
+  end(): void {
+    this.ws?.send(JSON.stringify({ kind: 'end' }))
+    this.close()
   }
 
   close(): void {
@@ -342,6 +354,8 @@ export class ScreenLink {
     private readonly code: string,
     private readonly onProjection: (projection: TvProjection) => void,
     private readonly onStatus: (status: LinkStatus) => void = () => {},
+    /** Whether a narrator is running the game right now; the relay says so. */
+    private readonly onNarrator: (here: boolean) => void = () => {},
   ) {
     this.connect()
   }
@@ -357,8 +371,9 @@ export class ScreenLink {
     ws.onmessage = (event) => {
       if (typeof event.data !== 'string' || event.data === 'pong') return
       try {
-        const parsed = JSON.parse(event.data) as { kind?: unknown }
+        const parsed = JSON.parse(event.data) as { kind?: unknown; here?: unknown }
         if (parsed.kind === 'tv') this.onProjection(parsed as TvProjection)
+        else if (parsed.kind === 'narrator' && typeof parsed.here === 'boolean') this.onNarrator(parsed.here)
       } catch {
         // Not ours.
       }
@@ -371,6 +386,11 @@ export class ScreenLink {
         this.onStatus('gone')
         return
       }
+      // The narrator closed it: the evening is over, not a room to hunt for.
+      if (event.code === ROOM_ENDED) {
+        this.onStatus('ended')
+        return
+      }
       this.onStatus('closed')
       this.attempt += 1
       setTimeout(() => this.connect(), Math.min(30_000, 500 * 2 ** Math.min(this.attempt, 6)))
@@ -381,6 +401,8 @@ export class ScreenLink {
 
 export interface PlayerHandlers {
   onStatus: (status: LinkStatus) => void
+  /** Whether a narrator is running the game right now; the relay says so. */
+  onNarrator?: (here: boolean) => void
   /** The narrator's public key: derive the shared one, then say who we are. */
   onHello: (pub: string) => void
   /** This seat's projection, still sealed. */
@@ -430,9 +452,10 @@ export class PlayerLink {
     ws.onmessage = (event) => {
       if (typeof event.data !== 'string' || event.data === 'pong') return
       try {
-        const parsed = JSON.parse(event.data) as { kind?: unknown; pub?: unknown; payload?: unknown }
+        const parsed = JSON.parse(event.data) as { kind?: unknown; pub?: unknown; payload?: unknown; here?: unknown }
         if (parsed.kind === 'hello' && typeof parsed.pub === 'string') this.handlers.onHello(parsed.pub)
         else if (parsed.kind === 'player' && typeof parsed.payload === 'string') this.handlers.onSealed(parsed.payload)
+        else if (parsed.kind === 'narrator' && typeof parsed.here === 'boolean') this.handlers.onNarrator?.(parsed.here)
       } catch {
         // Not ours.
       }
@@ -444,6 +467,11 @@ export class PlayerLink {
       // The room is gone: the phone goes back to asking for a code.
       if (event.code === NO_SUCH_ROOM) {
         this.handlers.onStatus('gone')
+        return
+      }
+      // The narrator closed it: the evening is over, and the phone says so.
+      if (event.code === ROOM_ENDED) {
+        this.handlers.onStatus('ended')
         return
       }
       this.handlers.onStatus('closed')

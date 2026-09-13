@@ -585,3 +585,90 @@ narrator that exists).
 3. The phone-opened room keeps the QR lobby on the phone: it is the no-TV
    evening and there is nothing else to show it on.
 
+
+## 12. Phase 6 — the room says what it is doing (designed 2026-09-13)
+
+### 12.1 What the critics found
+
+Three critics who played whole evenings on a real relay found the same
+shape of fault: **every surface in the room is confident when it has no
+right to be.** A TV that has lost its narrator keeps the last seating
+chart up forever with no mark on it. A phone whose room was closed stays
+on "the town sleeps" for as long as anyone looks at it. A phone that has
+just taken a seat is told "the narrator is dealing the cards" while the
+narrator is in fact still typing the third name, and is told it again for
+minutes after a rematch. And a phone that glances down during the dawn
+reading sees the death struck through in its own ring before the narrator
+has read the sentence aloud, which is the one moment of theatre the app
+is built around.
+
+None of these is a protocol failure: every message arrives. They are all
+the same omission — the room is told *what the game is*, and never *what
+the narrator is doing*.
+
+### 12.2 Two new facts on the wire
+
+**The narrator's presence, from the relay.** The relay knows exactly when
+a narrator socket opens and closes; nobody else does. It now says so, to
+every screen and every phone in the room:
+
+```ts
+{ kind: 'narrator', here: boolean }
+```
+
+sent on connect (so a screen that joins an unclaimed or abandoned room
+knows at once), and on every change after. A screen with `here: false`
+says it is waiting for the narrator, quietly, keeping the table it has;
+it is not an error and it recovers by itself when a phone claims or
+reconnects. This is deliberately not a timeout on the client: a phone
+that locks its screen for ten seconds must not put a warning on the TV.
+
+**The room ended, from the narrator.** "Close the room" is a decision, not
+a disconnection, and it deserves to be told apart from a flat battery. The
+narrator's phone sends
+
+```ts
+{ kind: 'end' }
+```
+
+before it closes its own socket. The relay deletes the room and closes
+every socket with **4001 'closed'**, which the clients already understand
+as a room that is gone for good (4004 stays "no such room": a code that
+never existed or has expired). A TV that opened its own room asks for a
+fresh one and shows a new code; a second screen and a player's phone say
+the room has ended, and the phone offers the code field again.
+
+### 12.3 Two new fields on the seat projection
+
+**`roster`**, during setup only: the names at the table as the narrator's
+own lobby shows them, each marked when a phone holds it. A phone that has
+just joined shows the same list the TV shows, so a player can see their
+own name land and watch the others arrive instead of reading a sentence
+about cards that are not being dealt. "The narrator is dealing the cards"
+is reserved for what it says: the moment between the deal and the reveal.
+
+**`reading`**, a boolean: the narrator is in the middle of a reading. While
+it is true a phone holds its day screen back behind the same kind of page
+the night gate uses ("the town is waking up"), so the room hears the
+sentence before the ring shows the strike. It clears when the reading
+closes, and a phone that joins mid-reading gets it too.
+
+Both are the narrator's own state, not the engine's, so they ride in
+`TvContext`/the seat context like `reading` does for the TV today, and
+neither changes what the engine knows.
+
+### 12.4 What the leak tests must keep saying
+
+`roster` is names, which the room already shows. `reading` is a boolean.
+`narrator` and `end` carry nothing about the game at all. Nothing here
+widens what a phone may learn about a role, and `playthrough.test.ts`'s
+allow-lists do not move.
+
+### 12.5 Decisions taken (standing until the user objects)
+
+1. A narrator who goes quiet is "waiting", not "gone": only an explicit
+   end closes a room under the room's feet.
+2. The wait is the relay's word, not a client-side timeout, so a phone in
+   a pocket never raises an alarm on the TV.
+3. A phone holds the morning behind a page until the narrator has read it.
+   The dawn belongs to the room, not to whoever looks down first.

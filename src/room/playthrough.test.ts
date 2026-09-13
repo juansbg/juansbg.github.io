@@ -93,8 +93,13 @@ const checkTv = (state: GameState, locale: Locale, sealed: boolean): void => {
   }
 
   const html = tableMarkup(p, false)
-  expect(html).not.toContain('seat__sigil')
-  expect(html).not.toContain('data-crew')
+  // A third way, same as above: once the game is over the ring itself shows
+  // the sigil and the crew glow, from `p.cast` — the room's moment to study
+  // who everyone was, not before it (over-04).
+  if (!p.over) {
+    expect(html).not.toContain('seat__sigil')
+    expect(html).not.toContain('data-crew')
+  }
   expect(html).not.toContain('data-table-proceed')
   // A living player's role name is never on the room's screen.
   for (const player of state.players) {

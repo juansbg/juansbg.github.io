@@ -155,6 +155,46 @@ export const codeMarkup = (locale: Locale, gone = false): string => {
     </section>`
 }
 
+/**
+ * The table filling up, on a phone that has just taken a seat (§12.3). The
+ * same names the screen's lobby shows, this seat marked as its own: a player
+ * watches the others arrive instead of being told the cards are being dealt.
+ */
+const lobbySeatMarkup = (p: SeatProjection, locale: Locale, head: string): string => {
+  const s = strings(locale).ui.seat
+  const joined = p.roster.filter((r) => r.joined).length
+  const t = strings(locale)
+  const names = p.roster
+    .map(
+      (r, i) =>
+        `<li class="lobby__name"${r.joined ? ' data-joined' : ''}${i === p.seat ? ' data-me' : ''}>${esc(r.name)}${
+          r.joined ? `<span class="lobby__mark" aria-label="${esc(t.ui.table.onPhone)}">●</span>` : ''
+        }</li>`,
+    )
+    .join('')
+  return `
+    <section class="screen mine mine--lobby">
+      ${head}
+      <p class="subtitle">${esc(s.atTheTable)}</p>
+      <p class="label">${esc(s.seated(joined, p.roster.length))}</p>
+      <ul class="lobby__names mine__guests">${names}</ul>
+    </section>`
+}
+
+/**
+ * The night is resolved and the narrator is reading it to the room (§12.3).
+ * The phone waits with everyone else: the same page the night gate uses, so
+ * nobody reads the morning off a screen before it is said aloud.
+ */
+const wakingMarkup = (locale: Locale, head: string): string => {
+  const s = strings(locale).ui.seat
+  return `
+    <section class="screen screen--center mine">
+      ${head}
+      <p class="mine__waking">${esc(s.waking)}</p>
+    </section>`
+}
+
 export const seatMarkup = (
   p: SeatProjection,
   locale: Locale,
@@ -173,6 +213,14 @@ export const seatMarkup = (
     const line = renderWinner(p.winner, p.locale) ?? strings(p.locale).ui.over.title
     return `<section class="screen mine">${head}<p class="winner">${esc(line)}</p></section>`
   }
+
+  // The table is still filling up: the roster, not a sentence about cards.
+  if (p.phase === 'setup' && p.roleId === null && p.roster.length > 0) {
+    return lobbySeatMarkup(p, locale, head)
+  }
+
+  // The narrator is reading the night to the room; the phone hears it first.
+  if (p.reading) return wakingMarkup(locale, head)
 
   if (p.phase === 'night' && p.tonight !== null && p.roleId !== null) {
     return gate !== null && gate.kind !== 'chooser'
