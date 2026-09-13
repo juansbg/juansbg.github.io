@@ -365,6 +365,8 @@ export const es: Strings = {
     over: {
       title: 'Fin de la partida',
       playAgain: 'Jugar otra vez',
+      newTable: 'Mesa nueva',
+      newTableConfirm: '¿Una mesa nueva? Se olvidan la partida y los nombres; el registro se guarda.',
       finishNow: 'Terminar la partida',
       history: 'Toda la partida',
     },

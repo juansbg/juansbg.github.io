@@ -365,6 +365,8 @@ export const en: Strings = {
     over: {
       title: 'Game over',
       playAgain: 'Play again',
+      newTable: 'New table',
+      newTableConfirm: 'A new table? This forgets the game and the names. The record is kept.',
       finishNow: 'End the game',
       history: 'The whole game',
     },

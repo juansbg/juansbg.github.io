@@ -28,7 +28,7 @@ import { detectLocale, strings } from '../i18n'
 import { accentOf } from './accent'
 import { buzz, esc, markEdges, on, swap } from './dom'
 import { sound, unlockOnGesture } from './sound'
-import { clear, clearRoster, clearStats, load, loadRoster, loadStats, loadTimer, recordGame, save, saveRoster, saveTimer, type AppState } from './store'
+import { clear, clearRoster, clearStats, forgetGame, load, loadRoster, loadStats, loadTimer, recordGame, save, saveRoster, saveTimer, type AppState } from './store'
 import { statsMarkup } from './screens/stats'
 import { summarise } from '../engine/summary'
 import { editorMarkup, MAX_PLAYERS, MIN_PLAYERS, namesMarkup, rosterMarkup, type ScreenJoin } from './screens/setup'
@@ -421,7 +421,7 @@ let menuOpen = false
  * flashes a white system dialog, which in a dark room is a torch in the
  * face; this is the same question asked on our own sheet.
  */
-type Pending = 'restart' | 'clearNames' | 'finish' | 'clearStats'
+type Pending = 'restart' | 'newTable' | 'clearNames' | 'finish' | 'clearStats'
 let confirming: Pending | null = null
 /** The browser's deferred install prompt, when it has offered one. */
 let installPrompt: InstallPromptEvent | null = null
@@ -561,11 +561,19 @@ let recordedGame: number | null = null
 
 function render(entering = false): void {
   const game = state.session.current
-  // The record across games: a finished game is written once, by its seed.
-  // Leaving the game-over screen (an undo) arms it again, so a last day
-  // played differently replaces the earlier ending rather than counting twice.
-  if (state.screen !== 'over') recordedGame = null
-  else if (game.seed !== recordedGame) {
+  // The record across games: a finished game is written once, by its seed,
+  // and taken back out if the narrator rewinds past the ending. A last day
+  // played differently replaces the earlier ending rather than counting
+  // twice, since a game is known by its seed.
+  if (state.screen !== 'over') {
+    // Rewound past the ending: the game did not end that way after all, so
+    // the record lets it go until it ends again. Only this game — a new
+    // table is a different seed, and its predecessor's ending stands.
+    if (recordedGame !== null && game.seed === recordedGame && summarise(game, Date.now()) === null) {
+      forgetGame(recordedGame)
+    }
+    recordedGame = null
+  } else if (game.seed !== recordedGame) {
     const summary = summarise(game, Date.now())
     if (summary !== null) {
       recordGame(summary)
@@ -884,6 +892,7 @@ function render(entering = false): void {
   function confirmMarkup(pending: Pending): string {
     const copy = {
       restart: { question: t.ui.menu.restartConfirm, action: t.ui.common.restart },
+      newTable: { question: t.ui.over.newTableConfirm, action: t.ui.over.newTable },
       clearNames: { question: t.ui.setup.clearConfirm, action: t.ui.setup.clearNames },
       finish: { question: t.ui.menu.endGameConfirm, action: t.ui.over.finishNow },
       clearStats: { question: t.ui.stats.clearConfirm, action: t.ui.stats.clear },
@@ -960,7 +969,13 @@ function render(entering = false): void {
       row('data-stats', t.ui.stats.open),
       installPrompt ? row('data-install', t.ui.menu.install) : '',
       inPlay ? row('data-finish', t.ui.over.finishNow, '', true) : '',
-      restartable ? row('data-reset', t.ui.common.restart, '', true) : '',
+      // At the end of a game the two roads are side by side, so the ⋯ row is
+      // the one that is not "Play again": a different set of people.
+      restartable
+        ? state.screen === 'over'
+          ? row('data-new-table', t.ui.over.newTable, '', true)
+          : row('data-reset', t.ui.common.restart, '', true)
+        : '',
     ].join('')
 
     return `
@@ -1054,6 +1069,7 @@ function bind(): void {
 
   // Destructive rows ask first, on our own sheet, then run below.
   on(root, '[data-reset]', 'click', () => ask('restart'))
+  on(root, '[data-new-table]', 'click', () => ask('newTable'))
   on(root, '[data-clear-names]', 'click', () => ask('clearNames'))
   on(root, '[data-finish]', 'click', () => ask('finish'))
 
@@ -1065,7 +1081,8 @@ function bind(): void {
   on(root, '[data-confirm-ok]', 'click', () => {
     const pending = confirming
     confirming = null
-    if (pending === 'restart') reset()
+    if (pending === 'restart') startOver({ forgetPeople: false })
+    else if (pending === 'newTable') startOver({ forgetPeople: true })
     else if (pending === 'clearNames') clearNames()
     else if (pending === 'finish') finish()
     else if (pending === 'clearStats') {
@@ -1080,12 +1097,27 @@ function bind(): void {
     setState({}, false)
   }
 
-  function reset(): void {
-    // Forget the game, keep the people: the names come back on the next screen.
-    // With a room open the people are whoever joins it, so the list starts empty.
+  /**
+   * Starting again, by one road.
+   *
+   * "Play again" on the game-over page and Restart in ⋯ were two functions
+   * that looked like one choice: the red one forgot the language, the seat
+   * order and the room's guests, the primary one kept them, and nothing said
+   * which was which. Both come through here now, and the only difference is
+   * the one the two labels state out loud — a new table forgets the people.
+   */
+  function startOver({ forgetPeople }: { forgetPeople: boolean }): void {
+    shareNotice = false
+    closeShot()
     clear()
-    names = room === null ? loadRoster() : []
-    rekeyRoom()
+    // A room's table is whoever joins it, so a remembered list would show
+    // names nobody can find; without a room the list is the evening's. An
+    // emptied list always comes with a fresh hello (a no-op with no room
+    // open), or the phones would stay seated at a table with no names on it
+    // and nobody could rejoin without reloading.
+    const startEmpty = forgetPeople || room !== null
+    names = startEmpty ? [] : loadRoster()
+    if (startEmpty) rekeyRoom()
     editing = null
     singleTarget = null
     inspecting = null
@@ -1094,8 +1126,13 @@ function bind(): void {
     menuOpen = false
     tableView = false
     picked = []
+    held.clear()
     leaveDay()
-    state = boot()
+    // The narrator's language and layout are the narrator's, not the game's.
+    // Re-booting re-detected the locale from the browser, so a table that had
+    // been running all night in Spanish restarted into English on the phone,
+    // on every player's phone and on the TV.
+    state = { ...boot(), locale: state.locale, layout: state.layout }
     setState({ session: newSession(createGame([])), screen: 'setup', revealIndex: 0 })
   }
 
@@ -1955,13 +1992,8 @@ function bind(): void {
       })
   })
 
-  on(root, '[data-restart]', 'click', () => {
-    shareNotice = false
-    closeShot()
-    clear()
-    names = loadRoster()
-    setState({ session: newSession(createGame([])), screen: 'setup', revealIndex: 0 })
-  })
+  // The same people, a fresh deal.
+  on(root, '[data-restart]', 'click', () => startOver({ forgetPeople: false }))
 
 }
 

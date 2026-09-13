@@ -259,6 +259,22 @@ export const recordGame = (summary: GameSummary): GameSummary[] => {
   return next
 }
 
+/**
+ * Takes one game back out of the record, by seed.
+ *
+ * The ending is written the moment the game-over screen paints, but the
+ * narrator can rewind past it from the timeline to fix a misfire. Until the
+ * game ends again the record must not keep claiming a result that was
+ * undone, or a restart would leave a game in the ledger that never happened.
+ */
+export const forgetGame = (seed: number): void => {
+  try {
+    localStorage.setItem(STATS_KEY, JSON.stringify(loadStats().filter((g) => g.seed !== seed)))
+  } catch {
+    // See save().
+  }
+}
+
 export const clearStats = (): void => {
   try {
     localStorage.removeItem(STATS_KEY)

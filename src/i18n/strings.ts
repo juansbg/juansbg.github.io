@@ -312,6 +312,9 @@ export interface Strings {
     over: {
       title: string
       playAgain: string
+      /** The other road from the game-over screen: a different set of people. */
+      newTable: string
+      newTableConfirm: string
       finishNow: string
       history: string
     }
