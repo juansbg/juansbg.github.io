@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { dawnMarkup, dawnSlides, deathLines, pickLine, verdictSlides } from './dawn'
+import { dawnMarkup, dawnSlides, deathLines, pickLine, verdictSlides, winnerSlide } from './dawn'
 import { LOCALES, strings } from '../../i18n'
 import { quietGame } from '../../engine/testing'
 import { castVote, endNight, lynch, recordAction, startNight, type PlayerSetup } from '../../engine/state'
@@ -188,6 +188,67 @@ describe('the town’s verdict', () => {
       expect(html).toContain(strings(locale).ui.dawn.verdict(1))
       expect(html).not.toContain(strings(locale).ui.timeline.nightStart(1))
       expect(html).toContain('data-lethal')
+    }
+  })
+})
+
+describe('the slide a game ends on', () => {
+  /** Hanging the only crew member: the town wins on the spot. */
+  const townWin = (): GameState => {
+    let state = quietGame(cast(['KILLER', 'PLAIN', 'PLAIN', 'PLAIN'], ['Ana', 'Beto', 'Caro', 'Dani']))
+    state = startNight(state)
+    state = { ...state, stepIndex: state.schedule.length }
+    state = endNight(state)
+    return lynch(state, 0)
+  }
+
+  it('is nothing at all while the game is still on', () => {
+    // One crew against three citizens, nobody dead yet.
+    const running = quietGame(cast(['KILLER', 'PLAIN', 'PLAIN', 'PLAIN'], ['Ana', 'Beto', 'Caro', 'Dani']))
+    for (const locale of LOCALES) {
+      expect(winnerSlide(running, locale), locale).toBeNull()
+    }
+  })
+
+  it('carries the winner as its whole line, in both languages', () => {
+    const state = townWin()
+    for (const locale of LOCALES) {
+      const slide = winnerSlide(state, locale)
+      expect(slide, locale).not.toBeNull()
+      expect(slide!.line, locale).toBe(strings(locale).winner.town)
+      expect(slide!.kind, locale).toBe('winner')
+      expect(slide!.accent, locale).toBe('town')
+      // No victim, no mark: the sentence is the whole slide, and the ground
+      // stays Midnight because a death is the only time red is a surface.
+      expect(slide!.name, locale).toBeNull()
+      expect(slide!.mark, locale).toBe('')
+      expect(slide!.lethal, locale).toBe(false)
+    }
+  })
+
+  it('takes the Family’s side when the Family wins', () => {
+    // Two crew and two citizens left: the Family has parity.
+    let state = quietGame(cast(['KILLER', 'KILLER', 'PLAIN', 'PLAIN', 'PLAIN'], ['Ana', 'Beto', 'Caro', 'Dani', 'Eva']))
+    state = startNight(state)
+    state = { ...state, stepIndex: state.schedule.indexOf('KILLER') }
+    state = recordAction(state, { kind: 'target', roleId: 'KILLER', actor: 0, target: 4 })
+    state = { ...state, stepIndex: state.schedule.length }
+    state = endNight(state)
+    const slide = winnerSlide(state, 'en')
+    expect(slide?.accent).toBe('crew')
+    expect(slide?.line).toBe(strings('en').winner.crew)
+  })
+
+  it('reads as the last slide of whichever reading was running', () => {
+    const state = townWin()
+    for (const locale of LOCALES) {
+      const slides = [...verdictSlides(state, locale), winnerSlide(state, locale)!]
+      const html = dawnMarkup(slides, slides.length - 1, 1, locale, 'verdict')
+      expect(html, locale).toContain(strings(locale).winner.town)
+      expect(html, locale).toContain('data-kind="winner"')
+      // The last slide ends the reading rather than offering another.
+      expect(html, locale).toContain('data-dawn-close')
+      expect(html, locale).not.toContain('data-dawn-next"')
     }
   })
 })

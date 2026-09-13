@@ -35,7 +35,7 @@ import { editorMarkup, MAX_PLAYERS, MIN_PLAYERS, namesMarkup, rosterMarkup, type
 import { dealRoles, systemRandom, type Complexity } from '../engine/deal'
 import { askCardMarkup, dayMarkup, inspectionMarkup, nightMarkup, playerViewMarkup, questionCardMarkup, questionsIntroMarkup } from './screens/night'
 import { countOrder } from './screens/vote'
-import { dawnMarkup, dawnSlides, verdictSlides, type Reading, type Slide } from './screens/dawn'
+import { dawnMarkup, dawnSlides, verdictSlides, winnerSlide, type Reading, type Slide } from './screens/dawn'
 import { tableMarkup } from './screens/table'
 import { tvProjection, type TvProjection } from '../room/projections'
 import {
@@ -414,8 +414,18 @@ let dawnKind: Reading = 'dawn'
 let paperOpen = false
 /** The ledger is up: the record of finished games, opened from ⋯. */
 let statsOpen = false
-const currentSlides = (): Slide[] =>
-  (dawnKind === 'verdict' ? verdictSlides : dawnSlides)(state.session.current, state.locale)
+/**
+ * The reading on screen. A game that has just ended closes on one more
+ * slide, the winning side's, so the room is told the game is over before the
+ * paper arrives (docs/BIG-SCREEN.md; over-02). It rides in `reading` on the
+ * projection like any other slide, so the TV and the phones mirror it.
+ */
+const currentSlides = (): Slide[] => {
+  const game = state.session.current
+  const slides = (dawnKind === 'verdict' ? verdictSlides : dawnSlides)(game, state.locale)
+  const close = winnerSlide(game, state.locale)
+  return close === null ? slides : [...slides, close]
+}
 /** The overflow sheet behind the ⋯ button. */
 let menuOpen = false
 /**
@@ -1767,10 +1777,9 @@ function bind(): void {
   on(root, '[data-resolve]', 'click', () => {
     mutate(endNight, { night: game.night, kind: 'nightEnd' })
     const morning = state.session.current
-    if (winner(morning) !== null) {
-      setState({ screen: 'over' })
-      return
-    }
+    // A night that ends the game is still read: the reading closes on the
+    // winner's slide and `endReading` lands on the final paper. Jumping
+    // straight to it skipped the morning the town had just lived through.
     // The morning is read to the town from the slideshow, so it starts by
     // itself. If the Avenger died, the shot comes first and the show after.
     showAfterShot = morning.awaitingHunterShot !== null ? 'dawn' : null
@@ -1791,10 +1800,9 @@ function bind(): void {
       night: game.night, kind: 'lynch', target: Number(el.dataset.lynch),
     })
     const afternoon = state.session.current
-    if (winner(afternoon) !== null) {
-      setState({ screen: 'over' })
-      return
-    }
+    // The deciding vote is read like any other verdict; the winner's slide
+    // closes it. It used to land on the final paper in twenty milliseconds,
+    // so the room watched a hand go up and then read a newspaper.
     // The verdict is read the way the morning is: full screen, by itself.
     // If the town hanged the Gunman, his shot comes first and the reading after.
     showAfterShot = afternoon.awaitingHunterShot !== null ? 'verdict' : null
@@ -1809,15 +1817,17 @@ function bind(): void {
     mutate((s) => hunterShot(s, Number(el.dataset.shoot)), {
       night: game.night, kind: 'hunterShot', target: Number(el.dataset.shoot),
     })
-    if (winner(state.session.current) !== null) setState({ screen: 'over' })
-    else {
-      if (showAfterShot !== null) {
-        dawnKind = showAfterShot
-        dawn = 0
-      }
-      showAfterShot = null
-      setState({})
+    if (showAfterShot !== null) {
+      dawnKind = showAfterShot
+      dawn = 0
+    } else if (winner(state.session.current) !== null) {
+      // Nothing was waiting on the shot and it ended the game: the winner
+      // still gets its slide rather than the paper arriving unannounced.
+      dawnKind = 'verdict'
+      dawn = 0
     }
+    showAfterShot = null
+    setState({})
   })
 
   // ---- Dawn slideshow ----
@@ -1861,6 +1871,12 @@ function bind(): void {
   function endReading(): void {
     const morning = dawnKind === 'dawn'
     dawn = null
+    // The reading closed on the winner: what the town argues over now is the
+    // final edition, which is the game-over screen's own page.
+    if (winner(state.session.current) !== null) {
+      setState({ screen: 'over' })
+      return
+    }
     if (morning) {
       paperOpen = true
       setState({})

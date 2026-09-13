@@ -2222,6 +2222,32 @@ html[data-dawn] body {
   opacity: 0.35;
 }
 
+/* The last word. A game used to land on the final paper in about twenty
+   milliseconds, so the room watched a hand go up and then read a newspaper;
+   the reading closes on this instead. It is the loudest line in the app, set
+   like a masthead, and it carries no mark — the sentence is the whole slide.
+
+   The ground stays Midnight: a death is still the only time red is a
+   surface. The side is in the ink, as it is everywhere else, so the Family's
+   win arrives in Vendetta and the town's in Ledger. */
+.screen--dawn[data-kind='winner'] .dawn__mark {
+  display: none;
+}
+
+.screen--dawn[data-kind='winner'] .dawn__name--line {
+  font-family: var(--font-display);
+  font-size: var(--text-hero);
+  font-weight: 400;
+  letter-spacing: var(--track-display);
+  line-height: 0.9;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+
+.screen--dawn[data-kind='winner'][data-accent='crew'] .dawn__name--line {
+  color: var(--vendetta);
+}
+
 /* ---------- Game over: the whole story ---------- */
 
 .screen--over .title,

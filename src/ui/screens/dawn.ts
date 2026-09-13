@@ -1,5 +1,6 @@
 import type { DeathCause, GameState, Outcome, Player } from '../../engine/types'
-import { outcomeAccent, renderOutcome, strings, type Locale } from '../../i18n'
+import { winner } from '../../engine/state'
+import { outcomeAccent, renderOutcome, renderWinner, strings, type Locale } from '../../i18n'
 import { outcomeAccentOf, type Accent } from '../accent'
 import { sigilMarkup } from '../sigils'
 import { esc } from '../dom'
@@ -29,7 +30,7 @@ export interface Slide {
   /** The mark's content: the sigil of the cause, or the town's scales. Markup, not text. */
   mark: string
   accent: Accent
-  kind: Outcome['type'] | 'quiet'
+  kind: Outcome['type'] | 'quiet' | 'winner'
 }
 
 /**
@@ -139,6 +140,33 @@ export const dawnSlides = (state: GameState, locale: Locale): Slide[] => {
  */
 export const verdictSlides = (state: GameState, locale: Locale): Slide[] =>
   slidesOf(tonight(state).day, state, locale)
+
+/**
+ * The slide a game ends on, appended to whichever reading was running.
+ *
+ * The deciding vote used to land on the final paper in about twenty
+ * milliseconds: the room watched a hand go up and then read a newspaper,
+ * with nothing in between saying the game was over. The reading that was
+ * already staging the night or the verdict now closes on one full screen —
+ * the winning side's ground, its sentence and nothing else — and the paper
+ * comes after it, the way the morning reading has always ended on the day's
+ * edition. No mark: the line is the whole slide.
+ */
+export const winnerSlide = (state: GameState, locale: Locale): Slide | null => {
+  const won = winner(state)
+  const line = renderWinner(won, locale)
+  if (won === null || line === null) return null
+  return {
+    lethal: false,
+    name: null,
+    line,
+    mark: '',
+    // The side that won carries the slide; a pair or a martyr is the town's
+    // ground, since neither is the crew.
+    accent: won === 'crew' ? 'crew' : 'town',
+    kind: 'winner',
+  }
+}
 
 export type Reading = 'dawn' | 'verdict'
 
