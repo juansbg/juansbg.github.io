@@ -26,7 +26,7 @@ import {
 import type { NightAction, PlayerId } from '../engine/types'
 import { detectLocale, strings } from '../i18n'
 import { accentOf } from './accent'
-import { buzz, esc, on, swap } from './dom'
+import { buzz, esc, markEdges, on, swap } from './dom'
 import { sound, unlockOnGesture } from './sound'
 import { clear, clearRoster, clearStats, load, loadRoster, loadStats, loadTimer, recordGame, save, saveRoster, saveTimer, type AppState } from './store'
 import { statsMarkup } from './screens/stats'
@@ -468,8 +468,12 @@ unlockOnGesture()
 // The room a table has changes with the viewport (a rotation, the keyboard
 // bar, a split view), not only with a paint: watch the root's box and let
 // the circle fall back to rows, or come back, as it does.
-window.addEventListener('resize', () => fitTables(root))
-if (typeof ResizeObserver !== 'undefined') new ResizeObserver(() => fitTables(root)).observe(root)
+const refit = (): void => {
+  fitTables(root)
+  markEdges(root)
+}
+window.addEventListener('resize', refit)
+if (typeof ResizeObserver !== 'undefined') new ResizeObserver(refit).observe(root)
 
 window.addEventListener('beforeinstallprompt', (event) => {
   event.preventDefault()
@@ -670,6 +674,8 @@ function render(entering = false): void {
   bind()
   // A circle with no room for readable tiles becomes rows, before it is seen.
   fitTables(root)
+  // ...and any region that ends up scrolling says so at the edge it clips.
+  markEdges(root)
   syncTicker()
   // The TV follows every paint; the link sends one message per frame at most.
   publish()
@@ -919,7 +925,7 @@ function render(entering = false): void {
 
     return `
       <div class="sheet" data-sheet>
-        <div class="sheet__panel" role="dialog" aria-modal="true" aria-label="${esc(t.ui.menu.more)}">
+        <div class="sheet__panel sheet__panel--tall" role="dialog" aria-modal="true" aria-label="${esc(t.ui.menu.more)}">
           <div class="sheet__head"><span class="sheet__handle" aria-hidden="true"></span></div>
           <div class="menu">${items}</div>
           <button class="btn btn--ghost" type="button" data-menu-close>${esc(t.ui.common.close)}</button>

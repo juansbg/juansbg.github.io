@@ -653,6 +653,51 @@ body {
   color: var(--fg-faint);
 }
 
+/* ---------- The edge of a scrolling region ---------- */
+
+/* The page never scrolls, so a few designated regions scroll instead, and on
+   a short phone one of them clips mid-tile or mid-sentence. `dom.ts` marks
+   each region with the edges that have content past them and only those
+   fade, so a region that fits keeps its clean edge and a region with more
+   below says so. The mask sits on the scroll box, not on the content, so it
+   stays at the edge while the content moves under it. One mechanism for the
+   morning report, the seat rows, the timeline, the ledger, the paper, the
+   names and the menu. */
+[data-scroll] {
+  --edge: var(--space-5);
+  --edge-up: 0px;
+  --edge-down: 0px;
+  -webkit-mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 var(--edge-up),
+    #000 calc(100% - var(--edge-down)),
+    transparent 100%
+  );
+  mask-image: linear-gradient(
+    to bottom,
+    transparent 0,
+    #000 var(--edge-up),
+    #000 calc(100% - var(--edge-down)),
+    transparent 100%
+  );
+}
+
+/* The seat rows are 3rem tiles, so a fade shorter than half a tile dies
+   inside the gap between two of them and says nothing; the report and the
+   ledger are continuous text, where a smaller fade is enough. */
+.table[data-scroll] {
+  --edge: var(--space-6);
+}
+
+[data-scroll~='up'] {
+  --edge-up: var(--edge);
+}
+
+[data-scroll~='down'] {
+  --edge-down: var(--edge);
+}
+
 /* ---------- Sheet ---------- */
 
 .sheet {
@@ -1305,10 +1350,17 @@ body {
 
 /* ---------- The overflow menu ---------- */
 
+/* The list scrolls, the way out does not. Letting the whole panel scroll put
+   Close three pixels under the fold at 375×667, so what sat at the bottom
+   edge under the thumb was "End the game" and "Restart" with no visible way
+   back. The panel is now the tall grid the timeline uses: head, a scrolling
+   list, and Close pinned below it on every screen. */
 .menu {
   display: grid;
   gap: 0;
+  min-height: 0;
   border-top: 1px solid var(--hairline);
+  overflow-y: auto;
 }
 
 .menu__item {
@@ -2718,8 +2770,12 @@ html[data-dawn] body {
   border-color: var(--fg-2);
 }
 
+/* The label is read in a dark room from a propped-up phone: --fg-muted
+   measured 3.3:1 against the day ground, under the 4.5 the design promises.
+   Ash carries it; the hierarchy against the digits is size and tracking,
+   which is the way the rest of the app separates a label from its figure. */
 .clock__label {
-  color: var(--fg-muted);
+  color: var(--fg-2);
   font-size: var(--text-xs);
   font-weight: 500;
   letter-spacing: var(--track-label);
@@ -2747,9 +2803,13 @@ html[data-dawn] body {
   color: var(--on-accent);
 }
 
+/* Nothing to reset yet. Disabled is exempt from the contrast rule, but
+   --fg-faint measured 1.7:1 and simply vanished in the dark, so the control
+   read as missing rather than as waiting; --fg-muted keeps it legible while
+   the dimmer hairline still says it is not ready. */
 .clock .icon-btn:disabled {
   border-color: var(--hairline);
-  color: var(--fg-faint);
+  color: var(--fg-muted);
   cursor: default;
 }
 
