@@ -54,8 +54,33 @@ export const familyVictim = (state: GameState): Player | null => {
 const nameOf = (state: GameState, id: PlayerId): string =>
   state.players.find((p) => p.id === id)?.name ?? '?'
 
+/**
+ * The board as tonight has already left it.
+ *
+ * A card that changes hands mid-night — the Associate picking a side, the
+ * Chameleon taking one from the centre — is rewritten by the resolver at
+ * "End the night", so until then the Associate who had just said out loud
+ * that he was staying with the town stayed dashed red and untargetable on
+ * the narrator's own table for the rest of the night, in front of the
+ * narrator who had been told otherwise. The choice sits in `pending` the
+ * instant it is tapped and `resolveNight` applies these before it does
+ * anything else, so reading them here says nothing that will not be true,
+ * only sooner.
+ */
+const withChosenRoles = (state: GameState): GameState => {
+  const swaps = state.pending.filter((a) => a.kind === 'chooseRole')
+  if (swaps.length === 0) return state
+  return {
+    ...state,
+    players: state.players.map((p) => {
+      const swap = swaps.find((s) => s.roleId === p.roleId)
+      return swap === undefined ? p : { ...p, roleId: swap.newRole }
+    }),
+  }
+}
+
 export const nightMarkup = (
-  state: GameState,
+  raw: GameState,
   locale: Locale,
   picked: readonly PlayerId[] = [],
   layout: Layout = 'circle',
@@ -64,8 +89,15 @@ export const nightMarkup = (
   phones: ReadonlySet<PlayerId> = new Set(),
 ): string => {
   const t = strings(locale)
-  const roleId = currentStep(state)
+  const roleId = currentStep(raw)
   if (roleId === null) return ''
+
+  // `doomedTonight` re-runs the resolver over `pending`, which applies the
+  // night's card changes itself; hand it the board that already has them and
+  // it would look for a card nobody is holding any more and find the wrong
+  // seat. It gets the state as recorded; everything below gets the board.
+  const doomed = roleId === 'MEDIC' ? doomedTonight(raw) : []
+  const state = withChosenRoles(raw)
 
   const role = ROLES[roleId]
   const roleStrings = t.roles[roleId]
@@ -73,7 +105,6 @@ export const nightMarkup = (
   const spec = role.target
 
   const eligible = targets.map((p) => p.id)
-  const doomed = roleId === 'MEDIC' ? doomedTonight(state) : []
   const victim = familyVictim(state)
 
   // The table as the acting player may see it, and that is the default: the
@@ -436,7 +467,7 @@ export const dayMarkup = (
       })}
 
       <div class="actions">
-        <button class="btn btn--primary" type="button" data-next-night>${esc(t.ui.day.nextNight)}</button>
+        <button class="btn ${voting ? 'btn--ghost' : 'btn--primary'}" type="button" data-next-night>${esc(t.ui.day.nextNight)}</button>
       </div>
     </section>
   `

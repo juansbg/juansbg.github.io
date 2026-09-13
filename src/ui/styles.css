@@ -630,7 +630,7 @@ body {
    ever ellipsed. */
 .seat__name {
   font-size: clamp(
-    0.75rem,
+    0.6875rem,
     min(calc(var(--seat) * 0.22), calc((var(--seat) - 8px) / (var(--len, 6) * 0.47))),
     1.125rem
   );
@@ -643,9 +643,17 @@ body {
 }
 
 .seat__role {
-  font-size: clamp(0.6875rem, calc((var(--seat) - 8px) / (var(--len, 8) * 0.66)), 0.75rem);
+  /* 0.66em is Plex Mono's advance; the label is tracked 0.04em on top of it,
+     and leaving that out meant the fitted size was always a shade too big —
+     which is how "Apothecary" came to be cut to "APOTHECA…" on a tile the
+     algebra thought it fitted. */
+  font-size: clamp(0.625rem, calc((var(--seat) - 8px) / (var(--len, 8) * 0.70)), 0.75rem);
   color: var(--fg-muted);
   letter-spacing: 0.04em;
+  /* Tracking is added after the last letter too, and on the tightest ring
+     that trailing sliver was the whole difference between a label and a
+     label with an ellipsis on it. */
+  margin-right: -0.04em;
   text-transform: uppercase;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -726,12 +734,20 @@ body {
   text-align: left;
 }
 
+/* The rows take the height the screen has rather than the list sitting as a
+   fixed block in the middle of it: at five or six players it came to less
+   than half a phone and the rest was flat Midnight. Six tenths of the
+   viewport shared between however many names there are, floored at the touch
+   target and capped where a row would stop reading as a line in a list — so
+   a big table on a short phone keeps the compact rows (and the scroll) it
+   has always had, and a small one fills the screen it was given. The markup
+   sets --rows. */
 .dealt__row {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--space-3);
-  min-height: var(--touch);
+  min-height: clamp(var(--touch), calc(60dvh / var(--rows, 8)), 5rem);
   padding: 0 var(--space-2);
   border-bottom: 1px solid var(--hairline);
 }
@@ -791,6 +807,8 @@ body {
   box-shadow: var(--shadow-deep);
   overflow-y: auto;
   animation: sheet-up var(--dur-base) var(--ease-out) both;
+  /* A drag that falls short of the threshold eases back into place. */
+  transition: transform var(--dur-fast) var(--ease-out);
 }
 
 .sheet__head {
@@ -799,11 +817,29 @@ body {
   justify-items: center;
 }
 
-/* The grab handle every phone sheet has; here it only says "this dismisses". */
+/* The grab handle every phone sheet has, and here it drags (`bindSheetDrag`).
+   The head is the grip, so the browser must not claim the gesture for a
+   scroll, and the panel it moves eases back when the drag falls short. */
+.sheet__head {
+  touch-action: none;
+  cursor: grab;
+}
+
+.sheet__head:active {
+  cursor: grabbing;
+}
+
 .sheet__handle {
   width: 2.5rem;
   height: 2px;
   background: var(--fg-2);
+}
+
+/* Ending the room cuts every phone and screen off, so it is not the button
+   that gets the narrator out of this sheet — Done above it is — and it reads
+   as what it does. */
+.room__end {
+  color: var(--danger);
 }
 
 .sheet__title {
@@ -822,6 +858,21 @@ body {
 
 @keyframes sheet-up {
   from { transform: translateY(100%); }
+}
+
+/* The sheets are wrapped so a paint can say whether they are new. The wrapper
+   is only a label: `display: contents` keeps it out of #app's two-row grid,
+   where an empty third box would push the bar into an implicit row. */
+.sheets {
+  display: contents;
+}
+
+/* Every paint rebuilds the document, so a sheet that was already up replayed
+   its entrance whenever a row inside it was touched. Same sheets as last
+   paint, no entrance. */
+.sheets[data-settled] .sheet,
+.sheets[data-settled] .sheet__panel {
+  animation-name: none;
 }
 
 .field {
@@ -1492,6 +1543,18 @@ body {
 
 @view-transition {
   navigation: auto;
+}
+
+/* The transition's snapshots sit in the top layer over the live document,
+   and they take the taps. The night steps repaint in single digits of
+   milliseconds, which invites a narrator to tap through a run of quiet steps
+   — and a second tap inside the 150ms fade went nowhere at all, leaving them
+   one step behind what they had just said aloud, with nothing to show for
+   it. Nothing here moves the page (the old fades out, the new fades in, both
+   in place), so letting the taps through puts them on the control the
+   narrator is looking at, in the place they are looking for it. */
+::view-transition {
+  pointer-events: none;
 }
 
 ::view-transition-old(root) {
@@ -3058,9 +3121,13 @@ html[data-dawn] body {
    --fg-faint measured 1.7:1 and simply vanished in the dark, so the control
    read as missing rather than as waiting; --fg-muted keeps it legible while
    the dimmer hairline still says it is not ready. */
+/* A clock at its full length has nothing to reset, so ↺ is disabled — but it
+   sits in the day head beside Roles and Morning, and at muted ink on the day
+   ground it measured under 3:1 and read as missing rather than as waiting.
+   The hairline is what says it is off; the ink stays legible. */
 .clock .icon-btn:disabled {
   border-color: var(--hairline);
-  color: var(--fg-muted);
+  color: var(--fg-2);
   cursor: default;
 }
 
@@ -3202,8 +3269,12 @@ html[data-dawn] body {
    colour: every seat is a name and a number unless the role itself knows
    better. Ledger on Midnight, like the inspect card, for the same reason. */
 
+/* Roles ⇄ Hide are different lengths, and the button resized on every tap,
+   shunting the whole header 11px sideways. The wider label sets the width for
+   both: 5 caps of Bebas at the display floor, plus the padding. */
 .icon-btn--word {
   width: auto;
+  min-width: 5.25rem;
   padding: 0 var(--space-3);
   font-family: var(--font-display);
   font-size: var(--text-display-min);
@@ -4284,6 +4355,19 @@ html[data-dawn] body {
   padding-top: var(--space-3);
 }
 
+/* Before the first name is typed there is no list, and the screen held its
+   whole composition at the top with a third of a phone of flat Midnight
+   under it — the first thing a narrator ever sees. With nothing to reserve
+   the room for, the block spreads over the height it has instead. The list
+   goes back to taking the free space the moment a name lands in it. */
+.screen--names:has(> .name-list[data-empty]) {
+  justify-content: space-evenly;
+}
+
+.name-list[data-empty] {
+  flex: 0 1 auto;
+}
+
 /* ---------- The big screen, from the names screen ---------- */
 
 /* The code the TV shows, typed here: five letters in the display face,
@@ -4341,7 +4425,13 @@ html[data-dawn] body {
 }
 
 /* The address in the hint is the way out for a TV pointed at the site's root. */
+/* A word inside a sentence, but still a link a narrator taps once with a
+   thumb: the slop takes the target to the 44px floor without moving the
+   sentence, since the padding is drawn outside the line box. */
 .screen-link {
+  display: inline-block;
+  padding: 0.9rem 0.25rem;
+  margin: -0.9rem -0.25rem;
   color: var(--fg);
   text-decoration: underline;
   text-underline-offset: 0.2em;

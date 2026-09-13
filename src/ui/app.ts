@@ -21,12 +21,13 @@ import {
   winner,
   withdrawVote,
   type PlayerSetup,
+  type Session,
   type TimelineEntry,
 } from '../engine/state'
 import type { NightAction, PlayerId } from '../engine/types'
 import { detectLocale, strings } from '../i18n'
 import { accentOf } from './accent'
-import { buzz, esc, markEdges, on, swap } from './dom'
+import { bindSheetDrag, buzz, esc, markEdges, on, swap } from './dom'
 import { sound, unlockOnGesture } from './sound'
 import { clear, clearRoster, clearStats, forgetGame, load, loadRoster, loadStats, loadTimer, recordGame, save, saveRoster, saveTimer, type AppState } from './store'
 import { statsMarkup } from './screens/stats'
@@ -436,7 +437,7 @@ let menuOpen = false
  * flashes a white system dialog, which in a dark room is a torch in the
  * face; this is the same question asked on our own sheet.
  */
-type Pending = 'restart' | 'newTable' | 'clearNames' | 'finish' | 'clearStats'
+type Pending = 'restart' | 'newTable' | 'clearNames' | 'finish' | 'clearStats' | 'nextNight'
 let confirming: Pending | null = null
 /** The browser's deferred install prompt, when it has offered one. */
 let installPrompt: InstallPromptEvent | null = null
@@ -467,6 +468,40 @@ let paperShot: string | null = null
  */
 let voting = false
 let voter: PlayerId | null = null
+
+const closeShot = (): void => {
+  if (paperShot !== null) URL.revokeObjectURL(paperShot)
+  paperShot = null
+}
+
+/**
+ * Puts away whatever sheet is up, and says whether there was one.
+ *
+ * The dimmed backdrop, a swipe on the sheet's handle and the Escape key are
+ * the same gesture — "not this" — so they are the same function. For the seat
+ * editor that is a cancel: nothing is saved until Save.
+ */
+const dismissSheets = (): boolean => {
+  const up = menuOpen || showingLog || picking || editing !== null
+    || confirming !== null || roomOpen || paperShot !== null
+  if (!up) return false
+  menuOpen = false
+  showingLog = false
+  picking = false
+  editing = null
+  confirming = null
+  roomOpen = false
+  closeShot()
+  return true
+}
+
+// A keyboard is not the narrator's phone, but a narrator running the game off
+// a laptop at the end of the table has one, and Escape closing nothing is the
+// sort of thing that reads as a page that has not been finished.
+window.addEventListener('keydown', (event) => {
+  if (event.key !== 'Escape') return
+  if (dismissSheets()) setState({}, false)
+})
 
 const leaveDay = (): void => {
   voting = false
@@ -579,6 +614,9 @@ const mutate = (
  */
 /** The seed of the game whose ending is already in the record, so a repaint does not write it again. */
 let recordedGame: number | null = null
+
+/** Which sheets were up on the last paint, so an open one is not re-animated. */
+let sheetsUp = ''
 
 function render(entering = false): void {
   const game = state.session.current
@@ -703,12 +741,36 @@ function render(entering = false): void {
   if (roomOpen) overlay += roomMarkup()
   if (paperShot !== null) overlay += shotMarkup(paperShot)
 
-  root.innerHTML = `<main class="stage"${entering ? ' data-enter' : ''}>${body}</main>${overlay}${chromeMarkup()}`
+  // A sheet slides up when it opens and then stays put. Every paint rebuilds
+  // the whole document, so an open sheet replayed its entrance each time the
+  // narrator touched a row inside it — which is most of what the menu is for.
+  // The same sheets up as last paint means the sheet is already where it
+  // belongs, so the entrance is switched off rather than replayed.
+  const sheetKey = [
+    editing !== null && 'edit',
+    picking && 'pick',
+    showingLog && 'log',
+    menuOpen && 'menu',
+    confirming !== null && `confirm:${confirming}`,
+    roomOpen && 'room',
+    paperShot !== null && 'shot',
+  ].filter(Boolean).join('+')
+  const settled = sheetKey !== '' && sheetKey === sheetsUp
+  sheetsUp = sheetKey
+  root.innerHTML = `<main class="stage"${entering ? ' data-enter' : ''}>${body}</main>`
+    + `<div class="sheets"${settled ? ' data-settled' : ''}>${overlay}</div>${chromeMarkup()}`
   bind()
   // A circle with no room for readable tiles becomes rows, before it is seen.
   fitTables(root)
   // ...and any region that ends up scrolling says so at the edge it clips.
   markEdges(root)
+  // The handle every sheet wears means what it says.
+  bindSheetDrag(root, () => {
+    if (dismissSheets()) {
+      buzz()
+      setState({}, false)
+    }
+  })
   syncTicker()
   // The TV follows every paint; the link sends one message per frame at most.
   publish()
@@ -748,7 +810,7 @@ function render(entering = false): void {
       <section class="screen screen--center screen--dealt">
         <h1 class="title title--sm">${esc(t.ui.reveal.dealt)}</h1>
         ${passed.length === 0 ? '' : `<p class="label">${esc(t.ui.reveal.looked(seen, passed.length))}</p>`}
-        <ul class="dealt">${rows}</ul>
+        <ul class="dealt" style="--rows: ${game.players.length}">${rows}</ul>
         <button class="btn btn--primary" type="button" data-begin>${esc(t.ui.reveal.beginFirstNight)}</button>
       </section>
     `
@@ -873,7 +935,8 @@ function render(entering = false): void {
         <p class="room__status" data-room-status>${esc(status)}</p>
         <p class="room__hint">${esc(r.secondScreen)}</p>
         <p class="room__url">${esc(tv)}</p>
-        <button class="btn btn--ghost" type="button" data-room-close>${esc(r.close)}</button>
+        <button class="btn btn--ghost" type="button" data-room-done>${esc(t.ui.common.done)}</button>
+        <button class="btn btn--ghost room__end" type="button" data-room-close>${esc(r.close)}</button>
       `
     } else {
       body = `
@@ -917,6 +980,7 @@ function render(entering = false): void {
       clearNames: { question: t.ui.setup.clearConfirm, action: t.ui.setup.clearNames },
       finish: { question: t.ui.menu.endGameConfirm, action: t.ui.over.finishNow },
       clearStats: { question: t.ui.stats.clearConfirm, action: t.ui.stats.clear },
+      nextNight: { question: t.ui.day.nextNightConfirm, action: t.ui.day.nextNight },
     }[pending]
     return `
       <div class="sheet" data-sheet>
@@ -1021,6 +1085,39 @@ const revealOrder = () =>
 let singleTarget: PlayerId | null = null
 
 /**
+ * The screen a rewound session belongs on.
+ *
+ * Undo and the timeline's rewind move the game underneath the screen, and the
+ * screen has to follow it. It did not: stepping back over the start of a
+ * night left `screen` on 'night' while the state beneath it was the setup the
+ * table had been dealt into, and an empty schedule makes `isNightComplete`
+ * vacuously true — so the narrator was shown an ordinary "the town sleeps /
+ * end the night" card for a night that had not begun, and tapping it resolved
+ * a night 0 and printed a morning report for events that never happened, with
+ * nothing on screen to say anything was wrong. The screen is not independent
+ * of the phase; derive it from the phase every time the session moves back.
+ *
+ * The one screen it will not choose is 'over': the ending is read to the town
+ * and the narrator arrives at the final page through the reading, so a rewind
+ * that happens to land on a won position stays on the board it rewound to.
+ */
+const screenFor = (session: Session): Partial<AppState> => {
+  const game = session.current
+  if (game.phase === 'day') return { screen: 'day' }
+  if (game.phase === 'night') return { screen: 'night' }
+  // Before the first night. With a table dealt, that is the screen the
+  // pass-around ended on, which offers the first night again; with no table,
+  // the names.
+  if (game.players.length === 0) return { screen: 'setup', revealIndex: 0 }
+  const phones = seatedFromPhones()
+  return {
+    screen: 'reveal',
+    revealMode: 'onboarding',
+    revealIndex: game.players.filter((p) => !phones.has(p.id)).length,
+  }
+}
+
+/**
  * The seats whose card was actually held on this device, this deal.
  *
  * Local on purpose: it is not a fact about the game, it is what this phone
@@ -1037,9 +1134,11 @@ const held = new Set<PlayerId>()
 function bind(): void {
   const game = state.session.current
 
+  // Every other row in the menu can be changed with the sheet still open —
+  // mute, layout, the clock's length — so the one that closed it read as a
+  // different, less considered control. It relabels itself in place instead.
   on(root, '[data-lang]', 'click', () => {
-    menuOpen = false
-    setState({ locale: state.locale === 'es' ? 'en' : 'es' })
+    setState({ locale: state.locale === 'es' ? 'en' : 'es' }, false)
   })
 
   on(root, '[data-menu]', 'click', () => {
@@ -1052,17 +1151,20 @@ function bind(): void {
     setState({}, false)
   })
 
-  // Tapping the dimmed backdrop closes whichever sheet is up. For the editor
-  // that is a cancel: nothing is saved until Save.
+  // Tapping the dimmed backdrop closes whichever sheet is up.
   on(root, '[data-sheet]', 'click', (event, el) => {
     if (event.target !== el) return
-    menuOpen = false
-    showingLog = false
-    picking = false
-    editing = null
-    confirming = null
+    dismissSheets()
+    setState({}, false)
+  })
+
+  // The way out of the room sheet that does not end the room. Mid-game the
+  // sheet is the only place the code is written, so it stays up until the
+  // narrator is done reading it out — but "Close the room" was the only
+  // labelled button on it, and it reads exactly like an ordinary dismiss
+  // while actually cutting every phone and screen off.
+  on(root, '[data-room-done]', 'click', () => {
     roomOpen = false
-    closeShot()
     setState({}, false)
   })
 
@@ -1070,11 +1172,6 @@ function bind(): void {
     closeShot()
     setState({}, false)
   })
-
-  function closeShot(): void {
-    if (paperShot !== null) URL.revokeObjectURL(paperShot)
-    paperShot = null
-  }
 
   // See it take, close the sheet yourself — like the layout row.
   on(root, '[data-mute]', 'click', () => {
@@ -1106,6 +1203,7 @@ function bind(): void {
     else if (pending === 'newTable') startOver({ forgetPeople: true })
     else if (pending === 'clearNames') clearNames()
     else if (pending === 'finish') finish()
+    else if (pending === 'nextNight') nextNight()
     else if (pending === 'clearStats') {
       clearStats()
       setState({}, false)
@@ -1759,7 +1857,7 @@ function bind(): void {
     const session = revertTo(state.session, index)
     buzz()
     leaveDay()
-    setState({ session, screen: session.current.phase === 'day' ? 'day' : 'night' })
+    setState({ session, ...screenFor(session) })
   })
 
   on(root, '[data-skip]', 'click', () => {
@@ -1775,8 +1873,12 @@ function bind(): void {
     picked = []
     showingPlayer = false
     peeking = false
+    inspecting = null
     buzz()
-    setState({ session: undo(state.session) })
+    const session = undo(state.session)
+    // Stepping back out of the night takes the day's own controls with it.
+    if (session.current.phase !== 'day') leaveDay()
+    setState({ session, ...screenFor(session) })
   })
 
   on(root, '[data-resolve]', 'click', () => {
@@ -1918,11 +2020,21 @@ function bind(): void {
   })
   on(root, '[data-stats-clear]', 'click', () => ask('clearStats'))
 
+  // The primary button sits directly under the seats the narrator is tapping
+  // to record the vote, and the night takes those votes with it — so a
+  // mistap there threw away a count the town had already given. Anything
+  // recorded asks first, on the same sheet as every other move that cannot
+  // be taken back by tapping again.
   on(root, '[data-next-night]', 'click', () => {
-    leaveDay()
-    mutate(startNight, { night: game.night + 1, kind: 'nightStart' })
-    setState({ screen: 'night' })
+    if (game.votes.length > 0) ask('nextNight')
+    else nextNight()
   })
+
+  function nextNight(): void {
+    leaveDay()
+    mutate(startNight, { night: state.session.current.night + 1, kind: 'nightStart' })
+    setState({ screen: 'night' })
+  }
 
   // ---- The vote ----
   // Two taps a vote: the voter, then their pick; the voter again takes it

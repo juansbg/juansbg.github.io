@@ -119,7 +119,7 @@ export const namesMarkup = (
       </form>
       <p class="field__hint">${esc(t.ui.setup.addHint)}</p>
 
-      <ul class="name-list fill">${chips}</ul>
+      <ul class="name-list fill"${names.length === 0 ? ' data-empty' : ''}>${chips}</ul>
 
       <div class="actions">
         <button class="btn btn--primary" type="button" data-names-done ${enough ? '' : 'disabled'}>

@@ -265,6 +265,7 @@ export const en: Strings = {
       whoDies: 'Who does the town execute?',
       nobody: 'Nobody dies today',
       nextNight: 'Night falls',
+      nextNightConfirm: 'The town has votes recorded and nobody has been executed. Night falls anyway?',
       silencedToday: (name) => `${name} cannot speak or vote today`,
       morning: 'Morning',
       votes: 'Votes',

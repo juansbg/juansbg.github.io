@@ -260,6 +260,8 @@ export interface Strings {
       whoDies: string
       nobody: string
       nextNight: string
+      /** Asked before the night takes a vote the town has started but not finished. */
+      nextNightConfirm: string
       silencedToday: (name: string) => string
       /** The one word button on the day head: replays the reading and lands on the paper. */
       morning: string

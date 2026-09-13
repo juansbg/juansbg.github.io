@@ -140,3 +140,57 @@ export const on = <K extends keyof HTMLElementEventMap>(
     })
   })
 }
+
+/**
+ * Swipe a sheet down to put it away.
+ *
+ * Every sheet in the app wears the grab handle a phone user reads as "drag
+ * me", and none of them could be dragged: the one gesture everybody tries
+ * first did nothing, anywhere. The handle is not decoration, so it is wired
+ * rather than removed — the narrator is one-handed in the dark, and a thumb
+ * already resting at the bottom of the screen should not have to travel to a
+ * Close button.
+ *
+ * The gesture lives on the sheet's head, never on its body: the panels
+ * scroll, and a drag that fought the scroll would be worse than no drag. Call
+ * it after every paint, like `markEdges`; the elements are new each time and
+ * the listeners go with them.
+ */
+export const bindSheetDrag = (root: ParentNode, dismiss: () => void): void => {
+  root.querySelectorAll<HTMLElement>('.sheet__head').forEach((head) => {
+    const panel = head.closest<HTMLElement>('.sheet__panel')
+    if (panel === null) return
+    let from: number | null = null
+
+    const settle = (): void => {
+      from = null
+      panel.style.removeProperty('transform')
+      panel.style.removeProperty('transition')
+    }
+
+    head.addEventListener('pointerdown', (event) => {
+      from = event.clientY
+      panel.style.transition = 'none'
+      head.setPointerCapture(event.pointerId)
+    })
+
+    head.addEventListener('pointermove', (event) => {
+      if (from === null) return
+      // Down only: an upward drag on a sheet that is already at the top of
+      // its travel should not lift it off the bottom edge.
+      panel.style.transform = `translateY(${Math.max(0, event.clientY - from)}px)`
+    })
+
+    head.addEventListener('pointerup', (event) => {
+      if (from === null) return
+      // A quarter of the panel, and never more than a thumb's reach: a tall
+      // sheet must not need a longer gesture than a short one.
+      const far = Math.min(panel.offsetHeight * 0.25, 96)
+      const gone = event.clientY - from > far
+      settle()
+      if (gone) dismiss()
+    })
+
+    head.addEventListener('pointercancel', settle)
+  })
+}
