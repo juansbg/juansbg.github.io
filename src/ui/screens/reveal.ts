@@ -40,6 +40,15 @@ export interface RevealProps {
   locale: Locale
   mode: 'onboarding' | 'single'
   canGoBack: boolean
+  /**
+   * Whether this seat has already held its card. Until it has, Done is a
+   * ghost: on the confirm screen the brightest control used to be "Done —
+   * pass the phone", so the eye of a first-timer handed the phone went to
+   * the one button that ends their turn without a look.
+   */
+  seen: boolean
+  /** Which way the phone is travelling, so the name arrives from that side. */
+  dir: 'next' | 'back'
 }
 
 export const revealMarkup = (props: RevealProps): string => {
@@ -52,18 +61,24 @@ export const revealMarkup = (props: RevealProps): string => {
       : ''
 
   if (phase === 'handoff') {
-    const back = props.canGoBack
-      ? `<button class="btn btn--ghost" type="button" data-reveal-back>${esc(t.ui.common.back)}</button>`
-      : ''
+    // Onboarding can step back through the table; single mode came from a
+    // screen and must be able to go back to it, since picking the wrong name
+    // otherwise left the narrator confirming an identity to escape.
+    const away =
+      props.mode === 'single'
+        ? `<button class="btn btn--ghost" type="button" data-reveal-cancel>${esc(t.ui.common.cancel)}</button>`
+        : props.canGoBack
+          ? `<button class="btn btn--ghost" type="button" data-reveal-back>${esc(t.ui.common.back)}</button>`
+          : ''
 
     return `
-      <section class="reveal reveal--handoff" data-phase="handoff">
+      <section class="reveal reveal--handoff" data-phase="handoff" data-dir="${props.dir}">
         ${progress}
         <p class="reveal__lead">${esc(t.ui.reveal.passTo(player.name))}</p>
         <button class="btn btn--primary reveal__advance" type="button" data-confirm>
           ${esc(t.ui.reveal.areYou(player.name))}
         </button>
-        ${back}
+        ${away}
       </section>
     `
   }
@@ -80,25 +95,49 @@ export const revealMarkup = (props: RevealProps): string => {
       </div>
 
       <div class="reveal__controls">
-        <button class="reveal__hold" type="button" data-hold
-                style="--hold-ms: ${HOLD_MS}ms">
-          <span class="reveal__fill" data-fill aria-hidden="true"></span>
-          <span class="reveal__hold-label" data-hold-label>${esc(t.ui.reveal.holdToReveal)}</span>
-        </button>
-        <button class="reveal__question" type="button" data-question
-                ${player.hasQuestion ? 'data-on' : ''}>
-          ${esc(player.hasQuestion ? t.ui.reveal.questionMarked : t.ui.reveal.hasQuestion)}
-        </button>
+        ${holdMarkup(t.ui.reveal, props.seen)}
+        <div class="reveal__flag">
+          <button class="reveal__question" type="button" data-question
+                  ${player.hasQuestion ? 'data-on' : ''}>
+            ${esc(player.hasQuestion ? `✓ ${t.ui.reveal.questionNoted}` : t.ui.reveal.hasQuestion)}
+          </button>
+          ${player.hasQuestion ? `<p class="reveal__note">${esc(t.ui.reveal.questionMarked)}</p>` : ''}
+        </div>
         <div class="actions actions--row">
           <button class="btn btn--ghost" type="button" data-back>${esc(t.ui.common.back)}</button>
-          <button class="btn btn--primary" type="button" data-reveal-next>
-            ${esc(t.ui.reveal.doneViewing)}
+          <button class="btn ${props.seen ? 'btn--primary' : 'btn--ghost'}" type="button" data-reveal-next>
+            ${esc(props.mode === 'single' ? t.ui.common.done : t.ui.reveal.doneViewing)}
           </button>
         </div>
       </div>
     </section>
   `
 }
+
+/**
+ * The charge button.
+ *
+ * The three labels travel on the element, so `bindHold` can flip them
+ * without knowing a locale and the players' phones get the same behaviour
+ * from the same markup. Before, the label read "Press and hold to see your
+ * role" before, during and after the card was up, and the only sign the
+ * gesture had started was a 4px rule along the bottom edge, half of it under
+ * the thumb: a tapper saw nothing and tapped again.
+ *
+ * A seat that has already looked rests on the released line rather than the
+ * invitation, so the sentence the gesture ends on survives the repaint that
+ * hands Done its Ledger.
+ */
+export const holdMarkup = (r: ReturnType<typeof strings>['ui']['reveal'], seen: boolean): string => `
+  <button class="reveal__hold" type="button" data-hold${seen ? '' : ' data-lead'}
+          style="--hold-ms: ${HOLD_MS}ms"
+          data-hold-idle="${esc(r.holdToReveal)}"
+          data-hold-holding="${esc(r.keepHolding)}"
+          data-hold-done="${esc(r.released)}">
+    <span class="reveal__fill" data-fill aria-hidden="true"></span>
+    <span class="reveal__hold-label" data-hold-label>${esc(seen ? r.released : r.holdToReveal)}</span>
+  </button>
+`
 
 /**
  * The card shown while the finger is down. Injected, never pre-rendered.
@@ -109,9 +148,15 @@ export const revealMarkup = (props: RevealProps): string => {
  *
  * A citizen's trade is the second line, right under the role and as bold
  * as it: "CITIZEN / BAKER" is what the player must walk away knowing, so
- * it is never a footnote. The brief is all the rules the card carries;
- * the fuller `detail` is the narrator's, read to a player who flags a
- * question, and stays off the card so it cannot be cut off on a short phone.
+ * it is never a footnote.
+ *
+ * The role takes its `card` name, without the article: the card belongs to
+ * one named person, and "EL CIUDADANO" read as a statement about her rather
+ * than as the title of the card.
+ *
+ * The brief is all the rules the card carries; the fuller `detail` is the
+ * narrator's, read to a player who flags a question, and stays off the card
+ * so it cannot be cut off on a short phone.
  */
 export const roleCardMarkup = (player: Player, locale: Locale): string => {
   const t = strings(locale)
@@ -124,7 +169,7 @@ export const roleCardMarkup = (player: Player, locale: Locale): string => {
       <p class="reveal__owner">${esc(player.name)}</p>
       <p class="reveal__label">${esc(t.ui.reveal.yourRole)}</p>
       <span class="reveal__sigil">${sigilMarkup(player.roleId)}</span>
-      <h2 class="reveal__role">${esc(roleStrings.name)}</h2>
+      <h2 class="reveal__role">${esc(roleStrings.card)}</h2>
       ${player.trade !== null ? `<p class="reveal__trade">${esc(t.trades[player.trade] ?? '')}</p>` : ''}
       <p class="reveal__team" data-team="${role.team}">${esc(team)}</p>
       <p class="reveal__prompt">${esc(roleStrings.brief)}</p>
@@ -153,6 +198,15 @@ export const bindHold = (
   const button = root.querySelector<HTMLElement>('[data-hold]')
   if (!button) return () => {}
 
+  // The label says what the gesture is doing. The three lines ride on the
+  // button so this stays free of a locale, and a button without them (an
+  // older markup) simply keeps whatever label it was given.
+  const label = button.querySelector<HTMLElement>('[data-hold-label]')
+  const say = (key: 'idle' | 'holding' | 'done'): void => {
+    const next = button.dataset[`hold${key[0]!.toUpperCase()}${key.slice(1)}`]
+    if (label && next !== undefined) label.textContent = next
+  }
+
   let timer: ReturnType<typeof setTimeout> | null = null
   let revealed = false
   let charging = false
@@ -162,6 +216,7 @@ export const bindHold = (
     if (charging || revealed) return
     charging = true
     button.setAttribute('data-charging', '')
+    say('holding')
     buzz(8)
 
     timer = setTimeout(() => {
@@ -179,12 +234,25 @@ export const bindHold = (
       clearTimeout(timer)
       timer = null
     }
+    // A lift fires this twice — once on the button, once on the window that
+    // catches a finger dragged off it — so a gesture that is already over
+    // must fall straight through. Without the guard the second call read as
+    // a release that revealed nothing and wrote the idle label back over
+    // "Hidden. Hand the phone back." the first had just set.
+    const wasRevealed = revealed
+    if (!charging && !wasRevealed) return
     charging = false
     button.removeAttribute('data-charging')
 
-    if (!revealed) return
+    if (!wasRevealed) {
+      // Lifted before the card came: nothing was shown, so the invitation
+      // stands rather than claiming anything was hidden.
+      say('idle')
+      return
+    }
     revealed = false
     button.removeAttribute('data-revealed')
+    say('done')
     onHide()
   }
 

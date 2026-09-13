@@ -32,6 +32,8 @@ const markup = (phase: RevealPhase, roleId: RoleId = 'KILLER') =>
     locale: 'en',
     mode: 'onboarding',
     canGoBack: false,
+      seen: false,
+      dir: 'next' as const,
   })
 
 describe('the reveal never leaks a role early', () => {
@@ -49,8 +51,10 @@ describe('the reveal never leaks a role early', () => {
           locale,
           mode: 'onboarding',
           canGoBack: false,
+      seen: false,
+      dir: 'next' as const,
         })
-        expect(html, `${locale}/${roleId}`).not.toContain(strings(locale).roles[roleId].name)
+        expect(html, `${locale}/${roleId}`).not.toContain(strings(locale).roles[roleId].card)
         expect(html).not.toContain(strings(locale).roles[roleId].prompt)
       }
     }
@@ -58,7 +62,7 @@ describe('the reveal never leaks a role early', () => {
 
   it('shows no role name while confirming identity', () => {
     const html = markup('confirm', 'CONVERT')
-    expect(html).not.toContain(strings('en').roles.CONVERT.name)
+    expect(html).not.toContain(strings('en').roles.CONVERT.card)
     expect(html).not.toContain(strings('en').roles.CONVERT.prompt)
   })
 
@@ -78,7 +82,7 @@ describe('the reveal never leaks a role early', () => {
 describe('the revealed card', () => {
   it('shows role, team and what it does', () => {
     const html = roleCardMarkup(player('MEDIC'), 'en')
-    expect(html).toContain(strings('en').roles.MEDIC.name)
+    expect(html).toContain(strings('en').roles.MEDIC.card)
     expect(html).toContain(strings('en').roles.MEDIC.brief)
     expect(html).toContain(strings('en').ui.reveal.teamTown)
   })
@@ -95,11 +99,13 @@ describe('the revealed card', () => {
     const card = roleCardMarkup(citizen, locale)
     expect(card).toContain(esc(t.trades[3]!))
     // The role's line and the trade's line, one after the other.
-    expect(card).toMatch(new RegExp('reveal__role">' + t.roles.PLAIN.name + '</h2>\\s*<p class="reveal__trade">' + esc(t.trades[3]!)))
+    expect(card).toMatch(new RegExp('reveal__role">' + t.roles.PLAIN.card + '</h2>\\s*<p class="reveal__trade">' + esc(t.trades[3]!)))
     expect(roleCardMarkup(player('INSPECT'), locale)).not.toContain('reveal__trade')
     for (const phase of ['handoff', 'confirm'] as const) {
       const before = revealMarkup({
         player: citizen, position: 1, total: 3, phase, locale, mode: 'onboarding', canGoBack: false,
+      seen: false,
+      dir: 'next' as const,
       })
       expect(before, `${locale}/${phase}`).not.toContain(esc(t.trades[3]!))
     }
@@ -123,7 +129,7 @@ describe('the revealed card', () => {
     // itself must still carry nothing.
     const confirm = markup('confirm', 'KILLER')
     expect(confirm).toContain('data-card')
-    expect(confirm).not.toContain(strings('en').roles.KILLER.name)
+    expect(confirm).not.toContain(strings('en').roles.KILLER.card)
   })
 
   it('escapes player names rather than trusting them as markup', () => {
@@ -135,6 +141,8 @@ describe('the revealed card', () => {
       locale: 'en',
       mode: 'onboarding',
       canGoBack: false,
+      seen: false,
+      dir: 'next' as const,
     })
     expect(html).not.toContain('<img')
     expect(html).toContain('&lt;img')

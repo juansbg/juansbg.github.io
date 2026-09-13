@@ -73,6 +73,7 @@ const SCROLLERS = [
   '.ledger',
   '.paper',
   '.name-list',
+  '.dealt',
   '.menu',
   '.reveal__card',
   '.inspect__scroll',

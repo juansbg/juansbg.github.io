@@ -100,8 +100,8 @@ const checkTv = (state: GameState, locale: Locale, sealed: boolean): void => {
     // The faction is public ("The Family wins", "the Family came for…"); its members are not.
     if (ROLES[player.roleId].team === 'crew') continue
     const tvWinner = p.winner === null ? '' : (renderWinner(p.winner, locale) ?? '')
-    if (tvWinner.includes(t.roles[player.roleId].name)) continue
-    forbid(html, t.roles[player.roleId].name, `tv names 's role`)
+    if (tvWinner.includes(t.roles[player.roleId].card)) continue
+    forbid(html, t.roles[player.roleId].card, `tv names 's role`)
   }
   for (const player of state.players) {
     if (player.alive) expect(html, `${player.name} shown dead`).not.toMatch(new RegExp(`data-dead[^>]*>[^<]*<[^>]*>[^<]*<[^>]*>${player.name}<`))
@@ -189,17 +189,20 @@ const checkSeats = (state: GameState, locale: Locale): void => {
     // §10): the step being read is on every phone, since the narrator says it
     // aloud; the centre's cards are on the Chameleon's at his step; the card
     // the Detective looked at is on his for the rest of the night.
+    // Every check below names the role by its `card` string, the display name
+    // without the article. It is a substring of the full name, so forbidding
+    // it forbids both forms: the checks got stricter, not looser.
     const spoken = new Set<string>()
-    if (p.tonight?.step) spoken.add(t.roles[p.tonight.step].name)
-    for (const id of p.tonight?.spare ?? []) spoken.add(t.roles[id].name)
-    if (p.tonight?.looked) spoken.add(t.roles[p.tonight.looked.roleId].name)
+    if (p.tonight?.step) spoken.add(t.roles[p.tonight.step].card)
+    for (const id of p.tonight?.spare ?? []) spoken.add(t.roles[id].card)
+    if (p.tonight?.looked) spoken.add(t.roles[p.tonight.looked.roleId].card)
     // A phone that sees the Family is the Family's: the faction's name (the
     // killers' card is named for it) may be on it, as on the held card.
-    if ((p.tonight?.view.crew.length ?? 0) > 0) spoken.add(t.roles.KILLER.name)
+    if ((p.tonight?.view.crew.length ?? 0) > 0) spoken.add(t.roles.KILLER.card)
     // Nobody else's role or trade, unless it happens to be the same as mine.
     for (const other of state.players) {
       if (other.id === me.id) continue
-      const otherRole = t.roles[other.roleId].name
+      const otherRole = t.roles[other.roleId].card
       if (other.roleId !== me.roleId && !winnerLine.includes(otherRole) && !spoken.has(otherRole)) {
         forbid(html, otherRole, `'s phone names 's role`)
       }
@@ -210,11 +213,11 @@ const checkSeats = (state: GameState, locale: Locale): void => {
     }
     // The screen itself never shows my role either; only the held card does —
     // unless it is the step being read, which every phone shows alike.
-    if (!winnerLine.includes(t.roles[me.roleId].name) && !spoken.has(t.roles[me.roleId].name)) {
-      expect(html, `'s role is on screen without a hold`).not.toContain(t.roles[me.roleId].name)
+    if (!winnerLine.includes(t.roles[me.roleId].card) && !spoken.has(t.roles[me.roleId].card)) {
+      expect(html, `'s role is on screen without a hold`).not.toContain(t.roles[me.roleId].card)
     }
     const card = roleCardMarkup(seatPlayer(p), locale)
-    expect(card).toContain(t.roles[me.roleId].name)
+    expect(card).toContain(t.roles[me.roleId].card)
     if (me.roleId === 'PLAIN' && me.trade !== null) expect(card).toContain(t.trades[me.trade]!)
     // A converted citizen keeps their trade on the card; anyone dealt a role has none.
     if (me.trade === null) expect(card).not.toContain('reveal__trade')
@@ -234,7 +237,7 @@ const checkReadings = (state: GameState, locale: Locale): void => {
       // A death line names its cause by role — the Family, the Apothecary's poison, the Gunman's
       // shot, the Binding's heartbreak — by design: the cause is public, the hand is not.
       if (ROLES[player.roleId].team === 'crew' || (['MEDIC', 'AVENGE', 'PAIR'] as RoleId[]).includes(player.roleId)) continue
-      const roleName = t.roles[player.roleId].name
+      const roleName = t.roles[player.roleId].card
       // A card the Chameleon took names a role nobody living holds; a living
       // player's role must never be read aloud.
       if (player.alive && !state.players.some((o) => o.id !== player.id && !o.alive && o.roleId === player.roleId)) {

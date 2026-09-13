@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { dayMarkup, legalTargets, nightMarkup, picksNeeded, playerViewMarkup, questionCardMarkup, questionsIntroMarkup } from './night'
+import { askCardMarkup, dayMarkup, legalTargets, nightMarkup, picksNeeded, playerViewMarkup, questionCardMarkup, questionsIntroMarkup } from './night'
 import { castVote, createGame, startNight, type PlayerSetup } from '../../engine/state'
 import { LOCALES, strings } from '../../i18n'
 import { ROLE_IDS, type RoleId } from '../../engine/roles'
@@ -177,14 +177,31 @@ describe('the questions round', () => {
   const game = createGame(setup(['MEDIC', 'KILLER', 'PLAIN']))
   const player = { ...game.players[0]!, name: 'Eva', hasQuestion: true }
 
-  it('shows the role, both explanations and a way to mark it answered', () => {
+  it('names who it is for and keeps the role behind the hold', () => {
     const html = questionCardMarkup(player, 'en', 1, 2)
     expect(html).toContain('Eva')
-    expect(html).toContain(strings('en').roles.MEDIC.name)
-    expect(html).toContain(strings('en').roles.MEDIC.brief)
-    expect(html).toContain(strings('en').roles.MEDIC.detail)
+    expect(html).toContain('data-hold')
     expect(html).toContain('data-question-done')
     expect(html).toContain(strings('en').ui.night.stepCounter(1, 2))
+    // The phone is handed to a player: a card on the screen without a hold
+    // can be left face up, handed on still showing, or photographed.
+    for (const locale of LOCALES) {
+      const screen = questionCardMarkup({ ...player, roleId: 'MEDIC' }, locale, 1, 2)
+      expect(screen, locale).not.toContain(strings(locale).roles.MEDIC.card)
+      expect(screen, locale).not.toContain(strings(locale).roles.MEDIC.brief)
+      expect(screen, locale).not.toContain(strings(locale).roles.MEDIC.detail)
+      expect(screen, locale).not.toContain(strings(locale).ui.reveal.teamTown)
+    }
+  })
+
+  it('puts the role, the side and both explanations on the held card', () => {
+    for (const locale of LOCALES) {
+      const card = askCardMarkup(player, locale)
+      const t = strings(locale)
+      expect(card, locale).toContain(t.roles.MEDIC.card)
+      expect(card, locale).toContain(t.roles.MEDIC.brief)
+      expect(card, locale).toContain(t.roles.MEDIC.detail)
+    }
   })
 
   it('escapes the player name', () => {

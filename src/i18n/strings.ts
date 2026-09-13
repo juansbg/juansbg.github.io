@@ -17,6 +17,14 @@ export const APP_NAME = 'The Family'
 export interface RoleStrings {
   /** Display name, e.g. "El Padrino". */
   name: string
+  /**
+   * The name as it goes on the card one named person is holding, without the
+   * article: "PADRINO", not "EL PADRINO". The article turns a card title into
+   * a sentence about its holder, and in Spanish a gendered one — half the
+   * table read "EL CIUDADANO" on their own card. The narrator's read-aloud
+   * lines keep the article, since they are sentences.
+   */
+  card: string
   /** What the narrator does at this role's step. Third person, to the narrator. */
   prompt: string
   /** What the player reads on their own reveal card. Second person, to them. */
@@ -165,12 +173,20 @@ export interface Strings {
       sideCrew: string
       released: string
       allSeen: string
+      /** The title after the deal: what the app actually knows. */
+      dealt: string
+      /** How many of the seats the phone travelled to have held their card. */
+      looked: (seen: number, total: number) => string
+      /** The tick beside a name that has. */
+      seenCard: string
       beginFirstNight: string
       showAgain: string
       doneViewing: string
       pickPlayer: string
       hasQuestion: string
       hasQuestions: string
+      /** The flag button's own label once it is on: short, a state not a sentence. */
+      questionNoted: string
       questionMarked: string
       /** The private round before night one for players who flagged a question. */
       questionsRound: string

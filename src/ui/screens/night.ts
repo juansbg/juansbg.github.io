@@ -8,6 +8,7 @@ import { strings, type Locale } from '../../i18n'
 import { accentOf } from '../accent'
 import { sigilMarkup } from '../sigils'
 import { esc } from '../dom'
+import { holdMarkup } from './reveal'
 import { circleMarkup, holdersOf, type CircleOptions, type Perspective } from './circle'
 import { timerMarkup, type TimerView } from './timer'
 import { tallyMarkup, voteChoices, voteCounts, type VoteMode } from './vote'
@@ -482,19 +483,47 @@ export const questionCardMarkup = (
   total: number | null = null,
 ): string => {
   const t = strings(locale)
-  const role = ROLES[subject.roleId]
-  const r = t.roles[subject.roleId]
   const progress =
     position !== null && total !== null
       ? `<p class="reveal__progress">${esc(t.ui.night.stepCounter(position, total))}</p>`
       : ''
 
+  // The card itself goes in behind the hold, never on the screen: the
+  // narrator hands this phone to a player, and a tap-to-see card can be left
+  // face up, handed on still showing, or photographed. The hold is the same
+  // gesture, and the same security model, as the pass-around's.
   return `
-    <section class="screen screen--inspect screen--ask" data-ask-card>
-      ${progress}
+    <section class="screen screen--inspect screen--ask" data-ask-card data-reveal-root>
+      <div class="reveal__stage">
+        <div class="reveal__slot" data-card></div>
+        <div class="reveal__idle" data-idle>
+          ${progress}
+          <p class="inspect__who">${esc(subject.name)}</p>
+          <p class="reveal__hint">${esc(t.ui.reveal.shieldScreen)}</p>
+        </div>
+      </div>
+      <div class="reveal__controls">
+        ${holdMarkup(t.ui.reveal, false)}
+        <button class="btn btn--primary" type="button" data-question-done>${esc(t.ui.reveal.clearFlag)}</button>
+      </div>
+    </section>
+  `
+}
+
+/**
+ * What the player reads while the finger is down: their role, their side and
+ * both explanations. The fuller `detail` lives here and nowhere else — it is
+ * the answer to the question they flagged.
+ */
+export const askCardMarkup = (subject: Player, locale: Locale): string => {
+  const t = strings(locale)
+  const role = ROLES[subject.roleId]
+  const r = t.roles[subject.roleId]
+  return `
+    <div class="reveal__card inspect__card">
       <p class="inspect__who">${esc(subject.name)}</p>
       <span class="inspect__sigil">${sigilMarkup(subject.roleId)}</span>
-      <h1 class="inspect__role inspect__role--ask">${esc(r.name)}</h1>
+      <h1 class="inspect__role inspect__role--ask">${esc(r.card)}</h1>
       <p class="inspect__team" data-team="${role.team}">
         ${esc(role.team === 'crew' ? t.ui.reveal.teamCrew : t.ui.reveal.teamTown)}
       </p>
@@ -502,8 +531,7 @@ export const questionCardMarkup = (
         <p class="inspect__brief">${esc(r.brief)}</p>
         <p class="inspect__detail">${esc(r.detail)}</p>
       </div>
-      <button class="btn btn--primary" type="button" data-question-done>${esc(t.ui.reveal.clearFlag)}</button>
-    </section>
+    </div>
   `
 }
 

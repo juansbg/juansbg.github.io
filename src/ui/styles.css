@@ -209,7 +209,7 @@ body {
    the menu, a toggle — and must not replay them: the table would bounce into
    place on every tap. Sheets and the dawn slides are not in this list; they
    are new things each time. */
-.stage:not([data-enter]) :is(.screen, .seat, .card, .report__card, .name-chip, .paper__article, .inspect__role) {
+.stage:not([data-enter]) :is(.screen, .seat, .card, .report__card, .name-chip, .paper__article, .inspect__role, .reveal__lead, .reveal__advance, .reveal__controls) {
   animation-name: none;
 }
 
@@ -698,6 +698,68 @@ body {
   --edge-down: var(--edge);
 }
 
+/* ---------- After the deal: who has actually looked ---------- */
+
+/* The screen the pass-around ends on. It is a roster, not a claim: a tick
+   against a seat that held its card on this phone, "on their phone" against
+   a seat that has its own, and nothing at all against a seat that has not
+   looked — which is the one the narrator reads aloud before starting. */
+.screen--dealt {
+  justify-content: center;
+}
+
+.dealt {
+  display: grid;
+  gap: 0;
+  width: 100%;
+  min-height: 0;
+  max-width: 22rem;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--hairline);
+  list-style: none;
+  overflow-y: auto;
+  text-align: left;
+}
+
+.dealt__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: var(--touch);
+  padding: 0 var(--space-2);
+  border-bottom: 1px solid var(--hairline);
+}
+
+/* Bebas, like every other name in the app. A seat that has not looked is
+   the quiet one, so the narrator's eye lands on it. */
+.dealt__name {
+  color: var(--fg-muted);
+  font-family: var(--font-display);
+  font-size: var(--text-lg);
+  letter-spacing: var(--track-display);
+}
+
+.dealt__row[data-seen] .dealt__name,
+.dealt__row[data-phone] .dealt__name {
+  color: var(--fg);
+}
+
+.dealt__mark {
+  flex: none;
+  color: var(--fg-2);
+  font-size: var(--text-sm);
+}
+
+.dealt__note {
+  flex: none;
+  color: var(--fg-muted);
+  font-size: var(--text-xs);
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+}
+
 /* ---------- Sheet ---------- */
 
 .sheet {
@@ -1180,8 +1242,8 @@ body {
 
 .reveal__progress {
   margin: 0;
-  color: var(--fg-faint);
-  font-size: var(--text-xs);
+  color: var(--fg-muted);
+  font-size: var(--text-sm);
   letter-spacing: var(--track-label);
 }
 
@@ -1525,15 +1587,18 @@ body.is-revealing .bar {
 }
 
 /* A Vendetta rule along the bottom edge that fills left to right. */
+/* The charge is the button filling, not a rule along its bottom edge: at 4px
+   and half under the thumb, the only sign the gesture had started was
+   invisible to the person making it, so a tapper tapped again. A Ledger wash
+   sweeps across with a solid leading edge — Ledger because Vendetta is for
+   blood, the crew and the button that kills, and a progress bar is none of
+   those — and the wash stays light enough to read the label through. */
 .reveal__fill {
   position: absolute;
-  inset: auto 0 0 0;
-  height: 4px;
-  transform-origin: left center;
-  scale: 0 1;
-  /* Ledger, the narrator's hand: Vendetta is for blood, the crew and the
-     button that kills, and a progress bar is none of those. */
-  background: var(--fg);
+  inset: 0 auto 0 0;
+  width: 0;
+  border-right: 2px solid var(--fg);
+  background: color-mix(in oklab, var(--fg) 20%, transparent);
 }
 
 .reveal__hold[data-charging] .reveal__fill {
@@ -1545,11 +1610,54 @@ body.is-revealing .bar {
 }
 
 .reveal__hold[data-revealed] .reveal__fill {
-  scale: 1 1;
+  width: 100%;
+  border-right-color: transparent;
 }
 
 @keyframes charge {
-  to { scale: 1 1; }
+  from { width: 0; }
+  to { width: 100%; }
+}
+
+/* The charge is information, not decoration: it says how much longer to
+   hold. The blanket reduced-motion rule cut it to 1ms, so the bar sat full
+   for 600ms before the card came and the finger lifted early — the one
+   animation in the app that must keep its real duration. */
+@media (prefers-reduced-motion: reduce) {
+  .reveal__hold[data-charging] .reveal__fill {
+    animation-duration: var(--hold-ms, 650ms) !important;
+  }
+}
+
+/* Until this seat has held its card the hold is the loud control and Done is
+   a ghost beside it; afterwards Done takes the Ledger and the hold settles
+   back. Hierarchy follows what has happened, not the layout. */
+.reveal__hold[data-lead] {
+  border-color: var(--fg);
+}
+
+/* The phone changes hands: the name arrives from the side it is travelling,
+   so a player handed it mid-change can see the screen became theirs. */
+.reveal--handoff[data-dir='next'] .reveal__lead,
+.reveal--handoff[data-dir='next'] .reveal__advance {
+  animation: hand-next var(--dur-base) var(--ease-out) both;
+}
+
+.reveal--handoff[data-dir='back'] .reveal__lead,
+.reveal--handoff[data-dir='back'] .reveal__advance {
+  animation: hand-back var(--dur-base) var(--ease-out) both;
+}
+
+.reveal--confirm .reveal__controls {
+  animation: screen-in var(--dur-base) var(--ease-out) both;
+}
+
+@keyframes hand-next {
+  from { opacity: 0; transform: translateX(12px); }
+}
+
+@keyframes hand-back {
+  from { opacity: 0; transform: translateX(-12px); }
 }
 
 .reveal__hold-label {
@@ -1743,6 +1851,24 @@ body.is-revealing .bar {
   border-style: solid;
   border-color: var(--fg);
   color: var(--fg);
+}
+
+/* The button stays a label; the sentence that explains it goes underneath in
+   the reading face. As a Bebas button label it was two lines of shouting
+   caps that still toggled, and nothing about it read as a state. */
+.reveal__flag {
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+}
+
+.reveal__note {
+  max-width: 24ch;
+  margin: 0;
+  color: var(--fg-muted);
+  font-family: var(--font-body);
+  font-size: var(--text-sm);
+  text-wrap: balance;
 }
 
 /* ---------- Timeline ---------- */

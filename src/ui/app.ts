@@ -33,7 +33,7 @@ import { statsMarkup } from './screens/stats'
 import { summarise } from '../engine/summary'
 import { editorMarkup, MAX_PLAYERS, MIN_PLAYERS, namesMarkup, rosterMarkup, type ScreenJoin } from './screens/setup'
 import { dealRoles, systemRandom, type Complexity } from '../engine/deal'
-import { dayMarkup, inspectionMarkup, nightMarkup, playerViewMarkup, questionCardMarkup, questionsIntroMarkup } from './screens/night'
+import { askCardMarkup, dayMarkup, inspectionMarkup, nightMarkup, playerViewMarkup, questionCardMarkup, questionsIntroMarkup } from './screens/night'
 import { countOrder } from './screens/vote'
 import { dawnMarkup, dawnSlides, verdictSlides, type Reading, type Slide } from './screens/dawn'
 import { tableMarkup } from './screens/table'
@@ -85,6 +85,8 @@ const root: HTMLDivElement = appRoot
 let state: AppState = boot()
 /** Local to the reveal screen; never persisted — a held role must not resume. */
 let revealPhase: RevealPhase = 'handoff'
+/** Which way the phone last moved, so the next name arrives from that side. */
+let revealDir: 'next' | 'back' = 'next'
 let editing: PlayerId | null = null
 let picking = false
 /** Players chosen at the current night step, before the action is recorded. */
@@ -628,6 +630,8 @@ function render(entering = false): void {
           locale: state.locale,
           mode: state.revealMode,
           canGoBack: state.revealMode === 'onboarding' && state.revealIndex > 0,
+          seen: held.has(player.id),
+          dir: revealDir,
         })
       : revealDoneMarkup()
   } else if (state.screen === 'night') {
@@ -680,10 +684,42 @@ function render(entering = false): void {
   // The TV follows every paint; the link sends one message per frame at most.
   publish()
 
+  /**
+   * The end of the pass-around, saying only what the app can know.
+   *
+   * It used to claim "everyone has seen their role", which is a guess: the
+   * phone can be tapped through every seat without a single hold, and a seat
+   * with its own phone may never have looked at all. What it knows is which
+   * seats held their card on this device (`held`), so that is what it shows —
+   * a tick against those, "on their phone" against the rest — and the
+   * narrator can read the unmarked names aloud before starting the night.
+   * Begin stays enabled either way: whether to wait is the narrator's call.
+   */
   function revealDoneMarkup(): string {
+    const phones = seatedFromPhones()
+    const rows = game.players
+      .map((p) => {
+        const onPhone = phones.has(p.id)
+        const seen = held.has(p.id)
+        return `<li class="dealt__row"${seen ? ' data-seen' : ''}${onPhone ? ' data-phone' : ''}>
+          <span class="dealt__name">${esc(p.name)}</span>
+          ${
+            onPhone
+              ? `<span class="dealt__note">${esc(t.ui.table.onPhone)}</span>`
+              : seen
+                ? `<span class="dealt__mark" aria-label="${esc(t.ui.reveal.seenCard)}">✓</span>`
+                : ''
+          }
+        </li>`
+      })
+      .join('')
+    const passed = game.players.filter((p) => !phones.has(p.id))
+    const seen = passed.filter((p) => held.has(p.id)).length
     return `
-      <section class="screen screen--center">
-        <h1 class="title title--sm">${esc(t.ui.reveal.allSeen)}</h1>
+      <section class="screen screen--center screen--dealt">
+        <h1 class="title title--sm">${esc(t.ui.reveal.dealt)}</h1>
+        ${passed.length === 0 ? '' : `<p class="label">${esc(t.ui.reveal.looked(seen, passed.length))}</p>`}
+        <ul class="dealt">${rows}</ul>
         <button class="btn btn--primary" type="button" data-begin>${esc(t.ui.reveal.beginFirstNight)}</button>
       </section>
     `
@@ -770,6 +806,10 @@ function render(entering = false): void {
     if (dawn !== null) return ''
     // The paper, likewise: the phone may be facing the town.
     if (paperOpen) return ''
+    // A question card is handed to one player: the timeline would show them
+    // every move so far and the menu can end the game. Its own Done is the
+    // way out, as with a slide and the paper.
+    if (asking !== null) return ''
     // The whole room is looking at the screen.
     if (tableView) return ''
     // A player is looking at the screen: the timeline would show them every
@@ -943,6 +983,16 @@ const revealOrder = () =>
     : state.session.current.players.filter((p) => !seatedFromPhones().has(p.id))
 
 let singleTarget: PlayerId | null = null
+
+/**
+ * The seats whose card was actually held on this device, this deal.
+ *
+ * Local on purpose: it is not a fact about the game, it is what this phone
+ * watched happen, and it must not survive a fresh deal. `revealDoneMarkup`
+ * reads it so the screen after the pass-around says what is true rather than
+ * asserting that everyone has looked.
+ */
+const held = new Set<PlayerId>()
 
 // ---------------------------------------------------------------------------
 // Events
@@ -1196,6 +1246,8 @@ function bind(): void {
     saveRoster(game.players.map((p) => p.name))
     // The roles are settled here: the trades go to whoever is still a citizen.
     mutate((s) => assignTrades(s, systemRandom), { night: 0, kind: 'setup' })
+    // A new deal is a new set of cards: nobody has looked at these yet.
+    held.clear()
     revealPhase = 'handoff'
     buzz()
     setState({ screen: 'reveal', revealIndex: 0, revealMode: 'onboarding' })
@@ -1205,13 +1257,17 @@ function bind(): void {
   on(root, '[data-confirm-identity], [data-confirm]', 'click', () => {
     if (state.screen === 'reveal') {
       revealPhase = 'confirm'
-      setState({}, false)
+      // Animated: the hold button arrives into the thumb zone. The step used
+      // to swap in a millisecond with nothing moving, so a player handed the
+      // phone mid-change could not tell the screen had become theirs.
+      setState({}, true)
     }
   })
 
   on(root, '[data-back]', 'click', () => {
     revealPhase = 'handoff'
-    setState({}, false)
+    revealDir = 'back'
+    setState({}, true)
   })
 
   // Nobody can ask about their role out loud without giving something away,
@@ -1234,14 +1290,52 @@ function bind(): void {
   on(root, '[data-reveal-back]', 'click', () => {
     if (state.revealIndex === 0) return
     revealPhase = 'handoff'
+    revealDir = 'back'
     setState({ revealIndex: state.revealIndex - 1 })
+  })
+
+  // Single mode came from a screen; the wrong name picked must not cost two
+  // taps that both say something untrue to get home again.
+  on(root, '[data-reveal-cancel]', 'click', () => {
+    hideRole()
+    releaseHandler?.()
+    releaseHandler = null
+    singleTarget = null
+    revealPhase = 'handoff'
+    buzz()
+    setState({ screen: state.revealReturnTo })
   })
 
   if (state.screen === 'reveal') {
     // No re-render inside the gesture: unmounting the held button would fire
     // pointercancel on touch and read as an instant release. The card is
     // written into a slot beside the live button instead.
-    releaseHandler = bindHold(root, { onReveal: showRole, onHide: hideRole })
+    releaseHandler = bindHold(root, {
+      onReveal: showRole,
+      onHide: () => {
+        hideRole()
+        // This seat has looked now, so Done takes the Ledger and the hold
+        // settles back. Safe to repaint here: the finger is already up, and
+        // it is only unmounting the button mid-gesture that reads as a
+        // release. No entrance — the scene has not changed, only its weight.
+        setState({}, false)
+      },
+    })
+  } else if (asking !== null) {
+    // The question card is the same gesture: it is a role, in the clear, on a
+    // phone that is about to change hands.
+    const id = asking
+    releaseHandler = bindHold(root, {
+      onReveal: () => {
+        const subject = game.players.find((p) => p.id === id)
+        const slot = root.querySelector<HTMLElement>('[data-card]')
+        if (!subject || !slot) return
+        slot.innerHTML = askCardMarkup(subject, state.locale)
+        root.querySelector<HTMLElement>('[data-reveal-root]')?.setAttribute('data-showing', '')
+        document.body.classList.add('is-revealing')
+      },
+      onHide: hideRole,
+    })
   }
 
   // Advancing is deliberate and separate from the gesture, so a fumbled press
@@ -1912,6 +2006,8 @@ function showRole(): void {
   if (!player || !slot) return
 
   slot.innerHTML = roleCardMarkup(player, state.locale)
+  // The bar filled and the card is up: this seat has genuinely looked.
+  held.add(player.id)
   root.querySelector<HTMLElement>('[data-reveal-root]')?.setAttribute('data-showing', '')
   // Nothing may sit beside a visible role.
   document.body.classList.add('is-revealing')
@@ -1936,6 +2032,7 @@ function advanceReveal(): void {
   releaseHandler?.()
   releaseHandler = null
   revealPhase = 'handoff'
+  revealDir = 'next'
 
   if (state.revealMode === 'single') {
     singleTarget = null
