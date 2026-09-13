@@ -388,7 +388,7 @@ export const en: Strings = {
         family: (n) => (n === 1 ? 'time in the Family' : 'times in the Family'),
         hanged: () => 'hanged',
         killed: () => 'killed',
-        survived: () => 'stood',
+        survived: () => 'survived',
       },
       clear: 'Clear the ledger',
       clearConfirm: 'Clear the ledger? Every finished game on this phone is forgotten. The names are kept.',

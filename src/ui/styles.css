@@ -145,8 +145,12 @@ body {
   text-align: center;
 }
 
-/* Title row with the screen's tools on the right — undo, circle/list. */
+/* Title row with the screen's tools on the right — undo, circle/list.
+   Never the thing that gives: it wraps to two rows on the day screen, and as
+   a shrinkable flex item a tight column compressed the box while its rows
+   stayed where they were, so the tools sat on top of the clock underneath. */
 .screen__head {
+  flex: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1010,6 +1014,14 @@ body {
   overflow-y: auto;
 }
 
+/* ...but the day screen keeps its floor even in rows: this rule's `:has()`
+   outranks `.screen--day .table`, so the fallback was handing the seats
+   whatever the report had left, which on a seven-player morning was 157px
+   of the 360px the rows wanted. */
+.screen--day .table:has(> .circle[data-rows]) {
+  min-height: 13rem;
+}
+
 .circle--list,
 .circle[data-rows] {
   --seat: 3rem;
@@ -1021,7 +1033,15 @@ body {
   height: auto;
 }
 
-@media (min-width: 40rem) {
+/* Two names side by side. The breakpoint used to be 40rem, which is a
+   tablet, so every phone stacked one name per row and a seven-player day
+   screen showed three of them in the height it had. A seat row is a number
+   and a name in a narrow face; half of a 375px phone holds one comfortably,
+   and halving the rows is what actually makes the list longer — seven seats
+   become four rows, twelve become six. It holds down to a 320px phone, the
+   narrowest the app targets, where half a row is still 140px — wider than
+   the longest name the roster allows at this size. */
+@media (min-width: 20rem) {
   .circle--list,
   .circle[data-rows] {
     grid-template-columns: 1fr 1fr;
@@ -1142,14 +1162,22 @@ body {
   overflow-y: auto;
 }
 
-/* The day table never drops below the circle's own floor (--avail, 9rem):
-   the report above it is the only thing on the screen that may shrink, so
-   on a crowded morning — a flagged player, four cards — it is the report
-   that gives, scrolling behind a line and a half, and not the seats that
-   spill over the button below. Day only: the night screen has no report
-   to give and its own budget. */
+/* The seats are the instrument on this screen; the report is reference.
+   At the circle's own floor (9rem) a seven-player morning gave the seats
+   157px of the 360px their rows need, so the table showed three names and
+   the report kept a quarter of the screen for something the town had
+   already heard read aloud at dawn — and can hear again from Morning, or
+   read in full in the paper. The floor is 13rem now: the report takes what
+   is left, which on a busy morning is a card and the fade that says there
+   are more. Everything else on the screen is a fixed row.
+
+   13rem and not more: the rows fall back to a ring once the box would give
+   a readable tile (fitTables), and at seven seats that happens just under
+   15rem, so a taller floor would flip the layout back and forth. The floor
+   is unconditional for the same reason — hanging it on [data-rows] would
+   let the bigger box undo the very condition that asked for it. */
 .screen--day .table {
-  min-height: 9rem;
+  min-height: 13rem;
 }
 
 /* Marks on paper: town is ink, not Ash — Ash on Ledger is invisible. */
@@ -2930,8 +2958,11 @@ html[data-dawn] body {
    icon square. The digits are mono at display size, so the clock reads
    from across the table with the phone propped up. Its states are the
    moves a seat makes: running takes Ledger ink, done inverts to a Ledger
-   block. No red: the clock is not lethal, the vote after it is. */
+   block. No red: the clock is not lethal, the vote after it is. It keeps its
+   height for the same reason the head does: the report is the one row on the
+   day screen that gives. */
 .clock {
+  flex: none;
   display: flex;
   gap: var(--space-2);
 }
@@ -4063,6 +4094,17 @@ html[data-dawn] body {
 
   .report--scroll {
     max-height: 7.5rem;
+  }
+}
+
+/* Shorter still (a 568px phone): the day screen's fixed rows plus a 13rem
+   table do not fit, and the floor pushed "Night falls" under the bar. The
+   seats go back to the circle's own floor there and the list scrolls, which
+   is what the fade at its edge is for. */
+@media (max-height: 600px) {
+  .screen--day .table,
+  .screen--day .table:has(> .circle[data-rows]) {
+    min-height: 9rem;
   }
 }
 
