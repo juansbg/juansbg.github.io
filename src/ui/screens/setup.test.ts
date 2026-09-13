@@ -87,7 +87,7 @@ describe('the names screen', () => {
 })
 
 describe('the big screen from the names screen', () => {
-  const idle = { room: null, needsKey: false, busy: false, error: null, address: 'juansbg.github.io/tv' } as const
+  const idle = { room: null, needsKey: false, busy: false, error: null, address: 'juansbg.github.io/tv', code: '', key: '' } as const
   const four = ['Ana', 'Beto', 'Caro', 'Dani']
 
   it('asks for the code the TV shows, and says where the TV goes, when no room is open', () => {
@@ -133,6 +133,35 @@ describe('the big screen from the names screen', () => {
     expect(html).not.toContain('data-screen-form')
     expect(html).not.toContain('data-room-line')
     expect(html).not.toContain('data-this-is-screen')
+  })
+
+  it('keeps what was typed after a refusal, and waits for five letters before Join', () => {
+    // Only the field the relay turned down is cleared by the caller; the
+    // markup shows back whatever it is handed.
+    const refused = namesMarkup(four, 'en', new Set(), { ...idle, needsKey: true, error: 'key', code: 'AB2CD', key: '' })
+    expect(refused).toMatch(/data-screen-code[^>]*value="AB2CD"/)
+    expect(refused).toMatch(/data-screen-key[^>]*value=""/)
+    expect(refused).toMatch(/data-screen-submit(?![^>]*disabled)/)
+    // Join does nothing at all with fewer than five, so it says so.
+    expect(namesMarkup(four, 'en', new Set(), idle)).toMatch(/data-screen-submit[^>]*disabled/)
+    expect(namesMarkup(four, 'en', new Set(), { ...idle, code: 'AB2' })).toMatch(/data-screen-submit[^>]*disabled/)
+  })
+
+  it('leads with the names and puts the code under them, until a room is open', () => {
+    const cold = namesMarkup([], 'en', new Set(), idle)
+    expect(cold.indexOf('data-new-name')).toBeLessThan(cold.indexOf('data-screen-form'))
+    // With a room there is no form, only the one status line, and that sits up top.
+    const open = namesMarkup(four, 'en', new Set(), { ...idle, room: { code: 'AB2CD', tvs: 1, phones: 0 } })
+    expect(open.indexOf('data-room-line')).toBeLessThan(open.indexOf('data-new-name'))
+  })
+
+  it('marks the names two people answer to, in the spelling they were first typed in', () => {
+    const html = namesMarkup(['Ana', 'Beto', 'ana ', 'Caro'], 'en', new Set(), null)
+    expect(html.match(/data-clash/g)?.length).toBe(2)
+    expect(html).toContain(strings('en').ui.setup.sameName(['Ana']))
+    // Repeating a name is allowed, so this is a note and never a refusal.
+    expect(html).toContain(strings('en').ui.setup.namesReady(4))
+    expect(namesMarkup(four, 'en', new Set(), null)).not.toContain('data-clash')
   })
 })
 

@@ -177,6 +177,11 @@ export const es: Strings = {
       noSuchScreen: 'Ninguna pantalla muestra ese código',
       onScreen: (code) => `Pantalla ${code}`,
       thisIsScreen: 'Este dispositivo es la pantalla grande',
+      sameName: (names) =>
+        names.length === 1
+          ? `Se repite el nombre: ${names[0]}`
+          : `Se repiten los nombres: ${names.join(', ')}`,
+      roomTakesNames: 'En una sala, la mesa es quien entra en ella: los nombres escritos aquí se apartan.',
       moveLeft: '◀ Mover',
       moveRight: 'Mover ▶',
     },

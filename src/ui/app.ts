@@ -131,6 +131,16 @@ let tvs = 0
 let roomBusy = false
 /** Why the last attempt failed: the relay refused the key, knows no such room, or did not answer. */
 let roomError: 'key' | 'relay' | 'room' | null = null
+/**
+ * What is typed in the code and key fields right now.
+ *
+ * The screen is rebuilt on every paint, and a refused claim repainted it, so
+ * both boxes came back empty — a narrator who had the five letters right and
+ * only fumbled the key retyped the lot in front of the table. These carry
+ * what was typed; only the field the relay actually rejected is cleared.
+ */
+let screenCode = ''
+let screenKey = ''
 
 /**
  * A player who joined from their own phone: a name they typed, the public
@@ -309,6 +319,8 @@ function screenJoin(): ScreenJoin | null {
     needsKey: loadRoomKey() === '' || roomError === 'key',
     busy: roomBusy,
     error: roomError,
+    code: screenCode,
+    key: screenKey,
     address: screenUrl(location.origin).replace(/^https?:\/\//, ''),
   }
 }
@@ -437,8 +449,19 @@ let menuOpen = false
  * flashes a white system dialog, which in a dark room is a torch in the
  * face; this is the same question asked on our own sheet.
  */
-type Pending = 'restart' | 'newTable' | 'clearNames' | 'finish' | 'clearStats' | 'nextNight'
+type Pending = 'restart' | 'newTable' | 'clearNames' | 'finish' | 'clearStats' | 'nextNight' | 'roomNames'
 let confirming: Pending | null = null
+/**
+ * The road into a room, held while the narrator is asked about the names.
+ *
+ * A room's table is whoever joins it, so both roads in empty a list typed for
+ * an evening without phones — and they did it the moment the button was
+ * tapped, with nothing said, while every other wipe in the app (Clear the
+ * list, Restart, End the game) stops on the confirm sheet first. The fields
+ * are read before the sheet replaces them, and the road runs on Yes.
+ */
+let roomRoad: { kind: 'open' | 'join'; a: string; b: string } | null = null
+
 /** The browser's deferred install prompt, when it has offered one. */
 let installPrompt: InstallPromptEvent | null = null
 /**
@@ -490,6 +513,7 @@ const dismissSheets = (): boolean => {
   picking = false
   editing = null
   confirming = null
+  roomRoad = null
   roomOpen = false
   closeShot()
   return true
@@ -737,9 +761,11 @@ function render(entering = false): void {
   let overlay = sheets
   if (showingLog) overlay += timelineMarkup(state.session, state.locale)
   if (menuOpen) overlay += menuMarkup()
-  if (confirming !== null) overlay += confirmMarkup(confirming)
   if (roomOpen) overlay += roomMarkup()
   if (paperShot !== null) overlay += shotMarkup(paperShot)
+  // Last, so it is on top: a question is asked about the sheet under it, and
+  // a backdrop over the question would take the answer.
+  if (confirming !== null) overlay += confirmMarkup(confirming)
 
   // A sheet slides up when it opens and then stays put. Every paint rebuilds
   // the whole document, so an open sheet replayed its entrance each time the
@@ -981,6 +1007,10 @@ function render(entering = false): void {
       finish: { question: t.ui.menu.endGameConfirm, action: t.ui.over.finishNow },
       clearStats: { question: t.ui.stats.clearConfirm, action: t.ui.stats.clear },
       nextNight: { question: t.ui.day.nextNightConfirm, action: t.ui.day.nextNight },
+      roomNames: {
+        question: t.ui.setup.roomTakesNames,
+        action: roomRoad?.kind === 'join' ? t.ui.setup.screenJoin : t.ui.room.openHere,
+      },
     }[pending]
     return `
       <div class="sheet" data-sheet>
@@ -1193,6 +1223,7 @@ function bind(): void {
 
   on(root, '[data-confirm-cancel]', 'click', () => {
     confirming = null
+    roomRoad = null
     setState({}, false)
   })
 
@@ -1203,6 +1234,12 @@ function bind(): void {
     else if (pending === 'newTable') startOver({ forgetPeople: true })
     else if (pending === 'clearNames') clearNames()
     else if (pending === 'finish') finish()
+    else if (pending === 'roomNames') {
+      const road = roomRoad
+      roomRoad = null
+      if (road?.kind === 'open') openTheRoom(road.a, road.b)
+      else if (road) joinTheRoom(road.a, road.b)
+    }
     else if (pending === 'nextNight') nextNight()
     else if (pending === 'clearStats') {
       clearStats()
@@ -1212,6 +1249,8 @@ function bind(): void {
 
   function ask(pending: Pending): void {
     menuOpen = false
+    // The sheet that asked steps aside; the question is the only thing up.
+    roomOpen = false
     confirming = pending
     setState({}, false)
   }
@@ -1711,6 +1750,24 @@ function bind(): void {
       setState({}, false)
       return
     }
+    // The address and the key are settings, not the destructive part: they
+    // are kept whether or not the narrator goes through with the room.
+    saveRelay(relay)
+    saveRoomKey(key)
+    if (takesNames()) {
+      roomRoad = { kind: 'open', a: relay, b: key }
+      ask('roomNames')
+      return
+    }
+    openTheRoom(relay, key)
+  })
+
+  /** A room about to empty a list somebody typed. Both roads in ask first. */
+  function takesNames(): boolean {
+    return state.screen === 'setup' && state.session.current.players.length === 0 && names.length > 0
+  }
+
+  function openTheRoom(relay: string, key: string): void {
     saveRelay(relay)
     saveRoomKey(key)
     roomBusy = true
@@ -1737,16 +1794,27 @@ function bind(): void {
         roomBusy = false
         setState({}, false)
       })
-  })
+  }
 
   // The big screen's code, typed on the names screen: this phone claims the
   // room the TV opened. Five letters submit by themselves.
   on(root, '[data-screen-code]', 'input', (_e, el) => {
     const input = el as HTMLInputElement
     input.value = input.value.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 5)
+    screenCode = input.value
+    // Join with an empty box did nothing at all and said nothing either, so
+    // it waits for the five letters instead — the way the door below waits
+    // for four players. Set on the element rather than through a paint: a
+    // repaint on every keystroke would take the caret with it.
+    const submit = input.form?.querySelector<HTMLButtonElement>('[data-screen-submit]')
+    if (submit) submit.disabled = screenCode.length !== 5
     if (input.value.length === 5 && !(loadRoomKey() === '' || roomError === 'key')) {
       input.form?.requestSubmit()
     }
+  })
+
+  on(root, '[data-screen-key]', 'input', (_e, el) => {
+    screenKey = (el as HTMLInputElement).value
   })
 
   on(root, '[data-screen-form]', 'submit', (event) => {
@@ -1754,12 +1822,23 @@ function bind(): void {
     if (roomBusy) return
     const code = (root.querySelector<HTMLInputElement>('[data-screen-code]')?.value ?? '').trim().toUpperCase()
     const key = (root.querySelector<HTMLInputElement>('[data-screen-key]')?.value ?? loadRoomKey()).trim()
+    screenCode = code
+    screenKey = key
     if (!/^[A-Z0-9]{5}$/.test(code)) return
     if (key === '') {
       roomError = 'key'
       setState({}, false)
       return
     }
+    if (takesNames()) {
+      roomRoad = { kind: 'join', a: code, b: key }
+      ask('roomNames')
+      return
+    }
+    joinTheRoom(code, key)
+  })
+
+  function joinTheRoom(code: string, key: string): void {
     roomBusy = true
     roomError = null
     setState({}, false)
@@ -1769,18 +1848,23 @@ function bind(): void {
         room = claimed
         saveRoom(room)
         connectRoom()
+        screenCode = ''
+        screenKey = ''
         // The table is whoever joins: names typed for a phoneless evening step aside.
         if (state.screen === 'setup' && state.session.current.players.length === 0) names = []
         buzz()
       })
       .catch((error: unknown) => {
         roomError = error instanceof RelayRefused ? (error.status === 403 ? 'key' : error.status === 404 ? 'room' : 'relay') : 'relay'
+        // One of the two was right. Clear only the one the relay turned down.
+        if (roomError === 'key') screenKey = ''
+        else if (roomError === 'room') screenCode = ''
       })
       .then(() => {
         roomBusy = false
         setState({}, false)
       })
-  })
+  }
 
   on(root, '[data-room-close]', 'click', () => {
     // A decision, not a disconnection: the relay drops the room and tells

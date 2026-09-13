@@ -561,6 +561,13 @@ body {
   }
 }
 
+/* And `fitTables` drops the ones that are too long for their tile even above
+   that, since a label's own length is not something a container query can
+   ask about. */
+.seat__role[data-over] {
+  display: none;
+}
+
 @container (max-width: 2.25rem) {
   .seat__n {
     display: none;
@@ -2081,6 +2088,10 @@ body.is-revealing .bar {
   flex-wrap: wrap;
   align-content: start;
   gap: var(--space-2);
+  /* As tall as its names, and no taller; it gives before anything else on
+     the screen does, and scrolls inside itself when it has to. */
+  flex: 0 1 auto;
+  min-height: 0;
   margin: 0;
   padding: 0;
   list-style: none;
@@ -3900,9 +3911,26 @@ html[data-dawn] body {
 }
 
 /* A seat with a phone in the room: a small mark on the name. */
-.name-chip[data-joined] .name-chip__text::after {
-  content: ' ·';
+/* The same mark the big screen puts on a seated name — separated, in the
+   accent — since this is the list the narrator reads to work out who still
+   has to scan. It used to be a '·' glued to the end of the name, at the
+   name's own size and weight, and it did not read. */
+.name-chip__mark {
+  flex: none;
   color: var(--accent);
+  font-size: 0.625rem;
+  line-height: 1;
+}
+
+/* Two people answering to one name is allowed; two of them nobody can tell
+   apart is not. The chips that clash carry a hairline in the accent, and the
+   line under the list names them. */
+.name-chip[data-clash] {
+  border-color: color-mix(in oklab, var(--accent) 60%, var(--hairline-strong));
+}
+
+.field__hint--clash {
+  color: var(--fg-2);
 }
 
 /* ---------- A player's phone ---------- */
@@ -4359,17 +4387,13 @@ html[data-dawn] body {
   padding-top: var(--space-3);
 }
 
-/* Before the first name is typed there is no list, and the screen held its
-   whole composition at the top with a third of a phone of flat Midnight
-   under it — the first thing a narrator ever sees. With nothing to reserve
-   the room for, the block spreads over the height it has instead. The list
-   goes back to taking the free space the moment a name lands in it. */
-.screen--names:has(> .name-list[data-empty]) {
+/* The list is as tall as the names in it, and the screen spreads what is
+   left: at nothing typed, and at two names, the composition used to sit at
+   the top of a third of a phone of flat Midnight — the first thing a
+   narrator ever sees. Once the names fill the height the list shrinks and
+   scrolls inside itself, and there is nothing left to spread. */
+.screen--names {
   justify-content: space-evenly;
-}
-
-.name-list[data-empty] {
-  flex: 0 1 auto;
 }
 
 /* ---------- The big screen, from the names screen ---------- */

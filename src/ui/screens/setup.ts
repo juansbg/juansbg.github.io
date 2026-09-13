@@ -24,7 +24,21 @@ export interface ScreenJoin {
   error: 'key' | 'relay' | 'room' | null
   /** Where a TV goes to start a room, as something to read out. */
   address: string
+  /**
+   * What is typed in the two fields right now.
+   *
+   * A refused claim used to come back with both boxes empty, so a narrator
+   * who had the code right and fumbled only the key retyped both of them in
+   * front of the table. Only the field the relay actually rejected is
+   * cleared; the other comes back as it was typed.
+   */
+  code: string
+  key: string
 }
+
+/** Two people at the table answer to the same name. Case and spacing aside. */
+const sameName = (a: string, b: string): boolean =>
+  a.trim().toLocaleLowerCase() === b.trim().toLocaleLowerCase()
 
 /**
  * Name entry. One field, Enter adds, repeat.
@@ -72,10 +86,11 @@ export const namesMarkup = (
           <div class="screen-join__row">
             <input class="field__input screen-join__input" type="text" data-screen-code
                    inputmode="latin" autocapitalize="characters" autocorrect="off" spellcheck="false"
-                   maxlength="5" pattern="[A-Za-z0-9]{5}" placeholder="·····"${screen.busy ? ' disabled' : ''}>
-            <button class="btn btn--primary" type="submit"${screen.busy ? ' disabled' : ''}>${esc(
-              screen.busy ? st.screenJoining : st.screenJoin,
-            )}</button>
+                   maxlength="5" pattern="[A-Za-z0-9]{5}" placeholder="·····"
+                   value="${esc(screen.code)}"${screen.busy ? ' disabled' : ''}>
+            <button class="btn btn--primary" type="submit" data-screen-submit${
+              screen.busy || screen.code.length !== 5 ? ' disabled' : ''
+            }>${esc(screen.busy ? st.screenJoining : st.screenJoin)}</button>
           </div>
         </label>
         ${
@@ -83,7 +98,8 @@ export const namesMarkup = (
             ? `<label class="field">
                  <span class="field__label">${esc(r.key)}</span>
                  <input class="field__input" type="text" data-screen-key
-                        autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="off">
+                        autocapitalize="off" autocorrect="off" spellcheck="false" autocomplete="off"
+                        value="${esc(screen.key)}">
                  <span class="field__hint">${esc(st.screenKeyHint)}</span>
                </label>`
             : ''
@@ -92,13 +108,27 @@ export const namesMarkup = (
       </form>`
   }
 
-  // A seat taken from a phone through the room carries a mark; the name
-  // itself is the same list either way, typed here or there.
+  // A seat taken from a phone through the room carries the same mark the big
+  // screen gives it — a separated dot in the accent, not a character glued to
+  // the end of the name — since this is the list the narrator reads to work
+  // out who still has to scan.
+  //
+  // Two people answering to one name is allowed and always has been, but two
+  // phones under one name are two chips nobody can tell apart, so the ones
+  // that clash say so and the list carries a quiet line naming them.
+  const clashes = names.filter((name, i) => names.some((other, j) => j !== i && sameName(name, other)))
+  // One entry a clash, in the spelling it was first typed in: "Ana" and
+  // "ana" are the same collision, and naming both of them would read as two.
+  const clashing = clashes.filter((name, i) => !clashes.some((other, j) => j < i && sameName(name, other)))
+    .map((n) => n.trim())
   const chips = names
     .map(
       (name, i) => `
-        <li class="name-chip" style="--i: ${i}"${joined.has(i) ? ' data-joined' : ''}>
+        <li class="name-chip" style="--i: ${i}"${joined.has(i) ? ' data-joined' : ''}${
+          clashes.includes(name) ? ' data-clash' : ''
+        }>
           <span class="name-chip__text">${esc(name)}</span>
+          ${joined.has(i) ? `<span class="name-chip__mark" aria-label="${esc(t.ui.table.onPhone)}">●</span>` : ''}
           <button class="name-chip__remove" type="button" data-remove-name="${i}"
                   aria-label="${esc(t.ui.setup.remove)}">×</button>
         </li>`,
@@ -108,7 +138,7 @@ export const namesMarkup = (
   return `
     <section class="screen screen--names">
       <h1 class="title">${esc(t.appName)}</h1>
-      ${screenBlock}
+      ${screen?.room ? screenBlock : ''}
       <p class="subtitle">${esc(t.ui.setup.whoIsPlaying)}</p>
 
       <form class="name-form" data-name-form autocomplete="off">
@@ -119,7 +149,9 @@ export const namesMarkup = (
       </form>
       <p class="field__hint">${esc(t.ui.setup.addHint)}</p>
 
-      <ul class="name-list fill"${names.length === 0 ? ' data-empty' : ''}>${chips}</ul>
+      <ul class="name-list"${names.length === 0 ? ' data-empty' : ''}>${chips}</ul>
+      ${clashing.length === 0 ? '' : `<p class="field__hint field__hint--clash">${esc(st.sameName(clashing))}</p>`}
+      ${screen?.room ? '' : screenBlock}
 
       <div class="actions">
         <button class="btn btn--primary" type="button" data-names-done ${enough ? '' : 'disabled'}>

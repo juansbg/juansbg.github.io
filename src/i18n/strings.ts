@@ -154,6 +154,10 @@ export interface Strings {
       onScreen: (code: string) => string
       /** The address link's title, for a TV that was pointed at the site's root. */
       thisIsScreen: string
+      /** Two or more people at the table answer to the same name. */
+      sameName: (names: readonly string[]) => string
+      /** Asked before a room empties a list of names typed for a phoneless evening. */
+      roomTakesNames: string
       moveLeft: string
       moveRight: string
     }

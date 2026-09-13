@@ -165,6 +165,17 @@ export const circleMarkup = (
 export const SEAT_FLOOR = 56
 
 /**
+ * The role label's own floor and advance, mirrored from `.seat__role`.
+ *
+ * The label is set in Plex Mono at 0.66em a character with 0.04em of tracking
+ * on top, and it will not go below 0.625rem, because under that nobody reads
+ * it across a dark room. Those three numbers decide whether a label can be
+ * shown whole.
+ */
+const LABEL_FLOOR = 10
+const LABEL_ADVANCE = 0.7
+
+/**
  * Lets a circle that cannot give every seat a readable tile fall back to
  * rows, after a paint and on resize.
  *
@@ -186,7 +197,19 @@ export const fitTables = (root: ParentNode): void => {
     const avail = Math.max(Math.min(box.width, box.height, cap * rem), 9 * rem)
     const gap = Math.sin(Math.PI / seats)
     const seat = Math.min(avail * 0.31, (avail * gap) / (Math.SQRT2 + gap))
-    circle.toggleAttribute('data-rows', seat < SEAT_FLOOR)
+    const rows = seat < SEAT_FLOOR
+    circle.toggleAttribute('data-rows', rows)
+    // A role label with no size left that anybody could read goes, and the
+    // sigil carries the role on its own — the same answer the stylesheet
+    // already gives under a 3.25rem tile, taken one tile earlier for the
+    // longest names. A clipped word reads as a paint fault; a sigil with no
+    // word under it reads as the design. In rows the label has the width of
+    // the phone and always fits.
+    for (const label of circle.querySelectorAll<HTMLElement>('.seat__role')) {
+      const len = Number(label.style.getPropertyValue('--len')) || (label.textContent ?? '').trim().length
+      const fits = rows || len * LABEL_ADVANCE * LABEL_FLOOR <= seat - 6
+      label.toggleAttribute('data-over', !fits)
+    }
   }
 }
 
