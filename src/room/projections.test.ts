@@ -151,6 +151,47 @@ describe('the projection for the whole town', () => {
     expect(sealedSeat.voted).toBe(3)
   })
 
+  it('carries the cast to the room and to every phone once the game is over, and never before', () => {
+    // Beto (a Citizen) dies on night 1; the town then hangs the only killer.
+    let state = createGame(cast(['KILLER', 'PLAIN', 'INSPECT', 'GUARD', 'PLAIN'], ['Ana', 'Beto', 'Caro', 'Dani', 'Eva']))
+    state = startNight(state)
+    state = recordAction(state, { kind: 'target', roleId: 'KILLER', actor: 0, target: 1 })
+    state = endNight(state)
+    for (const locale of LOCALES) {
+      const on = tvProjection(state, locale)
+      expect(on.over).toBe(false)
+      expect(on.cast).toEqual([])
+      expect(JSON.stringify(on)).not.toContain('"KILLER"')
+      const seat = seatProjection(state, 2, locale, { dealt: true })!
+      expect(seat.over).toBe(false)
+      expect(seat.won).toBeNull()
+      expect(seat.cast).toEqual([])
+    }
+    // The narrator ends the game from the menu: over, nobody won, the cast is public.
+    for (const locale of LOCALES) {
+      const early = tvProjection(state, locale, { over: true })
+      expect(early.over).toBe(true)
+      expect(early.winner).toBeNull()
+      expect(early.cast.map((c) => c.roleId)).toEqual(['KILLER', 'PLAIN', 'INSPECT', 'GUARD', 'PLAIN'])
+      const seat = seatProjection(state, 2, locale, { dealt: true, over: true })!
+      expect(seat.over).toBe(true)
+      expect(seat.won).toBeNull()
+      expect(seat.cast.length).toBe(5)
+      expect(seat.tonight).toBeNull()
+    }
+    // The town wins: over without being told, and each phone knows its own side.
+    state = lynch(state, 0)
+    for (const locale of LOCALES) {
+      const done = tvProjection(state, locale)
+      expect(done.winner).toBe('town')
+      expect(done.over).toBe(true)
+      expect(done.cast.find((c) => c.id === 0)).toEqual({ id: 0, roleId: 'KILLER', trade: null, team: 'crew' })
+      expect(seatProjection(state, 2, locale, { dealt: true })!.won).toBe(true)
+      expect(seatProjection(state, 0, locale, { dealt: true })!.won).toBe(false)
+      expect(seatProjection(state, 1, locale, { dealt: true })!.won).toBe(true)
+    }
+  })
+
   it('shows no winner to the room or a seat before the first night', () => {
     const state = createGame(cast(['PLAIN', 'PLAIN', 'PLAIN', 'PLAIN']))
     expect(tvProjection(state, 'en').winner).toBeNull()

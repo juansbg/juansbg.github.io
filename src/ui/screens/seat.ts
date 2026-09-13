@@ -169,8 +169,9 @@ export const seatMarkup = (
       <h1 class="title title--sm">${esc(p.name)}</h1>
     </header>`
 
-  if (p.winner !== null) {
-    return `<section class="screen mine">${head}<p class="winner">${esc(renderWinner(p.winner, p.locale) ?? '')}</p></section>`
+  if (p.over) {
+    const line = renderWinner(p.winner, p.locale) ?? strings(p.locale).ui.over.title
+    return `<section class="screen mine">${head}<p class="winner">${esc(line)}</p></section>`
   }
 
   if (p.phase === 'night' && p.tonight !== null && p.roleId !== null) {

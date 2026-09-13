@@ -43,8 +43,9 @@ const seatOf = (s: TvSeat): Player => ({
 export const tableMarkup = (p: TvProjection, controls = true): string => {
   const t = strings(p.locale)
   if (p.phase === 'setup') return lobbyMarkup({ code: codeOf(p.join), join: p.join, roster: p.roster }, controls, p.locale)
-  // The engine's phase stays where the game ended; a winner is what "over" means.
-  const over = p.winner !== null
+  // The engine's phase stays where the game ended; the projection says when it
+  // is over (a win, or the narrator ending it early from the menu).
+  const over = p.over
   const caption = over
     ? t.ui.over.title
     : p.phase === 'night'

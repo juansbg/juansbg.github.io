@@ -322,6 +322,7 @@ function seatNow(guest: Guest): SeatProjection | { kind: 'refused' } {
   return (
     seatProjection(game, guest.seat, state.locale, {
       dealt: state.screen !== 'setup',
+      over: state.screen === 'over',
       picked,
       sealed: shown === null,
       ...(shown === null ? {} : { shown }),
@@ -358,6 +359,7 @@ function lobbyRoster(): { name: string; joined: boolean }[] {
 
 function projectionNow(): TvProjection {
   return tvProjection(state.session.current, state.locale, {
+    over: state.screen === 'over',
     reading: dawn !== null ? { kind: dawnKind, index: dawn, slides: currentSlides() } : null,
     timer: state.screen === 'day' ? { ...viewOf(timer, Date.now()), endsAt: timer.endsAt } : null,
     sealed: shown === null,

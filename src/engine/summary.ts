@@ -47,7 +47,8 @@ export interface GameSummary {
   hits: number
 }
 
-const wonBy = (p: Player, won: Exclude<Winner, null>): boolean => {
+/** Whether a seat is on the side that won: the team's win, the pair's, or the martyr's own. */
+export const wonBy = (p: Player, won: Exclude<Winner, null>): boolean => {
   switch (won) {
     case 'town':
       return ROLES[p.roleId].team === 'town'

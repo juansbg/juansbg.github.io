@@ -1,6 +1,7 @@
 import { spareCards } from '../engine/cards'
 import { canVote, currentStep, leader, revealedDead, tally, winner, type Winner } from '../engine/state'
 import { ROLES, type RoleId } from '../engine/roles'
+import { wonBy } from '../engine/summary'
 import type { GameState, Outcome, Player, PlayerId } from '../engine/types'
 import type { Locale } from '../i18n'
 import type { Perspective } from '../ui/screens/circle'
@@ -81,6 +82,18 @@ export interface TvProjection {
    * test allows exactly these ids' roles and no other.
    */
   revealed: { id: PlayerId; roleId: RoleId; trade: number | null }[]
+  /**
+   * The game is over: a side has won, or the narrator ended it early
+   * (`TvContext.over`). The engine's phase stays where the game stopped, so
+   * this is what a screen reads to leave the night or the ballot.
+   */
+  over: boolean
+  /**
+   * Who was who, once the game is over and never before: every seat's role
+   * and trade, the second and last way a role reaches the room. The leak
+   * tests allow it only while `over` is true.
+   */
+  cast: TvCast[]
   /** The edition open on the phone, by day, or null when none is. */
   paper: number | null
   /**
@@ -98,7 +111,21 @@ export interface TvTimer extends TimerView {
   endsAt: number | null
 }
 
+/** One seat of the cast, public once the game has ended. */
+export interface TvCast {
+  id: PlayerId
+  roleId: RoleId
+  trade: number | null
+  team: 'town' | 'crew'
+}
+
+/** The whole table for what it was: only ever built once the game is over. */
+const castOf = (state: GameState): TvCast[] =>
+  state.players.map((p) => ({ id: p.id, roleId: p.roleId, trade: p.trade, team: ROLES[p.roleId].team }))
+
 export interface TvContext {
+  /** The narrator's screen is the ending: a win, or the game ended early from the menu. */
+  over?: boolean
   reading?: TvReading | null
   timer?: TvTimer | null
   paper?: number | null
@@ -130,6 +157,10 @@ const ballot = (
   return { tally: c.tally, leader: c.leader, voted, count: { shown: c.shown, total: c.total, last: c.last } }
 }
 
+/** Over when a side has won, or when the narrator says so (an early ending has no winner). */
+const isOver = (state: GameState, context: { over?: boolean }): boolean =>
+  winner(state) !== null || context.over === true
+
 export const tvProjection = (
   state: GameState,
   locale: Locale,
@@ -155,6 +186,8 @@ export const tvProjection = (
   ...ballot(state, context),
   winner: winner(state),
   revealed: revealedDead(state).map((p) => ({ id: p.id, roleId: p.roleId, trade: p.trade })),
+  over: isOver(state, context),
+  cast: isOver(state, context) ? castOf(state) : [],
   paper: context.paper ?? null,
   join: state.phase === 'setup' ? (context.join ?? null) : null,
   roster: state.phase === 'setup' ? (context.roster ?? []) : [],
@@ -188,6 +221,12 @@ export interface SeatProjection {
   tally: { target: PlayerId; votes: number }[]
   count: TvCount | null
   winner: Winner
+  /** The game is over (a win, or ended early); the phone leaves the night or the ballot on it. */
+  over: boolean
+  /** This seat was on the winning side; null while the game is on or when nobody won. */
+  won: boolean | null
+  /** Who was who, once the game is over and never before. */
+  cast: TvCast[]
   /** The table, for the phone to draw the ring: names, who is dead, who has voted; public already. */
   players: { id: PlayerId; name: string; alive: boolean; voted: boolean }[]
   /** The night as this seat may see it (docs/BIG-SCREEN.md §10); null by day. */
@@ -271,11 +310,13 @@ export const seatProjection = (
   state: GameState,
   seat: PlayerId,
   locale: Locale,
-  context: { dealt: boolean; picked?: readonly PlayerId[]; sealed?: boolean; shown?: number },
+  context: { dealt: boolean; picked?: readonly PlayerId[]; sealed?: boolean; shown?: number; over?: boolean },
 ): SeatProjection | null => {
   const me = state.players.find((p) => p.id === seat)
   if (!me) return null
   const voting = state.phase === 'day' && me.alive && canVote(state, seat)
+  const won = winner(state)
+  const over = isOver(state, context)
   return {
     kind: 'seat',
     locale,
@@ -296,9 +337,13 @@ export const seatProjection = (
       const b = ballot(state, context)
       return { voted: b.voted, tally: b.tally, count: b.count }
     })(),
-    winner: winner(state),
+    winner: won,
+    over,
+    won: won === null ? null : wonBy(me, won),
+    cast: over ? castOf(state) : [],
     players: state.players.map((p) => ({ id: p.id, name: p.name, alive: p.alive, voted: state.votes.some((v) => v.voter === p.id) })),
-    tonight: context.dealt ? seatNight(state, me, context.picked ?? []) : null,
+    // A game the narrator has ended has no night left to play on a phone.
+    tonight: context.dealt && context.over !== true ? seatNight(state, me, context.picked ?? []) : null,
   }
 }
 
@@ -321,6 +366,9 @@ export const waitingSeat = (seat: PlayerId, name: string, locale: Locale): SeatP
   tally: [],
   count: null,
   winner: null,
+  over: false,
+  won: null,
+  cast: [],
   players: [],
   tonight: null,
 })

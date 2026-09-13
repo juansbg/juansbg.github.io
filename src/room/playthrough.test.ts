@@ -58,9 +58,14 @@ const checkTv = (state: GameState, locale: Locale, sealed: boolean): void => {
   }
   // Two ways a role id may reach the room: the paper named a dead player, or the Chameleon
   // took that card from the centre and the table heard which (a card nobody living holds).
+  // A third way, on purpose: once the game is over the whole cast is public.
+  expect(p.over).toBe(winner(state) !== null)
+  if (!p.over) expect(p.cast).toEqual([])
+  else expect(p.cast.map((c) => c.roleId)).toEqual(state.players.map((x) => x.roleId))
   const allowed = new Set([
     ...p.revealed.map((r) => r.roleId),
     ...state.log.filter((o) => o.type === 'cardTaken').map((o) => (o as { role: RoleId }).role),
+    ...p.cast.map((c) => c.roleId),
   ])
   for (const id of ROLE_IDS) {
     if (allowed.has(id)) continue
@@ -95,7 +100,7 @@ const checkTv = (state: GameState, locale: Locale, sealed: boolean): void => {
   for (const player of state.players) {
     if (!player.alive || revealed.has(player.id)) continue
     // A role held only by living players must not be named; one a revealed dead
-    // player also held may appear (the paper named them).
+    // player also held may appear (the paper named them), and the whole cast once the game is over.
     if ([...allowed].includes(player.roleId)) continue
     // The faction is public ("The Family wins", "the Family came for…"); its members are not.
     if (ROLES[player.roleId].team === 'crew') continue
@@ -124,6 +129,8 @@ const checkSeatNight = (state: GameState, me: Player, p: SeatProjection): void =
     for (const id of night.spare) allowed.add(id)
     if (night.looked !== null) allowed.add(night.looked.roleId)
   }
+  // Once the game is over the cast is public, on every phone alike.
+  if (p.over) for (const c of p.cast) allowed.add(c.roleId)
   for (const id of ROLE_IDS) {
     if (!allowed.has(id)) expect(json, `${me.name}'s phone carries role ${id}`).not.toContain(`"${id}"`)
   }

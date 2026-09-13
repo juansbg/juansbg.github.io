@@ -2067,6 +2067,14 @@ html[data-phase='day'] body {
   background: var(--bg-day);
 }
 
+/* The day ground is lighter, so the muted inks that read 5:1 on Midnight fall to
+   3.3:1 on it (measured on the eyebrows and the clock label). By day they take
+   more Ash; the hierarchy is carried by size and tracking, not by fading. */
+html[data-phase='day'] {
+  --fg-muted: color-mix(in oklab, var(--ash) 86%, var(--midnight));
+  --fg-faint: color-mix(in oklab, var(--ash) 48%, var(--midnight));
+}
+
 html[data-phase] body {
   transition: background-color var(--dur-slow) var(--ease-in-out);
 }
