@@ -117,7 +117,9 @@ export const nightMarkup = (
     circleMarkup(
       state.players,
       locale,
-      peek ? { showRoles: true, revealTeams: true, doomed, list, ...opts } : { perspective: view, list, ...opts },
+      peek
+        ? { showRoles: true, revealTeams: true, doomed, list, fitRoles: true, ...opts }
+        : { perspective: view, list, ...opts },
     )
 
   // The narrator has to know who to wake, not just which role. v1 never said.
@@ -463,7 +465,7 @@ export const dayMarkup = (
       ${tallyMarkup(state, locale)}
       ${circleMarkup(state.players, locale, {
         pickAttr, eligible, selected, showRoles: peek, revealTeams: peek, votes: counts, leader: top,
-        list: layout === 'list',
+        list: layout === 'list', fitRoles: peek,
       })}
 
       <div class="actions">

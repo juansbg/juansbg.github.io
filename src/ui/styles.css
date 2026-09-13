@@ -1106,8 +1106,24 @@ body {
 @media (min-width: 20rem) {
   .circle--list,
   .circle[data-rows] {
-    grid-template-columns: 1fr 1fr;
+    /* minmax(0, …), not 1fr: a bare fr will not go below its content's own
+       minimum width, so a long name pushed the grid wider than the table it
+       is in and the second column ran off the right of the screen — silently,
+       since the stage clips rather than scrolls. The column holds the width
+       it is given and the row inside it gives. */
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     column-gap: var(--space-3);
+  }
+
+  /* Except when the rows carry role labels as well as names. A row that is a
+     number, a sigil, a name and a word needs the width of the phone, so two
+     of them side by side is how the Roles toggle came to run off the edge.
+     Only a screen wide enough for two of those gets two. */
+  @media (max-width: 34rem) {
+    .circle--list[data-fit-roles],
+    .circle[data-rows][data-fit-roles] {
+      grid-template-columns: minmax(0, 1fr);
+    }
   }
 }
 

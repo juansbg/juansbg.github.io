@@ -84,6 +84,14 @@ export interface CircleOptions {
    * shows is lost when there is no room for a circle.
    */
   list?: boolean
+  /**
+   * The role labels have to be readable, or the ring gives way to rows.
+   *
+   * For the Roles toggle, which exists for a narrator who has lost track of
+   * who is who: a tile that cannot carry its longest label makes that a
+   * control that shows no roles. `fitTables` reads this.
+   */
+  fitRoles?: boolean
 }
 
 const ARTICLE = /^(the|el|la|los|las)\s+/i
@@ -158,7 +166,8 @@ export const circleMarkup = (
   const tableClass = `table${compact ? ' table--compact' : ''}${list ? ' table--list' : ''}`
   const circleClass = `circle${compact ? ' circle--compact' : ''}${list ? ' circle--list' : ''}`
   const middle = centre === '' ? '' : `<div class="circle__centre">${centre}</div>`
-  return `<div class="${tableClass}"><div class="${circleClass}" style="--seats: ${players.length}">${seats}${middle}</div></div>`
+  const fit = options.fitRoles === true ? ' data-fit-roles' : ''
+  return `<div class="${tableClass}"><div class="${circleClass}"${fit} style="--seats: ${players.length}">${seats}${middle}</div></div>`
 }
 
 /** The smallest tile a name still reads in, in px (3.5rem). Under it, rows. */
@@ -174,6 +183,31 @@ export const SEAT_FLOOR = 56
  */
 const LABEL_FLOOR = 10
 const LABEL_ADVANCE = 0.7
+
+/** The label's own length, as the markup wrote it. */
+const lengthOf = (label: HTMLElement): number =>
+  Number(label.style.getPropertyValue('--len')) || (label.textContent ?? '').trim().length
+
+/**
+ * The smallest tile this table can be drawn in before it goes to rows.
+ *
+ * A plain table only has to hold a name. A table drawn for the Roles toggle
+ * has to hold the longest role label it carries as well, at a size somebody
+ * can read across a dark room — and a Roles toggle that shows no roles is a
+ * dead control. Nine players on a short phone is the commonest table there
+ * is, and the ring there cannot carry a word, so it gives way to the rows
+ * list, which is the narrator's own list view and shows every label whole.
+ */
+const floorFor = (circle: HTMLElement): number => {
+  if (!circle.hasAttribute('data-fit-roles')) return SEAT_FLOOR
+  let longest = 0
+  for (const label of circle.querySelectorAll<HTMLElement>('.seat__role')) {
+    longest = Math.max(longest, lengthOf(label))
+  }
+  if (longest === 0) return SEAT_FLOOR
+  // The tile, less its border and padding, has to hold the word.
+  return Math.max(SEAT_FLOOR, longest * LABEL_ADVANCE * LABEL_FLOOR + 6)
+}
 
 /**
  * Lets a circle that cannot give every seat a readable tile fall back to
@@ -192,12 +226,20 @@ export const fitTables = (root: ParentNode): void => {
     const table = circle.parentElement
     if (!table) continue
     const seats = circle.querySelectorAll('.seat').length || 1
+    // Always measured as a ring. The stylesheet gives a table in rows a
+    // different height from the same table as a ring, so measuring it in
+    // whichever state it happens to be in makes the answer depend on the
+    // last answer — a table that fell back once could measure too short to
+    // ever come back, and the ring would not return when the Roles toggle
+    // went off. Taking the attribute off first costs one synchronous layout
+    // and makes the question the same every time it is asked.
+    circle.removeAttribute('data-rows')
     const box = table.getBoundingClientRect()
     const cap = circle.classList.contains('circle--compact') ? 17 : 24.5
     const avail = Math.max(Math.min(box.width, box.height, cap * rem), 9 * rem)
     const gap = Math.sin(Math.PI / seats)
     const seat = Math.min(avail * 0.31, (avail * gap) / (Math.SQRT2 + gap))
-    const rows = seat < SEAT_FLOOR
+    const rows = seat < floorFor(circle)
     circle.toggleAttribute('data-rows', rows)
     // A role label with no size left that anybody could read goes, and the
     // sigil carries the role on its own — the same answer the stylesheet
@@ -206,8 +248,7 @@ export const fitTables = (root: ParentNode): void => {
     // word under it reads as the design. In rows the label has the width of
     // the phone and always fits.
     for (const label of circle.querySelectorAll<HTMLElement>('.seat__role')) {
-      const len = Number(label.style.getPropertyValue('--len')) || (label.textContent ?? '').trim().length
-      const fits = rows || len * LABEL_ADVANCE * LABEL_FLOOR <= seat - 6
+      const fits = rows || lengthOf(label) * LABEL_ADVANCE * LABEL_FLOOR <= seat - 6
       label.toggleAttribute('data-over', !fits)
     }
   }
