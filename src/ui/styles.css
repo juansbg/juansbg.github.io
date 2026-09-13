@@ -282,10 +282,14 @@ body {
   transform: translateY(1px);
 }
 
+/* A button that is waiting, not missing. The hairline says it cannot be
+   pressed; the label still has to be readable in a dark room, since it is
+   usually the sentence that says what is missing ("You need at least four
+   players"). --fg-faint measured 2.1:1 on the setup screen. */
 .btn:disabled {
   background: transparent;
   border-color: var(--hairline);
-  color: var(--fg-faint);
+  color: var(--fg-muted);
   cursor: default;
 }
 
