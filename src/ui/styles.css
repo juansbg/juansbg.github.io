@@ -3648,6 +3648,32 @@ html[data-dawn] body {
   animation-name: none;
 }
 
+/* On a 1080p screen the ring is as tall as the frame allows, so the hollow in
+   the middle of it is the largest empty thing on the wall — and it is exactly
+   where the room is already looking. The night's own line goes there at a size
+   a sofa can read, and the hour beside the ring grows with it. The phone keeps
+   both small: there, the ring's middle is the size of a thumb. */
+.stage--tv .tableview__night {
+  gap: var(--space-3);
+}
+
+.stage--tv .tableview__night-label {
+  font-size: clamp(0.875rem, 1.8vmin, 1.75rem);
+}
+
+.stage--tv .tableview__night-count {
+  font-size: clamp(2rem, 9vmin, 9rem);
+  line-height: 1;
+}
+
+.stage--tv .screen--table .tableview__head {
+  align-self: center;
+}
+
+.stage--tv .tableview__head .label {
+  font-size: clamp(1.25rem, 4vmin, 4rem);
+}
+
 .tableview__clock {
   grid-row: 1;
   grid-column: 3;
