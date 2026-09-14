@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { codeMarkup, nextGate, seatAction, seatMarkup, settlePicks, stepKeyOf, type SeatGate, type SeatPicks } from './seat'
+import { codeMarkup, nextGate, nextGone, seatAction, seatMarkup, settlePicks, stepKeyOf, type SeatGate, type SeatPicks } from './seat'
 import { LOCALES, strings } from '../../i18n'
 import { ROLE_IDS, type RoleId } from '../../engine/roles'
 import type { PlayerId } from '../../engine/types'
@@ -12,10 +12,11 @@ import type { SeatNight, SeatProjection } from '../../room/projections'
  */
 
 const NAMES = ['Ana', 'Beto', 'Caro', 'Dani', 'Eva', 'Fer']
-const players = NAMES.map((name, id) => ({ id: id as PlayerId, name, alive: id !== 5, voted: false }))
+const players = NAMES.map((name, id) => ({ id: id as PlayerId, name, alive: id !== 5, voted: false, silenced: false }))
 
 const quiet = (): SeatNight => ({
   step: 'INSPECT',
+  at: { index: 1, of: 4 },
   acting: false,
   view: { self: [], crew: [], doomed: [], marked: [] },
   eligible: [],
@@ -251,6 +252,28 @@ describe("a player's phone at night", () => {
     expect(html).toContain(t.ui.seat.out)
     expect(html).not.toContain('data-pick=')
     expect(html).not.toContain('data-act=')
+    // Its own state is the promoted thing on the screen and the step card is
+    // demoted behind it (phone-06), and the ring says it is not a ballot.
+    expect(html).toContain('class="mine__state"')
+    expect(html).toContain('data-quiet')
+    expect(html).toContain('data-tap="off"')
+  })
+
+  it('tells a living seat with nothing to do that there is nothing to do, and how far the night has got', () => {
+    for (const locale of LOCALES) {
+      const t = strings(locale)
+      const idle = seatMarkup(seat(3, 'PLAIN', {}), locale)
+      // An empty note slot at every step of every night reads as a broken phone (phone-05).
+      expect(idle, locale).toContain(t.ui.seat.idleNight)
+      // The pace, as two plain numbers; never a role and never a seat (phone-11).
+      expect(idle, locale).toContain(t.ui.night.stepCounter(2, 4))
+      expect(idle, locale).not.toContain('data-quiet')
+      // The acting phone has its own hint and its own counter, so neither shows there.
+      const acting = seatMarkup(seat(2, 'INSPECT', { acting: true, eligible: [0, 1] }), locale)
+      expect(acting, locale).not.toContain(t.ui.seat.idleNight)
+      expect(acting, locale).toContain(t.ui.seat.yourMove)
+      expect(acting, locale).toContain('data-tap="on"')
+    }
   })
 
   it("settles the picks on the narrator's answer: a mark is dropped for the projection's, a pair waits for its step, and a sent action survives an unrelated repaint of the same step (night-01)", () => {
@@ -293,7 +316,7 @@ describe("a player's phone at night", () => {
         vote,
         eligible: players.filter((x) => x.alive && x.id !== 0).map(({ id, name }) => ({ id, name })),
         voted: 2,
-        players: players.map((x) => ({ ...x, voted: x.id === 1 || x.id === 3 })),
+        players: players.map((x) => ({ ...x, voted: x.id === 1 || x.id === 3 })) as SeatProjection['players'],
         ...extra,
       })
     let html = seatMarkup(day(null), 'en')
@@ -319,10 +342,85 @@ describe("a player's phone at night", () => {
     html = seatMarkup(day(2, { count: { shown: 3, total: 3, last: 2 }, tally: [{ target: 2, votes: 2 }, { target: 4, votes: 1 }] }), 'en')
     expect(html).toContain(t.ui.table.pointsAt('Caro'))
     expect(html).toContain('data-leader')
-    // The silenced watch the same ring with no vote to cast.
-    html = seatMarkup(day(null, { canVote: false, eligible: [] }), 'en')
-    expect(html).toContain(t.ui.seat.cannotVote)
+    // The living voter's ring is a ballot and says so.
+    expect(seatMarkup(day(null), 'en')).toContain('data-tap="on"')
+
+    // The silenced watch the same ring with no vote to cast — and are told
+    // why, and how long it lasts (phone-08). The ring says it is not a
+    // ballot, and their own state is promoted over the count (phone-06).
+    html = seatMarkup(
+      day(null, {
+        canVote: false,
+        eligible: [],
+        players: players.map((x) => ({ ...x, silenced: x.id === 0 })) as SeatProjection['players'],
+      }),
+      'en',
+    )
+    expect(html).toContain(t.ui.seat.silenced)
+    expect(html).not.toContain(t.ui.seat.cannotVote)
     expect(html).not.toContain('data-vote=')
+    expect(html).toContain('class="mine__state"')
+    expect(html).toContain('data-quiet')
+    expect(html).toContain('data-tap="off"')
+
+    // Nobody burned this seat out; the plain refusal stands.
+    expect(seatMarkup(day(null, { canVote: false, eligible: [] }), 'en')).toContain(t.ui.seat.cannotVote)
+  })
+})
+
+describe('the moment a seat is told it is out (phone-03)', () => {
+  const dead = (extra: Partial<SeatProjection> = {}): SeatProjection =>
+    seat(0, 'PLAIN', {}, { alive: false, phase: 'day', tonight: null, night: 2, day: 2, ...extra })
+
+  const night = { alive: true, phase: 'night' as const }
+  const day = { alive: true, phase: 'day' as const }
+
+  it('arms on the death itself, never on a reload and never once the game is over', () => {
+    // A phone that was on the night a moment ago is coming out of one — the
+    // narrator's first republish after the resolve can land before the dawn
+    // reading opens, so the reading alone cannot be the test.
+    expect(nextGone(null, night, dead({ reading: null }))).toEqual({ night: 2, day: 2 })
+    expect(nextGone(null, night, dead({ reading: 'dawn' }))).toEqual({ night: 2, day: 2 })
+    // Already in the daylight: the town has just done it.
+    expect(nextGone(null, day, dead({ reading: 'verdict' }))).toEqual({ night: null, day: 2 })
+    expect(nextGone(null, day, dead({ reading: null }))).toEqual({ night: null, day: 2 })
+    // A phone that has never seen this seat alive was reloaded by somebody
+    // already dead; nothing has just happened to them.
+    expect(nextGone(null, null, dead())).toBeNull()
+    expect(nextGone(null, { alive: false, phase: 'day' }, dead())).toBeNull()
+    // It stays up through every repaint until the tap, and the living never see it.
+    const up = { night: 2, day: 2 }
+    expect(nextGone(up, { alive: false, phase: 'day' }, dead())).toBe(up)
+    expect(nextGone(up, { alive: false, phase: 'day' }, dead({ alive: true }))).toBeNull()
+    // The end of the game is its own screen and says the same thing better.
+    expect(nextGone(up, day, dead({ over: true }))).toBeNull()
+  })
+
+  it('holds the night, the name struck through and one line, and no role at all', () => {
+    for (const locale of LOCALES) {
+      const t = strings(locale)
+      const html = seatMarkup(dead({ reading: null }), locale, undefined, null, { night: 2, day: 2 })
+      expect(html, locale).toContain('data-gone')
+      expect(html, locale).toContain('mine__struck')
+      expect(html, locale).toContain('Ana')
+      expect(html, locale).toContain(t.ui.seat.goneTitle)
+      expect(html, locale).toContain(t.ui.seat.goneLine)
+      expect(html, locale).toContain('data-mourn')
+      // The card stays behind the hold, like everywhere else: this phone is
+      // still in a lit room full of people.
+      for (const id of ROLE_IDS) expect(html, id).not.toContain(t.roles[id].card)
+      expect(html, locale).not.toContain('data-hold')
+      // The night it happened, or the day the town did it.
+      expect(html, locale).toContain(t.ui.timeline.nightEnd(2))
+      expect(seatMarkup(dead(), locale, undefined, null, { night: null, day: 2 }), locale).toContain(t.ui.table.day(2))
+    }
+  })
+
+  it('waits for the reading before it says anything', () => {
+    const t = strings('en')
+    const html = seatMarkup(dead({ reading: 'dawn' }), 'en', undefined, null, { night: 2, day: 2 })
+    expect(html).toContain(t.ui.seat.waking)
+    expect(html).not.toContain('data-gone')
   })
 })
 
@@ -367,7 +465,10 @@ describe('the gate around the chooser', () => {
       expect(turn).toContain('data-gate="turn"')
       expect(turn).toContain(t.ui.seat.yourTurn('Ana'))
       expect(turn).toContain(t.ui.seat.proceed)
-      expect(turn.match(/data-enter/g)).toHaveLength(1)
+      // `data-gate-go`, not `data-enter`: the page's stage wears `data-enter`
+      // for the entrances, and one selector must not reach both.
+      expect(turn.match(/data-gate-go/g)).toHaveLength(1)
+      expect(turn).not.toContain('data-enter')
       expect(turn).not.toContain('data-close')
       // The frame every phone has: the head, the card block, the ring; no chooser, no mark, no Family, no role.
       expect(turn).toContain('mine__step')
@@ -428,9 +529,14 @@ describe("game over, on this seat's own phone", () => {
     // The result is this seat's own, not just the side's.
     expect(html).toContain(t.ui.seat.youWon)
     expect(html).not.toContain('data-lost')
-    // This seat's own role and trade, under it.
+    // This seat's own role and trade, under it. The trade carries the dark
+    // card's own ink rather than the paper card's Midnight, which read at
+    // 1.1:1 here and is what every citizen met on their payoff screen
+    // (phone-01); and the whole screen settles on one alignment (phone-15).
     expect(html).toContain(t.roles.PLAIN.card)
     expect(html).toContain(t.trades[2]!)
+    expect(html).toContain('reveal__trade mine__trade')
+    expect(html).toContain('mine--over')
     // The whole cast is public now, dead struck, self marked, and the hold is back.
     // (GUARD's ring tile, "Bodyguard": KILLER's own `.card` keeps its article,
     // "The Family", but the ring strips it same as every other role's name.)

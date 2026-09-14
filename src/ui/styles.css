@@ -4499,6 +4499,160 @@ html[data-dawn] body {
   color: var(--fg-2);
 }
 
+/* The trade on the game-over card. `.reveal__trade` is written for the
+   paper-white held card and sets Midnight ink; on the dark `.card--role`
+   `overMarkup()` renders it measured 1.1:1, and every citizen meets it on the
+   one screen that is their payoff (phone-01). The second class is where the
+   dark card's own ink is set, so the paper card is untouched. */
+.mine__trade {
+  color: var(--fg);
+}
+
+/* Losing needs weight within the language, not a colour of its own: "You
+   lost" was set identically to "You won" — same Ledger, same size, same place
+   (phone-02). Ash reads as the second voice; the one bright ink stays the
+   winner's. Never Vendetta: a losing player is not a lethal action. */
+.winner[data-lost] {
+  color: var(--fg-2);
+}
+
+/* The death screen (phone-03): the hour, the seat's own name struck through,
+   one line, and one button where the hold bar sits. The strike is the same
+   dim red the ring draws over a dead tile. */
+.mine--gone {
+  text-align: center;
+}
+
+/* Two autos: the head stays at the top, the card and its line sit together
+   just below the middle, the button keeps the thumb's reach at the bottom.
+   `space-between` here spread four items over the whole phone. */
+.mine--gone .mine__step {
+  margin-top: auto;
+  text-align: start;
+}
+
+.mine--gone .mine__gate {
+  margin-top: auto;
+}
+
+.mine__struck {
+  text-decoration: line-through;
+  text-decoration-color: var(--lethal-dim);
+  text-decoration-thickness: 2px;
+}
+
+/* A seat's own state, when the seat has nothing to do: the biggest brightest
+   thing on a dead player's screen was "THE BALLOT · 0 of 6 have voted", the
+   one thing they are excluded from, and their own state was a small grey line
+   under it, in a third of a screen of void (phone-06). This promotes the
+   state and the rule under it demotes the card. */
+.mine__state {
+  margin: 0;
+  max-width: 20rem;
+  align-self: center;
+  font-size: var(--text-lg);
+  line-height: 1.3;
+  text-align: center;
+  color: var(--fg);
+  text-wrap: balance;
+}
+
+/* The refused tap's one cheap acknowledgement (phone-07): the ring is not a
+   ballot, nothing moves, and the state line answers instead of the finger
+   being swallowed. `data-nudge` is set for 700ms by `src/seat.ts`. */
+.mine__state[data-nudge] {
+  animation: nudge var(--dur-base) var(--ease-out) 2;
+}
+
+@keyframes nudge {
+  50% {
+    opacity: 0.45;
+  }
+}
+
+/* The step or the ballot, on a phone that is out of it: still there, still
+   readable, no longer the headline. */
+.mine--table[data-quiet] .mine__step {
+  color: var(--fg-muted);
+}
+
+.mine--table[data-quiet] .mine__step .card__title {
+  font-size: var(--text-lg);
+  color: var(--fg-2);
+}
+
+/* A ring that is not taking taps says so. It looked exactly like a ballot —
+   same borders, same ink, still buttons — and answered three real taps with
+   absolutely nothing (phone-07). Not hidden and not dimmed to nothing: a dead
+   or silenced player still reads the table. */
+.mine--table[data-tap='off'] .seat:not([data-dead]) {
+  border-color: var(--hairline);
+  color: var(--fg-2);
+}
+
+/* The dead on a phone read at 2.1–2.8:1 (phone-16). The strike says they are
+   gone; the name only has to be readable. Scoped to the player's page, where
+   the tile is small and the room is dark — the narrator's board keeps its
+   own weighting. */
+.stage--seat .seat[data-dead] .seat__name {
+  color: var(--fg-muted);
+}
+
+/* The reading gate is one sentence in a screenful of navy and its hold bar
+   wraps to two lines where it is one line on every other screen (phone-12):
+   the bar is sized on `.mine--table`, and the waking screen is not one. */
+.mine--waking .reveal__hold,
+.mine--gone .mine__gate {
+  min-height: var(--touch);
+  padding: var(--space-2) var(--space-4);
+  font-size: var(--text-display-min);
+}
+
+/* And the label itself, or it wraps inside a bar that has the width for it:
+   `.mine--table` already lifts this cap and the waking screen is not one. */
+.mine--waking .reveal__hold-label,
+.mine--gone .reveal__hold-label {
+  max-width: none;
+}
+
+.mine--waking .mine__waking {
+  font-size: var(--text-xl);
+  max-width: 20rem;
+}
+
+/* The held card must not eat its own hold. `.mine__card` covers `[data-hold]`
+   the moment it appears; on a hovering pointer Chrome re-evaluates hover,
+   fires `pointerleave`, and `bindHold` ends the hold — measured: a mouse hold
+   kept `[data-card]` empty for a whole 2.2s press while touch reached 669
+   characters at 810ms (phone-13). The card is a display surface; it takes no
+   input from anybody. */
+.mine__card {
+  pointer-events: none;
+}
+
+/* One alignment on the short end screen: seat and name were centred, "You
+   lost" and the winner line hard left, the card left, the ring centred
+   (phone-15). */
+.mine--over {
+  text-align: center;
+}
+
+.mine--over .winner,
+.mine--over .subtitle {
+  text-align: center;
+}
+
+.mine--over .mine__step {
+  text-align: start;
+}
+
+/* The room code kept on the screen the door said no on (phone-14). */
+.mine__at {
+  margin: 0;
+  color: var(--fg-2);
+  font-family: var(--font-mono);
+}
+
 /* ---------- The lobby on the big screen ---------- */
 .screen--lobby {
   display: grid;

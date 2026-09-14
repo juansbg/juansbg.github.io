@@ -39,6 +39,14 @@ export const seatPlayer = (p: SeatProjection): Player => ({
   trade: p.trade,
 })
 
+/**
+ * Whether the ring in front of this seat is taking taps. A ring that looks
+ * exactly like a ballot and answers a real tap with nothing at all is the
+ * worst of both (phone-07), so the screen says which it is and the page
+ * answers a refused tap rather than swallowing it.
+ */
+const tap = (live: boolean): string => `data-tap="${live ? 'on' : 'off'}"`
+
 /** A seat of the table as the circle wants it: a name, a chair, alive or not. No role reaches it. */
 const tableSeat = (s: SeatProjection['players'][number]): Player => ({
   id: s.id,
@@ -161,6 +169,70 @@ export const nextGate = (gate: SeatGate | null, p: SeatProjection): SeatGate | n
   return gate
 }
 
+/**
+ * The moment a seat is told it is out (phone-03). A player killed on night
+ * one went from the reading straight to the ordinary day screen, and the only
+ * sign anything had happened to them was one grey line and a red stroke on
+ * their own tile: nothing on their own device ever told them they had died.
+ * This is the one screen that does, and it is held until they tap past it.
+ *
+ * `night` is the night it happened, or null when the town did it in the
+ * daylight; the phone knows which from the reading it was held out of.
+ */
+export interface SeatGone {
+  night: number | null
+  day: number
+}
+
+/** What this phone last saw of its own seat, for `nextGone`. */
+export interface SeatWas {
+  alive: boolean
+  phase: SeatProjection['phase']
+}
+
+/**
+ * Arms the death screen, or keeps it up until it is tapped past.
+ *
+ * `was` is what this phone last saw of itself, so a page reloaded by somebody
+ * who is already dead is not told again as if it had just happened — the news
+ * belongs to the transition, not to the state. It also says which hour it
+ * happened in: a phone that was on the night a moment ago is coming out of
+ * one, whatever the reading is doing; a phone that was already in the
+ * daylight has just watched the town do it.
+ */
+export const nextGone = (gone: SeatGone | null, was: SeatWas | null, p: SeatProjection): SeatGone | null => {
+  if (p.alive || p.over) return null
+  if (gone !== null) return gone
+  if (was === null || !was.alive) return null
+  const byNight = was.phase === 'night' || p.phase === 'night' || p.reading === 'dawn'
+  return { night: byNight ? p.night : null, day: p.day }
+}
+
+/**
+ * The death screen: the hour, this seat's own name struck through, the news
+ * in one line, and one button. No role — the card stays behind the hold, the
+ * way it does on every other screen, because this phone is still in a lit
+ * room full of people.
+ */
+const goneMarkup = (p: SeatProjection, locale: Locale, head: string, gone: SeatGone): string => {
+  const t = strings(locale)
+  const s = t.ui.seat
+  const when = gone.night === null ? t.ui.table.day(gone.day) : t.ui.timeline.nightEnd(gone.night)
+  return `
+    <section class="screen mine mine--table mine--gone" data-gone>
+      ${head}
+      <div class="card card--role mine__step" data-accent="system">
+        <p class="night__counter">${esc(when)}</p>
+        <h2 class="card__title mine__struck">${esc(p.name)}</h2>
+        <p class="card__situation">${esc(s.goneTitle)}</p>
+      </div>
+      <p class="mine__state">${esc(s.goneLine)}</p>
+      <button class="reveal__hold mine__gate" type="button" data-mourn>
+        <span class="reveal__hold-label">${esc(s.proceed)}</span>
+      </button>
+    </section>`
+}
+
 export const seatCenter = (inner: string): string => `<section class="screen screen--center mine">${inner}</section>`
 
 /** A room code is five of these, as the relay makes them. */
@@ -261,20 +333,27 @@ const overMarkup = (p: SeatProjection, locale: Locale, head: string): string => 
   const side = renderWinner(p.winner, locale)
   const result = p.won === null ? (side ?? t.ui.over.title) : p.won ? t.ui.seat.youWon : t.ui.seat.youLost
   const sub = p.won !== null && side !== null ? `<p class="subtitle">${esc(side)}</p>` : ''
+  // The trade is Midnight ink, because `.reveal__trade` belongs to the
+  // paper-white held card; on this dark one it read at 1.1:1 and every
+  // citizen met it on the one screen that is their payoff (phone-01). The
+  // second class is where the dark card's own ink is set.
   const mine =
     p.roleId !== null
       ? `<div class="card card--role mine__step" data-accent="system">
           <span class="card__sigil">${sigilMarkup(p.roleId)}</span>
           <h2 class="card__title">${esc(t.roles[p.roleId].card)}</h2>
-          ${p.trade !== null ? `<p class="reveal__trade">${esc(t.trades[p.trade] ?? '')}</p>` : ''}
+          ${p.trade !== null ? `<p class="reveal__trade mine__trade">${esc(t.trades[p.trade] ?? '')}</p>` : ''}
         </div>`
       : ''
   const table =
     p.cast.length > 0
       ? circleMarkup(p.players.map((x) => castSeat(p, x)), locale, { showRoles: true, revealTeams: true, self: [p.seat] })
       : ''
+  // One alignment for the whole screen: the head was centred, the result and
+  // the winner line hard left, the card left and the ring centred again
+  // (phone-15). `mine--over` is where the stylesheet settles it.
   return `
-    <section class="screen mine mine--table" data-over>
+    <section class="screen mine mine--table mine--over" data-over ${tap(false)}>
       ${head}
       <p class="winner"${p.won === false ? ' data-lost' : ''}>${esc(result)}</p>
       ${sub}
@@ -290,6 +369,7 @@ export const seatMarkup = (
   locale: Locale,
   picks: SeatPicks = NO_PICKS,
   gate: SeatGate | null = null,
+  gone: SeatGone | null = null,
 ): string => {
   const t = strings(locale)
   const s = t.ui.seat
@@ -308,6 +388,9 @@ export const seatMarkup = (
 
   // The narrator is reading the night to the room; the phone hears it first.
   if (p.reading !== null) return wakingMarkup(p, locale, head)
+
+  // This seat has just died and has not tapped past the news yet.
+  if (gone !== null) return goneMarkup(p, locale, head, gone)
 
   if (p.phase === 'night' && p.tonight !== null && p.roleId !== null) {
     return gate !== null && gate.kind !== 'chooser'
@@ -371,15 +454,20 @@ const dayMarkup = (p: SeatProjection, locale: Locale, head: string): string => {
     situation = t.ui.table.voted(p.voted, living)
   }
 
-  const note = !p.alive
-    ? `<p class="mine__note">${esc(s.out)}</p>`
-    : !p.canVote
-      ? `<p class="mine__note">${esc(s.cannotVote)}</p>`
-      : c !== null
-        ? ''
-        : p.vote !== null
-          ? `<p class="mine__note">${esc(s.voted)} ${esc(s.yourVote)}</p>`
-          : `<p class="label mine__hint">${esc(s.vote)}</p>`
+  // A seat that cannot vote is not a spectator at somebody else's ballot: its
+  // own state is the thing on the screen, and the ballot card behind it is
+  // demoted (phone-06). The silenced are told why, and until when (phone-08);
+  // the burning is public — the paper names it the morning after.
+  const silenced = p.players.find((x) => x.id === p.seat)?.silenced === true
+  const quiet = !p.alive || !p.canVote
+  const state = !p.alive ? s.out : !p.canVote ? (silenced ? s.silenced : s.cannotVote) : ''
+  const note = quiet
+    ? ''
+    : c !== null
+      ? ''
+      : p.vote !== null
+        ? `<p class="mine__note">${esc(s.voted)} ${esc(s.yourVote)}</p>`
+        : `<p class="label mine__hint">${esc(s.vote)}</p>`
 
   const table = circleMarkup(p.players.map(tableSeat), locale, {
     ...(p.canVote ? { pickAttr: 'vote', eligible: p.eligible.map((e) => e.id) } : {}),
@@ -392,8 +480,9 @@ const dayMarkup = (p: SeatProjection, locale: Locale, head: string): string => {
   })
 
   return `
-    <section class="screen mine mine--table" data-day ${complete ? 'data-counted' : ''}>
+    <section class="screen mine mine--table" data-day ${complete ? 'data-counted' : ''} ${quiet ? 'data-quiet' : ''} ${tap(p.canVote)}>
       ${head}
+      ${state === '' ? '' : `<p class="mine__state">${esc(state)}</p>`}
       <div class="card card--role mine__step" data-accent="system">
         <p class="night__counter">${esc(t.ui.table.day(p.day))}</p>
         <h2 class="card__title">${esc(title)}</h2>
@@ -429,9 +518,12 @@ const gateMarkup = (p: SeatProjection, n: SeatNight, locale: Locale, head: strin
       ? ''
       : `<span class="card__sigil">${sigilMarkup(look.roleId)}</span>
         <p class="card__aside">${esc(ROLES[look.roleId].team === 'crew' ? t.ui.reveal.sideCrew : t.ui.reveal.sideTown)}</p>`
-  const attr = gate.kind === 'turn' ? 'data-enter' : 'data-close'
+  // `data-gate-go`, not `data-enter`: the stage carries `data-enter` for the
+  // entrances, and two elements on one screen answering to the same selector
+  // is a handler bound to the whole screen waiting to happen.
+  const attr = gate.kind === 'turn' ? 'data-gate-go' : 'data-close'
   return `
-    <section class="screen mine mine--table" data-gate="${gate.kind}" data-step="${n.step ?? ''}">
+    <section class="screen mine mine--table" data-gate="${gate.kind}" data-step="${n.step ?? ''}" ${tap(false)}>
       ${head}
       <div class="card card--role mine__step" data-accent="system" ${look === null ? '' : 'data-looked'}>
         <p class="night__counter">${esc(counter)}</p>
@@ -488,19 +580,23 @@ const nightMarkup = (
   let inCard = ''
   let table: string
   let actions = ''
+  /** Whether the ring itself is taking taps at this step; see `tap`. */
+  let live = false
 
   const btn = (attrs: string, label: string, cls = 'btn--ghost', enabled = true): string =>
     `<button class="btn ${cls}" type="button" ${attrs} ${enabled && !picks.sent ? '' : 'disabled'}>${esc(label)}</button>`
   const skip = (label: string): string => btn('data-act="skip"', label)
   const plain = (): string =>
     circleMarkup(p.players.map(tableSeat), locale, acting ? { perspective: view, selected: chosen } : { perspective: plainView(p) })
-  const picker = (eligible: readonly PlayerId[]): string =>
-    circleMarkup(p.players.map(tableSeat), locale, {
+  const picker = (eligible: readonly PlayerId[]): string => {
+    live = true
+    return circleMarkup(p.players.map(tableSeat), locale, {
       perspective: view,
       pickAttr: 'pick',
       eligible: picks.sent ? [] : eligible,
       selected: chosen,
     })
+  }
 
   if (!acting) {
     table = plain()
@@ -578,26 +674,38 @@ const nightMarkup = (
     actions = `<div class="actions">${btn('data-act="confirm"', t.ui.common.confirm, 'btn--primary')}</div>`
   }
 
+  // How far into the night the table is, the same two numbers the room is
+  // given on the big screen and never a role or a seat: a phone that cannot
+  // act had no sense of pace at all (phone-11).
+  const pace = n.at === null ? '' : ` · ${esc(t.ui.night.stepCounter(n.at.index + 1, n.at.of))}`
   const stepCard = `
       <div class="card card--role mine__step" data-accent="system">
         ${step === null ? '' : `<span class="card__sigil">${sigilMarkup(step)}</span>`}
-        <p class="night__counter">${esc(t.ui.timeline.nightStart(p.night))}${acting ? ` · ${esc(s.yourMove)}` : ''}</p>
+        <p class="night__counter">${esc(t.ui.timeline.nightStart(p.night))}${acting ? ` · ${esc(s.yourMove)}` : pace}</p>
         <h2 class="card__title">${esc(step === null ? t.phase.nightFalls : t.roles[step].name)}</h2>
         ${situation ? `<p class="card__situation">${esc(situation)}</p>` : ''}
         ${inCard}
       </div>`
 
+  // The dead seat's own state is the thing on its screen, not the step it is
+  // being shown (phone-06); a living seat with nothing to do at this step is
+  // told so, rather than left with an empty slot to read as a broken phone
+  // (phone-05).
+  const state = p.alive ? '' : s.out
   const note = !p.alive
-    ? `<p class="mine__note">${esc(s.out)}</p>`
+    ? ''
     : picks.sent
       ? `<p class="mine__note">${esc(s.sent)}</p>`
       : hint
         ? `<p class="label mine__hint">${esc(hint)}</p>`
-        : ''
+        : acting
+          ? ''
+          : `<p class="mine__note">${esc(s.idleNight)}</p>`
 
   return `
-    <section class="screen mine mine--table" data-step="${step ?? ''}" ${acting ? 'data-acting' : ''} ${picks.sent ? 'data-sent' : ''}>
+    <section class="screen mine mine--table" data-step="${step ?? ''}" ${acting ? 'data-acting' : ''} ${picks.sent ? 'data-sent' : ''} ${p.alive ? '' : 'data-quiet'} ${tap(live && !picks.sent)}>
       ${head}
+      ${state === '' ? '' : `<p class="mine__state">${esc(state)}</p>`}
       ${stepCard}
       ${note}
       ${table}

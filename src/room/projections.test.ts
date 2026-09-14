@@ -343,7 +343,10 @@ describe('a seat’s night', () => {
     const s = midnight()
     const citizen = tonight(s, 5)
     expect(citizen).toEqual({
-      step: 'SILENCE', acting: false,
+      // How far into the night, the same two plain numbers the big screen is
+      // given (`TvProjection.nightStep`) and never a role or a seat: it is
+      // the only sense of pace a phone that cannot act has.
+      step: 'SILENCE', at: { index: 2, of: 5 }, acting: false,
       view: { self: [5], crew: [], doomed: [], marked: [] },
       eligible: [], vials: null, convertLeft: null, victim: null, spare: [], looked: null,
     })

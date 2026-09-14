@@ -208,7 +208,12 @@ export const tvProjection = (
   timer: context.timer ?? null,
   nightStep:
     state.phase === 'night' && state.schedule.length > 0
-      ? { index: state.stepIndex, of: state.schedule.length }
+      ? // `stepIndex` runs one past the last step once the night's steps are
+        // done and the narrator has only the resolve left, so the raw number
+        // is out of range for anything that renders it as "n of m" — it
+        // surfaced on a phone as "5 of 4". The room is told the truth
+        // instead: every step is behind it.
+        { index: Math.min(state.stepIndex, state.schedule.length - 1), of: state.schedule.length }
       : null,
   ...ballot(state, context),
   winner: winner(state),
@@ -268,8 +273,13 @@ export interface SeatProjection {
    * not to whoever looks down first.
    */
   reading: Reading | null
-  /** The table, for the phone to draw the ring: names, who is dead, who has voted; public already. */
-  players: { id: PlayerId; name: string; alive: boolean; voted: boolean }[]
+  /**
+   * The table, for the phone to draw the ring: names, who is dead, who has
+   * voted, who is burned out today; public already — the room's own screen
+   * carries every one of them on `TvSeat`, and the paper names the burning
+   * the morning after it happens.
+   */
+  players: { id: PlayerId; name: string; alive: boolean; voted: boolean; silenced: boolean }[]
   /** The night as this seat may see it (docs/BIG-SCREEN.md §10); null by day. */
   tonight: SeatNight | null
 }
@@ -286,6 +296,13 @@ export interface SeatProjection {
 export interface SeatNight {
   /** The role being read right now: public, the narrator says it. */
   step: RoleId | null
+  /**
+   * How far into the night the table is, exactly as the room is told it
+   * (`TvProjection.nightStep`): two plain numbers off the schedule, never a
+   * role and never a seat. A phone that cannot act had no sense of pace at
+   * all, and the big screen — which anyone can look up at — already says this.
+   */
+  at: TvNightStep | null
   /** This seat holds the step, or wakes with the Family at the Family's step. */
   acting: boolean
   /** What the role knows of the table tonight; empty lists for a citizen. */
@@ -336,6 +353,9 @@ export const seatNight = (state: GameState, me: Player, picked: readonly PlayerI
     : undefined
   return {
     step,
+    // Only while there is a step to be at: the index runs past the end of the
+    // schedule once the night is done, and "5 of 4" is worse than nothing.
+    at: step !== null && state.schedule.length > 0 ? { index: state.stepIndex, of: state.schedule.length } : null,
     acting,
     view,
     eligible: acting && step !== null ? eligibleAt(state, step) : [],
@@ -392,7 +412,13 @@ export const seatProjection = (
     cast: over ? castOf(state) : [],
     roster: state.phase === 'setup' ? (context.roster ?? []) : [],
     reading: context.reading ?? null,
-    players: state.players.map((p) => ({ id: p.id, name: p.name, alive: p.alive, voted: state.votes.some((v) => v.voter === p.id) })),
+    players: state.players.map((p) => ({
+      id: p.id,
+      name: p.name,
+      alive: p.alive,
+      voted: state.votes.some((v) => v.voter === p.id),
+      silenced: p.silencedOnDay === state.day,
+    })),
     // A game the narrator has ended has no night left to play on a phone.
     tonight: context.dealt && context.over !== true ? seatNight(state, me, context.picked ?? []) : null,
   }

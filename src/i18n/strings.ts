@@ -552,9 +552,29 @@ export interface Strings {
       /** Under the label once a vote is cast: how to take it back. */
       yourVote: string
       cannotVote: string
+      /**
+       * Burned out today: the reason and how long it lasts. "You cannot vote
+       * today." said neither, and being burned out is public — the paper
+       * names it — so the person it happened to may as well be told.
+       */
+      silenced: string
       /** Under the ballot once the vote is cast: the phone is done for now. */
       voted: string
       out: string
+      /**
+       * Nothing for this seat at this step. A living citizen's note slot was
+       * empty at every step of every night, and a first-timer reads an empty
+       * phone as a broken one.
+       */
+      idleNight: string
+      /**
+       * The moment a seat is told it is out, on its own device (phone-03).
+       * Their own name struck through, the hour it happened, one line, and a
+       * button: the death is theirs to hear before the day goes on without
+       * them.
+       */
+      goneTitle: string
+      goneLine: string
       /**
        * The door said no, and why. The narrator's own timeline carries the
        * same three cases (`ui.timeline.notOnList` and friends), so the two

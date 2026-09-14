@@ -31,8 +31,11 @@ import {
   seatPlayer,
   settlePicks,
   stepKeyOf,
+  nextGone,
   type SeatGate,
+  type SeatGone,
   type SeatPicks,
+  type SeatWas,
 } from './ui/screens/seat'
 import { buzz, esc, on } from './ui/dom'
 
@@ -111,6 +114,18 @@ let picks: SeatPicks = { picked: [], sent: false }
 let stepKey = ''
 /** The gate around the chooser: "your turn", the chooser, "close your eyes"; see SeatGate. */
 let gate: SeatGate | null = null
+/** The death screen, until this phone taps past it; see SeatGone. */
+let gone: SeatGone | null = null
+/** What this phone last saw of itself, so a reload is not told the news again. */
+let was: SeatWas | null = null
+/**
+ * The scene this phone last painted. Entrances play when a scene arrives and
+ * never on a republish, the same rule the narrator's `render(true)` follows:
+ * the stage had no `data-enter` at all, so the stylesheet's
+ * `.stage:not([data-enter])` list suppressed every entrance on this page for
+ * good (phone-04).
+ */
+let scene = ''
 
 // ---- Rendering ---------------------------------------------------------------
 
@@ -158,8 +173,12 @@ const render = (): void => {
               `<h1 class="title mine__wordmark">${esc(t.appName)}</h1>
                <p class="label">${esc(s.title)}</p>
                <p class="title tv__code">${esc(room)}</p>`
-            : `<h1 class="title title--sm">${esc(no.head)}</h1>
-               <p class="subtitle">${esc(no.body)}</p>`
+            : // The code stays on the screen the door said no on: somebody who
+              // mistyped their name has no way otherwise to check they are
+              // even in the right room (phone-14).
+              `<h1 class="title title--sm">${esc(no.head)}</h1>
+               <p class="subtitle">${esc(no.body)}</p>
+               <p class="label mine__at">${esc(s.roomCode)} ${esc(room)}</p>`
         }
         <form class="mine__join" data-join-form>
           <label class="field">
@@ -173,7 +192,7 @@ const render = (): void => {
   } else if (projection === null) {
     body = center(`<p class="label">${esc(s.title)}</p><h1 class="title title--sm">${esc(s.joined(name))}</h1><p class="subtitle">${esc(s.waiting)}</p>`)
   } else {
-    body = seatMarkup(projection, locale, picks, gate)
+    body = seatMarkup(projection, locale, picks, gate, gone)
   }
 
   // The foot says what the phone cannot do anything about: its own socket is
@@ -196,8 +215,33 @@ const render = (): void => {
           : s.narratorYet
         : ''
 
+  // A scene, for the entrances: the screen this phone is on, and nothing that
+  // changes on a republish. A step, the phase, a gate page, the news of a
+  // death or the door's answer are scenes; a mark moving, a ballot filling up
+  // or a socket reconnecting are the same scene repainted.
+  const next = [
+    relay === '' ? 'norelay' : '',
+    status === 'ended' ? 'ended' : '',
+    room === null || status === 'gone' ? 'code' : '',
+    joined ? '' : 'door',
+    refused ?? '',
+    projection === null ? 'waiting' : '',
+    projection?.over === true ? 'over' : '',
+    projection?.phase ?? '',
+    projection?.reading ?? '',
+    projection?.alive === false ? 'out' : '',
+    gone === null ? '' : 'gone',
+    gate?.kind ?? '',
+    stepKey,
+    // A name arriving in the lobby is a scene: it is the one thing that
+    // happens on that screen, and the list is what a new player watches.
+    projection?.phase === 'setup' ? projection.roster.map((r) => `${r.name}:${r.joined}`).join(',') : '',
+  ].join('|')
+  const entering = next !== scene
+  scene = next
+
   root.innerHTML = `
-    <main class="stage stage--seat">${body}</main>
+    <main class="stage stage--seat"${entering ? ' data-enter' : ''}>${body}</main>
     ${foot === '' ? '' : `<p class="tv__status">${esc(foot)}</p>`}
   `
 
@@ -243,6 +287,8 @@ const applySealed = async (payload: string): Promise<void> => {
     picks = settlePicks(parsed, picks, stepKey)
     stepKey = stepKeyOf(parsed)
     gate = nextGate(gate, parsed)
+    gone = nextGone(gone, was, parsed)
+    was = { alive: parsed.alive, phase: parsed.phase }
   }
   render()
 }
@@ -346,8 +392,26 @@ const bind = (): void => {
     link.send({ kind: 'vote', target: projection.vote === target ? null : target })
   })
 
+  // The news of one's own death, taken in and tapped past.
+  on(root, '[data-mourn]', 'click', () => {
+    buzz()
+    gone = null
+    render()
+  })
+
+  // A ring that is not a ballot still gets an answer. The seats are disabled,
+  // so the tap arrives at the table around them; nothing moves, and the
+  // phone's own state says so rather than swallowing the finger (phone-07).
+  on(root, '[data-tap="off"] .table', 'pointerdown', () => {
+    const line = root.querySelector('.mine__state')
+    if (line === null || line.hasAttribute('data-nudge')) return
+    buzz()
+    line.setAttribute('data-nudge', '')
+    window.setTimeout(() => line.removeAttribute('data-nudge'), 700)
+  })
+
   // ---- The night: through the gate, a seat tapped, then an action sent ----
-  on(root, '[data-enter]', 'click', () => {
+  on(root, '[data-gate-go]', 'click', () => {
     if (gate === null || gate.kind !== 'turn') return
     buzz()
     gate = { kind: 'chooser', key: gate.key }
