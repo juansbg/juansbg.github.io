@@ -273,7 +273,7 @@ async function admit(cid: string, name: string, pub: string): Promise<void> {
       turnedAway.add(once)
       notices = [
         ...notices,
-        { night: state.session.current.night, at: state.session.timeline.length, name: name.trim(), reason: refusal(name) },
+        { night: state.session.current.night, at: state.session.timeline.length, cid, name: name.trim(), reason: refusal(name) },
       ]
     }
   }
@@ -383,6 +383,22 @@ function connectRoom(): void {
 }
 
 /**
+ * The refusals that are still true: a phone at the door with no seat.
+ *
+ * The Timeline keeps every notice, because it is the record of the evening.
+ * The names screen is not a record — it is the thing the narrator is fixing
+ * — so it shows only the phones still standing outside, and seating the
+ * person who was turned away takes their line off the screen by itself. A
+ * phone that has closed its tab has stopped asking, whatever it asked for.
+ */
+function stillOutside(): Notice[] {
+  return notices.filter((notice) => {
+    const guest = guests.get(notice.cid)
+    return guest !== undefined && guest.seat === null && !guest.gone
+  })
+}
+
+/**
  * The big screen's block on the names screen: the room this phone runs, or
  * the field for the code a TV shows. Nothing when no relay is configured.
  */
@@ -396,6 +412,7 @@ function screenJoin(): ScreenJoin | null {
     error: roomError,
     code: screenCode,
     key: screenKey,
+    turned: stillOutside(),
     // Unfolded once the narrator asks for it, and kept unfolded while
     // anything is typed or the relay has said no, so a refusal never folds
     // the fields away from under the person fixing them.
@@ -1242,7 +1259,9 @@ function render(entering = false): void {
              </span>
            </div>`
         : '',
-      row('data-room', t.ui.menu.bigScreen, room?.code ?? ''),
+      // A replaced phone still knew the code and put it in this row, so the
+      // menu read like a working room and the truth waited behind a tap.
+      row('data-room', t.ui.menu.bigScreen, roomStatus === 'replaced' ? t.ui.room.handedOver : room?.code ?? ''),
       inPlay || room !== null ? row('data-show-table', t.ui.menu.table) : '',
       state.screen === 'day' ? row('data-show-role', t.ui.reveal.showAgain) : '',
       row('data-mute', t.ui.menu.sound, sound.muted() ? t.ui.menu.off : t.ui.menu.on),

@@ -158,6 +158,19 @@ export interface Strings {
       thisIsScreen: string
       /** Two or more people at the table answer to the same name. */
       sameName: (names: readonly string[]) => string
+      /**
+       * The phones at the door, named on the names screen itself.
+       *
+       * One line a reason rather than one a phone: three refusals set as
+       * three sentences took more of a short phone than the roster they were
+       * about. The keys are the Timeline's own, so the two places a narrator
+       * can meet a refusal cannot drift apart.
+       */
+      turned: {
+        notOnList: (names: readonly string[]) => string
+        nameTaken: (names: readonly string[]) => string
+        tableFull: (names: readonly string[]) => string
+      }
       /** On the door itself, which stays shut while a name is repeated. */
       sameNameFirst: string
       /** Asked before a room empties a list of names typed for a phoneless evening. */
@@ -470,6 +483,13 @@ export interface Strings {
       refused: string
       /** Another phone claimed this room with the key; this one no longer runs it. */
       replaced: string
+      /**
+       * The same fact, in a menu row's worth of words.
+       *
+       * The ⋯ row carried the room's code on a phone that no longer runs the
+       * room, so it read exactly like a working room right up until the tap.
+       */
+      handedOver: string
       /** The no-TV evening: this phone opens and shows the room. */
       openHere: string
       /** A second screen joins an open room by this address. */

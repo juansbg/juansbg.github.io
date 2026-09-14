@@ -183,6 +183,20 @@ export const es: Strings = {
         names.length === 1
           ? `Se repite el nombre: ${names[0]}`
           : `Se repiten los nombres: ${names.join(', ')}`,
+      turned: {
+        notOnList: (names) =>
+          names.length === 1
+            ? `${names[0]} ha intentado entrar: no está en la lista`
+            : `${names.join(', ')} han intentado entrar: no están en la lista`,
+        nameTaken: (names) =>
+          names.length === 1
+            ? `${names[0]} ha intentado entrar: ese nombre ya está en otro teléfono`
+            : `${names.join(', ')} han intentado entrar: esos nombres ya están en otro teléfono`,
+        tableFull: (names) =>
+          names.length === 1
+            ? `${names[0]} ha intentado entrar: la mesa está completa`
+            : `${names.join(', ')} han intentado entrar: la mesa está completa`,
+      },
       roomInPlay:
         'En esa pantalla ya hay una partida en marcha. Si te quedas con la sala, esa partida se acaba para todos.',
       roomTakesNames: 'En una sala, la mesa es quien entra en ella: los nombres escritos aquí se apartan.',
@@ -744,6 +758,7 @@ export const es: Strings = {
       key: 'Clave de la sala',
       keyHint: 'El relé solo deja dirigir una sala a un teléfono que conoce su clave.',
       refused: 'El relé ha rechazado la clave.',
+      handedOver: 'Otro teléfono',
       replaced: 'Otro teléfono se ha quedado con esta sala. Este ya no dirige la partida.',
       openHere: 'Abrir una sala desde este teléfono',
       secondScreen: 'Una segunda pantalla entra por esta dirección',
