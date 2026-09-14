@@ -901,10 +901,27 @@ function render(entering = false): void {
       .join('')
     const passed = game.players.filter((p) => !phones.has(p.id))
     const seen = passed.filter((p) => held.has(p.id)).length
+    // The list is in seat order and stays that way — it is how a narrator
+    // refers to people out loud, and a list that reorders itself under
+    // somebody reading from it is worse than one that scrolls. So the line
+    // above carries the names instead: at a big table, or a mixed one where
+    // the seats with phones take the top of the list, the ones still to look
+    // are exactly what scrolls off, and this screen exists to read them out.
+    const missing = passed.filter((p) => !held.has(p.id))
+    // ...but only while they are the few. Once most of the table still has to
+    // look, every name is on the list below anyway and spelling them all out
+    // costs three lines of the height the list needs — at twelve it named the
+    // whole room and pushed five seats off the bottom. Then the count is the
+    // summary and the list is the detail, which is the way round it was.
+    const nameThem = missing.length > 0 && missing.length <= Math.max(1, Math.floor(passed.length / 2))
     return `
       <section class="screen screen--center screen--dealt">
         <h1 class="title title--sm">${esc(t.ui.reveal.dealt)}</h1>
-        ${passed.length === 0 ? '' : `<p class="label">${esc(t.ui.reveal.looked(seen, passed.length))}</p>`}
+        ${passed.length === 0 ? '' : `<p class="label">${esc(
+          nameThem
+            ? t.ui.reveal.stillToLook(missing.map((p) => p.name))
+            : t.ui.reveal.looked(seen, passed.length),
+        )}</p>`}
         <ul class="dealt" style="--rows: ${game.players.length}">${rows}</ul>
         <button class="btn btn--primary" type="button" data-begin>${esc(t.ui.reveal.beginFirstNight)}</button>
       </section>

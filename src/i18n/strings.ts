@@ -181,6 +181,13 @@ export interface Strings {
       dealt: string
       /** How many of the seats the phone travelled to have held their card. */
       looked: (seen: number, total: number) => string
+      /**
+       * Who the phone still has to reach. The list below is in seat order,
+       * which is how a narrator refers to people out loud, so the names come
+       * up here rather than the list reordering itself under someone reading
+       * from it — and a seat below the fold is still named.
+       */
+      stillToLook: (names: readonly string[]) => string
       /** The tick beside a name that has. */
       seenCard: string
       beginFirstNight: string

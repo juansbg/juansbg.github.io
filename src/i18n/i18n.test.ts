@@ -92,6 +92,19 @@ describe('string tables', () => {
     for (const locale of LOCALES) expect(strings(locale).ui.tv.title).toBe(strings(locale).appName)
   })
 
+  it('name the seats the phone has still to reach, and agree with itself in Spanish', () => {
+    for (const locale of LOCALES) {
+      const one = strings(locale).ui.reveal.stillToLook(['Hugo'])
+      const two = strings(locale).ui.reveal.stillToLook(['Hugo', 'Lucía'])
+      expect(one, locale).toContain('Hugo')
+      expect(two, locale).toContain('Hugo')
+      expect(two, locale).toContain('Lucía')
+    }
+    // Spanish agrees with the number of people it is about.
+    expect(strings('es').ui.reveal.stillToLook(['Hugo'])).toBe('Falta Hugo')
+    expect(strings('es').ui.reveal.stillToLook(['Hugo', 'Lucía'])).toBe('Faltan Hugo, Lucía')
+  })
+
   it('cover every death cause in both languages', () => {
     const causes: DeathCause[] = ['killers', 'rogue', 'poison', 'lynch', 'heartbreak', 'revenge']
     for (const locale of LOCALES) {
