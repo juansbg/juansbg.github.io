@@ -233,6 +233,14 @@ export const fitTables = (root: ParentNode): void => {
     // ever come back, and the ring would not return when the Roles toggle
     // went off. Taking the attribute off first costs one synchronous layout
     // and makes the question the same every time it is asked.
+    // Measuring means taking the attribute off and putting it back, and a seat
+    // transitions its transform: on a screen that repaints often — a phone
+    // taking projections — every paint restarted that transition from wherever
+    // the last one had got to, so the tiles sat permanently part way between
+    // the ring and the rows, overlapping each other and running off the edge.
+    // The transition is held for the length of the measurement only.
+    const tiles = [...circle.querySelectorAll<HTMLElement>('.seat')]
+    for (const tile of tiles) tile.style.transition = 'none'
     circle.removeAttribute('data-rows')
     const box = table.getBoundingClientRect()
     const cap = circle.classList.contains('circle--compact') ? 17 : 24.5
@@ -241,6 +249,10 @@ export const fitTables = (root: ParentNode): void => {
     const seat = Math.min(avail * 0.31, (avail * gap) / (Math.SQRT2 + gap))
     const rows = seat < floorFor(circle)
     circle.toggleAttribute('data-rows', rows)
+    // Land in the answer, then give the tiles their transition back for the
+    // next real change (a seat picked, the Roles toggle).
+    void circle.offsetWidth
+    for (const tile of tiles) tile.style.transition = ''
     // A role label with no size left that anybody could read goes, and the
     // sigil carries the role on its own — the same answer the stylesheet
     // already gives under a 3.25rem tile, taken one tile earlier for the

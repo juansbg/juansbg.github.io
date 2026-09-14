@@ -1165,7 +1165,12 @@ body {
   display: flex;
   align-items: center;
   gap: var(--space-2);
+  /* The column may shrink below its content; the row inside it has to shrink
+     with it, or a long name pushes the tile past the column it was given and
+     out over the edge of the phone — which the stage then clips in silence.
+     The column was taught this; the row was not. */
   width: auto;
+  min-width: 0;
   height: auto;
   min-height: var(--touch);
   margin: 0;
@@ -1173,6 +1178,11 @@ body {
   transform: none;
   container-type: normal;
   text-align: left;
+}
+
+.circle--list .seat__name,
+.circle[data-rows] .seat__name {
+  min-width: 0;
 }
 
 .circle--list .seat[data-selected],
@@ -4202,6 +4212,7 @@ html[data-dawn] body {
   position: relative;
   gap: var(--space-3);
 }
+
 
 .mine--table .mine__head {
   display: flex;
