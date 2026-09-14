@@ -222,24 +222,34 @@ export const namesMarkup = (
     )
     .join('')
 
-  return `
-    <section class="screen screen--names">
-      <h1 class="title">${esc(t.appName)}</h1>
-      ${screen?.room ? screenBlock : ''}
-      <p class="subtitle">${esc(t.ui.setup.whoIsPlaying)}</p>
-
+  // With a room open, the phones are doing the joining and this screen is a
+  // roster filling up; the field is for the one person who has no phone, and
+  // it waits under the list rather than being the first thing in the way. The
+  // keyboard stays down too: it used to cover the roster the narrator had
+  // opened the screen to watch.
+  const inRoom = screen?.room != null
+  const nameForm = `
       <form class="name-form" data-name-form autocomplete="off">
         <input class="field__input name-form__input" type="text" data-new-name
                placeholder="${esc(t.ui.setup.namePlaceholder)}"
-               enterkeyhint="next" autocapitalize="words" autofocus>
+               enterkeyhint="next" autocapitalize="words"${inRoom ? '' : ' autofocus'}>
         <button class="btn btn--primary" type="submit">${esc(t.ui.setup.addName)}</button>
-      </form>
-      <p class="field__hint">${esc(t.ui.setup.addHint)}</p>
+      </form>`
+
+  return `
+    <section class="screen screen--names">
+      <h1 class="title">${esc(t.appName)}</h1>
+      ${inRoom ? screenBlock : ''}
+      <p class="subtitle">${esc(inRoom ? st.roomJoining : t.ui.setup.whoIsPlaying)}</p>
+
+      ${inRoom ? '' : `${nameForm}
+      <p class="field__hint">${esc(t.ui.setup.addHint)}</p>`}
 
       <ul class="name-list"${names.length === 0 ? ' data-empty' : ''}>${chips}</ul>
       ${clashing.length === 0 ? '' : `<p class="field__hint field__hint--clash">${esc(st.sameName(clashing))}</p>`}
       ${turnedBlock}
-      ${screen?.room ? '' : screenBlock}
+      ${inRoom ? `<p class="field__label field__label--aside">${esc(st.noPhone)}</p>${nameForm}` : ''}
+      ${inRoom ? '' : screenBlock}
 
       <div class="actions">
         <button class="btn btn--primary" type="button" data-names-done ${enough && clashing.length === 0 ? '' : 'disabled'}>

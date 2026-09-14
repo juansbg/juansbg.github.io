@@ -4255,6 +4255,13 @@ html[data-dawn] body {
   border-color: color-mix(in oklab, var(--accent) 60%, var(--hairline-strong));
 }
 
+/* The label over the name field once a room is open: the field is no longer
+   what the screen is for, so its label reads as an aside rather than a
+   heading. */
+.field__label--aside {
+  color: var(--fg-muted);
+}
+
 .field__hint--clash {
   color: var(--fg-2);
 }

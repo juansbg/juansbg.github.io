@@ -182,6 +182,33 @@ describe('the big screen from the names screen', () => {
     expect(html).not.toContain('Uno')
   })
 
+  it('leads with the room and demotes the name field, once a room is open', () => {
+    const room = { code: 'AB2CD', tvs: 1, phones: 2 }
+    for (const locale of LOCALES) {
+      const t = strings(locale)
+      const html = namesMarkup(four, locale, new Set([0, 1]), { ...idle, room })
+      // The screen is about the room filling up, not about typing names.
+      expect(html).toContain(t.ui.setup.roomJoining)
+      expect(html).not.toContain(t.ui.setup.whoIsPlaying)
+      // The field is still there, for the one person who has no phone.
+      expect(html).toContain('data-new-name')
+      expect(html).toContain(t.ui.setup.noPhone)
+      // Under the roster, not over it.
+      expect(html.indexOf('name-list')).toBeLessThan(html.indexOf('data-new-name'))
+      // And the keyboard stays down: it covered the roster it was opened to watch.
+      expect(html).not.toContain('autofocus')
+    }
+  })
+
+  it('still leads with the name field when there is no room', () => {
+    const t = strings('en')
+    const html = namesMarkup(four, 'en', new Set(), idle)
+    expect(html).toContain(t.ui.setup.whoIsPlaying)
+    expect(html).not.toContain(t.ui.setup.roomJoining)
+    expect(html).toContain('autofocus')
+    expect(html.indexOf('data-new-name')).toBeLessThan(html.indexOf('name-list'))
+  })
+
   it('shows nothing of the screen when no relay is configured', () => {
     const html = namesMarkup(four, 'en')
     expect(html).not.toContain('data-screen-form')

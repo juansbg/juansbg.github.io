@@ -142,6 +142,8 @@ export const en: Strings = {
     setup: {
       howMany: 'How many players?',
       whoIsPlaying: 'Who is playing?',
+      roomJoining: 'The table is taking its seats from the screen.',
+      noPhone: 'Someone without a phone',
       addName: 'Add',
       addHint: 'Type a name and hit Enter. One after another.',
       minPlayers: (n) => `You need at least ${n} players`,
