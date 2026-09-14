@@ -3029,6 +3029,13 @@ html[data-dawn] body {
 
 /* The count as a row of names: figure · name · who. Wraps on a crowded
    vote; the leader's figure inverts. */
+/* The town pointing at nobody in particular, said in the accent of the town's
+   own decisions, right above the count it is about. */
+.tally__tied {
+  margin: 0;
+  color: var(--fg-2);
+}
+
 .tally {
   display: flex;
   flex-wrap: wrap;

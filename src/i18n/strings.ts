@@ -280,6 +280,8 @@ export interface Strings {
       pickFor: (name: string) => string
       /** Accessible name of the count row. */
       tally: string
+      /** Said where the count is shown, when the top of it is shared. */
+      tied: string
       /** The Raven's extra vote in the voters list, which has no voter. */
       extraVoteMark: string
     }
@@ -505,8 +507,17 @@ export interface Strings {
       /** Under the ballot once the vote is cast: the phone is done for now. */
       voted: string
       out: string
+      /**
+       * The door said no, and why. The narrator's own timeline carries the
+       * same three cases (`ui.timeline.notOnList` and friends), so the two
+       * screens describe one thing in the same words.
+       */
       refused: string
       refusedBody: string
+      refusedTaken: string
+      refusedTakenBody: string
+      refusedFull: string
+      refusedFullBody: string
       /** The night on a phone (docs/BIG-SCREEN.md §10): the acting seat's chooser. */
       yourMove: string
       familyMark: string

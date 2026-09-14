@@ -384,9 +384,19 @@ function screenJoin(): ScreenJoin | null {
   }
 }
 
-/** What one guest should see now, or a refusal if they have no seat. */
-function seatNow(guest: Guest): SeatProjection | { kind: 'refused' } {
-  if (guest.seat === null) return { kind: 'refused' }
+/**
+ * What one guest should see now, or a refusal if they have no seat.
+ *
+ * The refusal carries why. The reason is only knowable here — the phone knows
+ * the name it typed and nothing else about the table — so without it the
+ * phone could not tell "nobody of that name" from "that name is already on
+ * another phone" even in principle, and said the one thing for both. It is
+ * the same three cases the narrator's timeline names.
+ */
+function seatNow(guest: Guest): SeatProjection | { kind: 'refused'; reason: Notice['reason'] } {
+  const no = (): { kind: 'refused'; reason: Notice['reason'] } =>
+    ({ kind: 'refused', reason: refusal(guest.name) })
+  if (guest.seat === null) return no()
   const game = state.session.current
   if (state.screen === 'setup' && game.players.length === 0) {
     return waitingSeat(guest.seat, names[guest.seat] ?? guest.name, state.locale, lobbyRoster())
@@ -401,7 +411,7 @@ function seatNow(guest: Guest): SeatProjection | { kind: 'refused' } {
       picked,
       sealed: shown === null,
       ...(shown === null ? {} : { shown }),
-    }) ?? { kind: 'refused' }
+    }) ?? no()
   )
 }
 
@@ -1070,7 +1080,9 @@ function render(entering = false): void {
       clearNames: { question: t.ui.setup.clearConfirm, action: t.ui.setup.clearNames },
       finish: { question: t.ui.menu.endGameConfirm, action: t.ui.over.finishNow },
       clearStats: { question: t.ui.stats.clearConfirm, action: t.ui.stats.clear },
-      nextNight: { question: t.ui.day.nextNightConfirm, action: t.ui.day.nextNight },
+      // The button that ends the day says what ending it does, since what it
+      // does is the thing the narrator is being asked about.
+      nextNight: { question: t.ui.day.nextNightConfirm, action: t.ui.day.nobody },
       roomNames: {
         question: t.ui.setup.roomTakesNames,
         action: roomRoad?.kind === 'join' ? t.ui.setup.screenJoin : t.ui.room.openHere,

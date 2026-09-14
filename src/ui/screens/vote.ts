@@ -88,6 +88,12 @@ export const tallyMarkup = (state: GameState, locale: Locale): string => {
   if (entries.length === 0) return ''
   const t = strings(locale)
   const top = leader(state)
+  // The town can point at nobody in particular, and `leader()` returning null
+  // was the only sign of it: no seat marked, no word anywhere, and four tied
+  // days in a row read as nothing happening rather than as a town that could
+  // not agree. The count says so where the count is.
+  const first = entries[0]
+  const tied = top === null && first !== undefined && first.votes > 0
   const rows = entries
     .map((e) => {
       const voters = e.voters.map((v) => nameOf(state.players, v))
@@ -102,5 +108,7 @@ export const tallyMarkup = (state: GameState, locale: Locale): string => {
       `
     })
     .join('')
-  return `<ul class="tally" data-tally aria-label="${esc(t.ui.day.tally)}">${rows}</ul>`
+  return `${
+    tied ? `<p class="label tally__tied" data-tied>${esc(t.ui.day.tied)}</p>` : ''
+  }<ul class="tally" data-tally aria-label="${esc(t.ui.day.tally)}">${rows}</ul>`
 }
