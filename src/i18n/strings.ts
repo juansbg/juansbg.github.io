@@ -162,6 +162,8 @@ export interface Strings {
       sameNameFirst: string
       /** Asked before a room empties a list of names typed for a phoneless evening. */
       roomTakesNames: string
+      /** Asked before a claim takes over a room somebody is already playing on. */
+      roomInPlay: string
       moveLeft: string
       moveRight: string
     }

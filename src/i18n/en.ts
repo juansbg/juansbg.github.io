@@ -183,6 +183,8 @@ export const en: Strings = {
         names.length === 1
           ? `One name is repeated: ${names[0]}`
           : `Some names are repeated: ${names.join(', ')}`,
+      roomInPlay:
+        'A game is already being played on that screen. Taking it over ends that game for everyone in the room.',
       roomTakesNames: 'In a room, the table is whoever joins it — the names typed here will step aside.',
       moveLeft: '◀ Move',
       moveRight: 'Move ▶',

@@ -183,6 +183,8 @@ export const es: Strings = {
         names.length === 1
           ? `Se repite el nombre: ${names[0]}`
           : `Se repiten los nombres: ${names.join(', ')}`,
+      roomInPlay:
+        'En esa pantalla ya hay una partida en marcha. Si te quedas con la sala, esa partida se acaba para todos.',
       roomTakesNames: 'En una sala, la mesa es quien entra en ella: los nombres escritos aquí se apartan.',
       moveLeft: '◀ Mover',
       moveRight: 'Mover ▶',

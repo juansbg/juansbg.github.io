@@ -127,9 +127,16 @@ export default {
       const code = claim[1] as string
       if (!CODE.test(code)) return json({ error: 'room' }, 404)
       if (!hasRoomKey(request, env)) return json({ error: 'key' }, 403)
-      const body = (await request.json().catch(() => null)) as { secretHash?: unknown } | null
+      const body = (await request.json().catch(() => null)) as { secretHash?: unknown; look?: unknown } | null
       if (!validHash(body?.secretHash)) return json({ error: 'secretHash' }, 400)
       const room = env.ROOM.get(env.ROOM.idFromName(code))
+      // A look, not a claim: does this room exist, and is a game already being
+      // played on it? Claiming ends that game for everyone in the room, so a
+      // phone about to take one over can ask first and say what it is doing.
+      if (body?.look === true) {
+        const there = await room.taken()
+        return there === null ? json({ error: 'room' }, 404) : json({ code, playing: there })
+      }
       const claimed = await room.claim(body.secretHash)
       return claimed ? json({ code }) : json({ error: 'room' }, 404)
     }
@@ -252,6 +259,24 @@ export class Room extends DurableObject<Env> {
     if (secretHash !== null) await this.ctx.storage.put('secretHash', secretHash)
     await this.touch()
     return true
+  }
+
+  /**
+   * Whether this room exists and whether a game is being played on it: the
+   * last projection the room saw says so, and anything past the lobby means
+   * somebody is mid-evening. Null when there is no such room. Read-only, and
+   * only ever asked by a phone about to claim.
+   */
+  async taken(): Promise<boolean | null> {
+    if ((await this.ctx.storage.get<boolean>('open')) !== true) return null
+    const last = await this.ctx.storage.get<string>('last:tv')
+    if (last === undefined) return false
+    try {
+      const phase = (JSON.parse(last) as { phase?: unknown }).phase
+      return phase === 'night' || phase === 'day' || phase === 'over'
+    } catch {
+      return false
+    }
   }
 
   /** Makes the phone presenting this secret the narrator. False if there is no such room. */

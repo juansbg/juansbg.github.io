@@ -148,6 +148,23 @@ export const claimRoom = async (relay: string, code: string, key: string): Promi
   return { code, secret, relay: base }
 }
 
+/**
+ * Asks the relay what is on a room before taking it over: whether it exists,
+ * and whether a game is already being played on it. A claim always wins, and
+ * ends that game for everyone in the room, so the phone asks first.
+ */
+export const lookAtRoom = async (relay: string, code: string, key: string): Promise<{ playing: boolean }> => {
+  const base = normalizeRelay(relay)
+  const response = await fetch(`${base}/rooms/${code}/claim`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Room-Key': key },
+    body: JSON.stringify({ secretHash: await sha256(randomSecret()), look: true }),
+  })
+  if (!response.ok) throw new RelayRefused(response.status)
+  const answer = (await response.json()) as { playing?: unknown }
+  return { playing: answer.playing === true }
+}
+
 /** The address a TV opens to start a room: the site's `/tv`, no code. */
 export const screenUrl = (site: string): string => `${site.replace(/\/+$/, '')}/tv`
 

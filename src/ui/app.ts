@@ -48,6 +48,7 @@ import {
   normalizeRelay,
   openRoom,
   claimRoom,
+  lookAtRoom,
   screenUrl,
   saveRelay,
   saveRoom,
@@ -537,7 +538,7 @@ let menuOpen = false
  * flashes a white system dialog, which in a dark room is a torch in the
  * face; this is the same question asked on our own sheet.
  */
-type Pending = 'restart' | 'newTable' | 'clearNames' | 'finish' | 'clearStats' | 'nextNight' | 'roomNames'
+type Pending = 'restart' | 'newTable' | 'clearNames' | 'finish' | 'clearStats' | 'nextNight' | 'roomNames' | 'roomInPlay'
 let confirming: Pending | null = null
 /**
  * The road into a room, held while the narrator is asked about the names.
@@ -1153,6 +1154,7 @@ function render(entering = false): void {
         question: t.ui.setup.roomTakesNames,
         action: roomRoad?.kind === 'join' ? t.ui.setup.screenJoin : t.ui.room.openHere,
       },
+      roomInPlay: { question: t.ui.setup.roomInPlay, action: t.ui.setup.screenJoin },
     }[pending]
     return `
       <div class="sheet" data-sheet>
@@ -1381,6 +1383,11 @@ function bind(): void {
       roomRoad = null
       if (road?.kind === 'open') openTheRoom(road.a, road.b)
       else if (road) joinTheRoom(road.a, road.b)
+    }
+    else if (pending === 'roomInPlay') {
+      const road = roomRoad
+      roomRoad = null
+      if (road) joinTheRoom(road.a, road.b, true)
     }
     else if (pending === 'nextNight') nextNight()
     else if (pending === 'clearStats') {
@@ -1989,12 +1996,26 @@ function bind(): void {
     joinTheRoom(code, key)
   })
 
-  function joinTheRoom(code: string, key: string): void {
+  function joinTheRoom(code: string, key: string, anyway = false): void {
     roomBusy = true
     roomError = null
     setState({}, false)
-    void claimRoom(loadRelay(), code, key)
+    // A claim always wins, and a room with a game on it loses that game when
+    // it does. So the phone asks the relay what is there before it takes it:
+    // a screen waiting in its lobby is taken without a word, and an evening
+    // in progress is a question with the consequence in it.
+    void (anyway ? Promise.resolve({ playing: false }) : lookAtRoom(loadRelay(), code, key))
+      .then((there) => {
+        if (there.playing) {
+          roomBusy = false
+          roomRoad = { kind: 'join', a: code, b: key }
+          ask('roomInPlay')
+          return null
+        }
+        return claimRoom(loadRelay(), code, key)
+      })
       .then((claimed) => {
+        if (claimed === null) return
         saveRoomKey(key)
         room = claimed
         saveRoom(room)
