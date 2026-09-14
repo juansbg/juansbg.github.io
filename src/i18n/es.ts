@@ -200,6 +200,7 @@ export const es: Strings = {
       allSeen: 'Todos han visto su papel',
       dealt: 'Las cartas están repartidas',
       looked: (seen, total) => `${seen} de ${total} han mirado`,
+      stillToLook: (names) => `${names.length === 1 ? 'Falta' : 'Faltan'} ${names.join(', ')}`,
       seenCard: 'ya ha visto su carta',
       beginFirstNight: 'Empezar la primera noche',
       showAgain: 'Volver a ver un papel',

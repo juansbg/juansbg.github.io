@@ -200,6 +200,7 @@ export const en: Strings = {
       allSeen: 'Everyone has seen their role',
       dealt: 'The cards are dealt',
       looked: (seen, total) => `${seen} of ${total} have looked`,
+      stillToLook: (names) => `Still to look: ${names.join(', ')}`,
       seenCard: 'has seen their card',
       beginFirstNight: 'Begin the first night',
       showAgain: 'Show a role again',
