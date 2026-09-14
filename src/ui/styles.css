@@ -4239,6 +4239,16 @@ html[data-dawn] body {
   gap: var(--space-3);
 }
 
+/* The phone's ring runs to both edges of the screen, and a marked seat grows
+   six percent: the Family's own mark — the brightest thing on the screen, and
+   the reason the screen exists — lost its left border off the side of the
+   phone. The table keeps back the room that growth needs. It is the size
+   container, so the ring is drawn inside the smaller box rather than spilling
+   out of it, and the buttons under it stay full-bleed. */
+.mine--table .table {
+  padding-inline: var(--space-2);
+}
+
 
 .mine--table .mine__head {
   display: flex;
