@@ -32,7 +32,7 @@ import { sound, unlockOnGesture } from './sound'
 import { clear, clearRoster, clearStats, forgetGame, load, loadRoster, loadStats, loadTimer, recordGame, save, saveRoster, saveTimer, type AppState } from './store'
 import { statsMarkup } from './screens/stats'
 import { summarise } from '../engine/summary'
-import { editorMarkup, MAX_PLAYERS, MIN_PLAYERS, namesMarkup, rosterMarkup, type ScreenJoin } from './screens/setup'
+import { editorMarkup, MAX_PLAYERS, MIN_PLAYERS, namesMarkup, rosterMarkup, seatFor, type ScreenJoin } from './screens/setup'
 import { dealRoles, systemRandom, type Complexity } from '../engine/deal'
 import { askCardMarkup, dayMarkup, inspectionMarkup, nightMarkup, playerViewMarkup, questionCardMarkup, questionsIntroMarkup } from './screens/night'
 import { countOrder } from './screens/vote'
@@ -196,6 +196,13 @@ const takenSeats = (except: string): Set<PlayerId> =>
       .map(([, g]) => g.seat as PlayerId),
   )
 
+/**
+ * How the table sat at the end of the last game, so "Play again" can put it
+ * back. Empty until a game has been restarted, and cleared by a new table,
+ * which forgets the people on purpose.
+ */
+let seatOrder: string[] = []
+
 /** Seats with a phone on them: the pass-around can skip those. A phone that has gone does not count. */
 const seatedFromPhones = (): Set<PlayerId> =>
   new Set(
@@ -222,9 +229,18 @@ function claimSeat(cid: string, name: string): PlayerId | null {
     // no different, and the phone is told which door it is (`refusal`).
     if (names.some((n) => sameName(n, name))) return null
     if (names.length >= MAX_PLAYERS) return null
-    names = [...names, name.trim()]
+    // Back into the seat they had last game, if the table has played one.
+    const at = seatFor(names, seatOrder, name)
+    names = [...names.slice(0, at), name.trim(), ...names.slice(at)]
     saveRoster(names)
-    return names.length - 1
+    // A seat is a position in the list while the list is all there is, so
+    // everyone already sitting past the newcomer shuffles round one.
+    if (at < names.length - 1) {
+      for (const guest of guests.values()) {
+        if (guest.seat !== null && guest.seat >= at) guest.seat = (guest.seat + 1) as PlayerId
+      }
+    }
+    return at as PlayerId
   }
   const player = game.players.find((p) => sameName(p.name, name) && !taken.has(p.id))
   return player ? player.id : null
@@ -1502,6 +1518,16 @@ function bind(): void {
     // emptied list always comes with a fresh hello (a no-op with no room
     // open), or the phones would stay seated at a table with no names on it
     // and nobody could rejoin without reloading.
+    // What the table looked like, before the list is thrown away: the seats
+    // if a game was played, the typed list if it never got that far. A new
+    // table forgets it, which is the thing its label promises.
+    seatOrder = forgetPeople
+      ? []
+      : state.session.current.players.length > 0
+        ? state.session.current.players.map((p) => p.name)
+        : names.length > 0
+          ? [...names]
+          : seatOrder
     const startEmpty = forgetPeople || room !== null
     names = startEmpty ? [] : loadRoster()
     if (startEmpty) rekeyRoom()

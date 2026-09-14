@@ -69,6 +69,30 @@ const sameName = (a: string, b: string): boolean =>
   a.trim().toLocaleLowerCase() === b.trim().toLocaleLowerCase()
 
 /**
+ * Where a name that is coming back belongs in the list.
+ *
+ * A room's table is whoever joins it, so "Play again" empties the names and
+ * every phone rejoins — which made the seating the order the phones happened
+ * to reconnect in. A table that had arranged its seats to match the actual
+ * room lost that arrangement every single game, and seat 1 in one game was
+ * seat 2 in the next.
+ *
+ * `order` is how the table sat last time. A name in it is slotted back among
+ * whoever is already here, keeping their order intact: the first person
+ * present who sat further round the circle is the one to sit before. A name
+ * nobody remembers is new, and goes to the end in the order they arrived.
+ */
+export const seatFor = (names: readonly string[], order: readonly string[], name: string): number => {
+  const was = order.findIndex((n) => sameName(n, name))
+  if (was === -1) return names.length
+  for (let i = 0; i < names.length; i++) {
+    const other = order.findIndex((n) => sameName(n, names[i] ?? ''))
+    if (other === -1 || other > was) return i
+  }
+  return names.length
+}
+
+/**
  * Name entry. One field, Enter adds, repeat.
  *
  * This replaces the "how many players?" grid: the count is simply how many
