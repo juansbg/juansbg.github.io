@@ -95,12 +95,7 @@ const mark = (el: HTMLElement): void => {
   if (el.dataset['scroll'] !== next) el.dataset['scroll'] = next
 }
 
-/**
- * Marks every scrolling region under `root`. Call it after each paint, the
- * way `fitTables` is called: the elements are new on every paint, so the
- * scroll listener each one gets goes with it.
- */
-export const markEdges = (root: ParentNode): void => {
+const pass = (root: ParentNode): void => {
   root.querySelectorAll<HTMLElement>(SCROLLERS).forEach((el) => {
     mark(el)
     // A resize marks the same elements again; one listener each, not one per
@@ -111,6 +106,41 @@ export const markEdges = (root: ParentNode): void => {
       el.addEventListener('scroll', () => mark(el), { passive: true })
     }
   })
+}
+
+/** How long a scene takes to settle: the app's own entrance duration. */
+const settleMs = (): number => {
+  const raw = getComputedStyle(document.documentElement).getPropertyValue('--dur-base').trim()
+  const ms = raw.endsWith('ms') ? parseFloat(raw) : raw.endsWith('s') ? parseFloat(raw) * 1000 : NaN
+  return Number.isFinite(ms) ? Math.max(ms, 1) : 250
+}
+
+let settle = 0
+
+/**
+ * Marks every scrolling region under `root`. Call it after each paint, the
+ * way `fitTables` is called: the elements are new on every paint, so the
+ * scroll listener each one gets goes with it.
+ *
+ * Then once more when the scene has settled. A region is measured inside the
+ * same paint that built it, and what it holds has not stopped moving: a
+ * seven-player day table measured 220px of content against its 208px floor
+ * at 45ms and 208 against 208 at 106, and so wore a "there is more below"
+ * fade over nothing at all. It kept it, too — a region is re-read on a
+ * paint, a resize or a scroll, and a narrator reading the morning report
+ * does none of the three.
+ *
+ * The wait is the app's own `--dur-base`, which is what a scene takes to
+ * arrive, and one millisecond under reduced motion, where nothing moves
+ * anyway. One outstanding at a time, and a no-op when nothing moved.
+ */
+export const markEdges = (root: ParentNode): void => {
+  pass(root)
+  if (settle !== 0) window.clearTimeout(settle)
+  settle = window.setTimeout(() => {
+    settle = 0
+    pass(root)
+  }, settleMs())
 }
 
 /**

@@ -61,7 +61,7 @@ import {
 import { makeKeys, seal, sharedKey, type KeyPair } from '../room/crypto'
 import { seatProjection, waitingSeat, type SeatProjection } from '../room/projections'
 import { acceptAction, acceptMark } from '../room/actions'
-import { timelineMarkup } from './screens/timeline'
+import { timelineMarkup, type Notice } from './screens/timeline'
 import { fitTables } from './screens/circle'
 import { dailyMarkup, edition, paperMarkup, sharePaper, type ShareResult } from './screens/paper'
 import {
@@ -220,6 +220,28 @@ function claimSeat(cid: string, name: string): PlayerId | null {
   return player ? player.id : null
 }
 
+/**
+ * The phones turned away at the door, and who has already been logged.
+ *
+ * A refusal reached every device except the one that could do anything about
+ * it: the narrator is reading the night aloud, somebody's phone says there is
+ * no seat for that name, and nothing on the narrator's screen ever mentions
+ * it. These are the timeline's quiet lines. They are not game moves, so they
+ * are not session history and carry no rewind — and a phone that keeps
+ * retrying, or a reconnect that replays the room's guests, writes one line,
+ * not twenty.
+ */
+let notices: Notice[] = []
+const turnedAway = new Set<string>()
+
+/** Why the door said no, in the words the narrator needs. */
+function refusal(name: string): Notice['reason'] {
+  const game = state.session.current
+  if (state.screen === 'setup' && game.players.length === 0) return 'tableFull'
+  const answers = game.players.some((p) => sameName(p.name, name))
+  return answers ? 'nameTaken' : 'notOnList'
+}
+
 async function admit(cid: string, name: string, pub: string): Promise<void> {
   const existing = guests.get(cid)
   const key = narratorKeys === null ? null : await sharedKey(narratorKeys.privateKey, pub)
@@ -231,6 +253,16 @@ async function admit(cid: string, name: string, pub: string): Promise<void> {
   if (seat !== null) {
     for (const [other, g] of guests) {
       if (other !== cid && g.seat === seat && g.gone) guests.delete(other)
+    }
+  }
+  if (seat === null) {
+    const once = `${cid}|${name.trim().toLowerCase()}`
+    if (!turnedAway.has(once)) {
+      turnedAway.add(once)
+      notices = [
+        ...notices,
+        { night: state.session.current.night, at: state.session.timeline.length, name: name.trim(), reason: refusal(name) },
+      ]
     }
   }
   guests.set(cid, { name: name.trim(), pub, key, seat, gone: false, lastSent: null, queue: existing?.queue ?? Promise.resolve() })
@@ -786,7 +818,7 @@ function render(entering = false): void {
   // children of the screen: a screen mid-animation has a transform, which
   // would make it the containing block and pin the sheet inside it.
   let overlay = sheets
-  if (showingLog) overlay += timelineMarkup(state.session, state.locale)
+  if (showingLog) overlay += timelineMarkup(state.session, state.locale, notices)
   if (menuOpen) overlay += menuMarkup()
   if (roomOpen) overlay += roomMarkup()
   if (paperShot !== null) overlay += shotMarkup(paperShot)
@@ -1299,6 +1331,9 @@ function bind(): void {
   function startOver({ forgetPeople }: { forgetPeople: boolean }): void {
     shareNotice = false
     closeShot()
+    // A new game starts at an empty door.
+    notices = []
+    turnedAway.clear()
     clear()
     // A room's table is whoever joins it, so a remembered list would show
     // names nobody can find; without a room the list is the evening's. An

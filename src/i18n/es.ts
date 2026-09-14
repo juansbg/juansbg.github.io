@@ -822,6 +822,9 @@ export const es: Strings = {
       became: (role, newRole) => `${role} pasa a ser ${newRole}`,
       voted: (voter, target) => `${voter} vota a ${target}`,
       unvoted: (voter) => `${voter} retira su voto`,
+      notOnList: (name) => `${name} ha intentado entrar: no está en la lista`,
+      nameTaken: (name) => `${name} ha intentado entrar: ese nombre ya está en otro teléfono`,
+      tableFull: (name) => `${name} ha intentado entrar: la mesa está completa`,
     },
   },
 }

@@ -565,6 +565,13 @@ export interface Strings {
       /** A vote by day, and one taken back. */
       voted: (voter: string, target: string) => string
       unvoted: (voter: string) => string
+      /**
+       * A phone turned away at the door, as a quiet line the narrator can
+       * find later. Nothing in the game changed, so these carry no rewind.
+       */
+      notOnList: (name: string) => string
+      nameTaken: (name: string) => string
+      tableFull: (name: string) => string
     }
   }
 }

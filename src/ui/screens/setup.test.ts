@@ -263,6 +263,74 @@ describe('the log', () => {
   })
 })
 
+describe('a breadcrumb is not a verdict', () => {
+  const players = createGame(cast(['KILLER', 'PLAIN', 'MEDIC'], ['Ana', 'Beto', 'Caro'])).players
+
+  it('marks a clue with the reading\u2019s own pilcrow, not the scales of the town\u2019s verdict', () => {
+    const clue = outcomeCardMarkup(
+      { type: 'clue', night: 1, trade: 0, clue: { kind: 'doors', doors: 2 }, public: true },
+      players, 'en',
+    ) ?? ''
+    expect(clue).toContain('\u00b6')
+    expect(clue).not.toContain('\u2696')
+    // The town's own decision keeps the scales.
+    const verdict = outcomeCardMarkup(
+      { type: 'death', night: 1, target: 1, cause: 'lynch', public: true }, players, 'en',
+    ) ?? ''
+    expect(verdict).toContain('\u2696')
+  })
+})
+
+describe('a phone turned away at the door', () => {
+  const started = () => {
+    let session = newSession(createGame(cast(['KILLER', 'PLAIN', 'INSPECT'], ['Ana', 'Beto', 'Caro'])))
+    return advance(session, startNight, { night: 1, kind: 'nightStart' })
+  }
+
+  it('leaves a quiet line in the timeline, in both languages, with no rewind on it', () => {
+    const session = started()
+    for (const locale of LOCALES) {
+      const t = strings(locale)
+      const html = timelineMarkup(session, locale, [
+        { night: 1, at: session.timeline.length, name: 'Zeke', reason: 'notOnList' },
+      ])
+      expect(html).toContain(t.ui.timeline.notOnList('Zeke'))
+      expect(html).toContain('log__row--quiet')
+      // Nothing happened in the game, so there is nothing to go back to: the
+      // only rewind in the sheet is the night's own.
+      expect(html.match(/data-revert=/g)?.length).toBe(session.timeline.length)
+    }
+  })
+
+  it('tells a name nobody has from a name somebody already holds', () => {
+    const session = started()
+    const t = strings('en')
+    expect(timelineMarkup(session, 'en', [{ night: 1, at: 1, name: 'Zeke', reason: 'notOnList' }]))
+      .toContain(t.ui.timeline.notOnList('Zeke'))
+    expect(timelineMarkup(session, 'en', [{ night: 1, at: 1, name: 'Ana', reason: 'nameTaken' }]))
+      .toContain(t.ui.timeline.nameTaken('Ana'))
+    expect(timelineMarkup(session, 'en', [{ night: 1, at: 1, name: 'Zeke', reason: 'tableFull' }]))
+      .toContain(t.ui.timeline.tableFull('Zeke'))
+  })
+
+  it('sits where it happened, newest first, among the moves', () => {
+    let session = started()
+    const skip: NightAction = { kind: 'skip', roleId: 'INSPECT' }
+    // The door said no between the night starting and the Detective's step.
+    const at = session.timeline.length
+    session = advance(session, (s) => recordAction(s, skip), {
+      night: 1, kind: 'action', roleId: 'INSPECT', action: skip,
+    })
+    const html = timelineMarkup(session, 'en', [{ night: 1, at, name: 'Zeke', reason: 'notOnList' }])
+    const t = strings('en')
+    const detective = html.indexOf(t.ui.timeline.skipped(t.roles.INSPECT.name))
+    const door = html.indexOf(t.ui.timeline.notOnList('Zeke'))
+    const night = html.indexOf(t.ui.timeline.nightStart(1))
+    expect(detective).toBeLessThan(door)
+    expect(door).toBeLessThan(night)
+  })
+})
+
 describe('a vote in the log', () => {
   it('names the voter and the target, or the voter alone when withdrawn', () => {
     const players = createGame(cast(['KILLER', 'PLAIN'], ['Ana', 'Beto'])).players

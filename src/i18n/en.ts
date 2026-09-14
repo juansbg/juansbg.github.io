@@ -822,6 +822,9 @@ export const en: Strings = {
       became: (role, newRole) => `${role} becomes ${newRole}`,
       voted: (voter, target) => `${voter} votes for ${target}`,
       unvoted: (voter) => `${voter} takes back their vote`,
+      notOnList: (name) => `${name} tried to join — not on the list`,
+      nameTaken: (name) => `${name} tried to join — that name is already on a phone`,
+      tableFull: (name) => `${name} tried to join — the table is full`,
     },
   },
 }
