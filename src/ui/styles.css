@@ -1555,6 +1555,14 @@ body {
    list, and Close pinned below it on every screen. */
 .menu {
   display: grid;
+  /* Each row as tall as what is in it. The panel has a definite height on a
+     short phone, and `auto` rows shrink to their items' own minimum when the
+     list is taller than that — which is `min-height: var(--touch)`, so the
+     two stacked rows collapsed from 103px to 65 and their segmented buttons
+     hung 23px into the row below. The buttons kept their size and their hit
+     area, so a tap aimed at the middle of "1 min" landed on "Big screen" and
+     opened the room. The list scrolls; it does not squash. */
+  grid-auto-rows: min-content;
   gap: 0;
   min-height: 0;
   border-top: 1px solid var(--hairline);
