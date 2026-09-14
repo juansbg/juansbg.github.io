@@ -1564,14 +1564,19 @@ body {
   background: var(--surface-raised);
 }
 
-/* The room is not answering: one mark in the corner of ⋯, in the same Ash as
-   a hairline. Square, because the radius is zero everywhere, and still,
-   because a pulse in the dark would pull the whole table's eye to a phone
-   that is meant to be furniture. */
+/* Something the narrator might want and nobody should be interrupted by: the
+   room has stopped answering (on ⋯, which holds the room), or somebody
+   knocked and was turned away (on Timeline, which holds the words). One mark
+   in the corner of a button that is already there, in the same Ash as a
+   hairline. Square, because the radius is zero everywhere, and still, because
+   a pulse in the dark would pull the whole table's eye to a phone that is
+   meant to be furniture. */
+.bar__btn[data-door],
 .bar__menu[data-room-quiet] {
   position: relative;
 }
 
+.bar__btn[data-door]::after,
 .bar__menu[data-room-quiet]::after {
   content: '';
   position: absolute;

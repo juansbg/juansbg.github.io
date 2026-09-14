@@ -243,6 +243,17 @@ function claimSeat(cid: string, name: string): PlayerId | null {
  */
 let notices: Notice[] = []
 const turnedAway = new Set<string>()
+/**
+ * How many of the door's lines the narrator has actually looked at.
+ *
+ * During setup the refusals are on the names screen itself, where the roster
+ * is being fixed. Once the game starts there is no names screen and the
+ * Timeline is the only place they live — so in play a phone knocking and
+ * being turned away changed nothing whatsoever on the narrator's screen. It
+ * was recorded faithfully and shown to nobody, which is the same defect the
+ * setup line fixed, one screen along.
+ */
+let noticesRead = 0
 
 /** Why the door said no, in the words the narrator needs. */
 function refusal(name: string): Notice['reason'] {
@@ -1115,9 +1126,16 @@ function render(entering = false): void {
     // detail. A replaced phone is not marked here; it has the stage's own
     // notice, which is louder on purpose and says something different.
     const roomQuiet = room !== null && roomStatus !== 'open' && roomStatus !== 'replaced'
+    // Somebody knocked and the door said no. The same mark as the room's, on
+    // the button that already leads to the words: the Timeline is where the
+    // door's lines live, so the mark points at the answer rather than being
+    // one. It goes as soon as the sheet has been opened.
+    const atTheDoor = notices.length > noticesRead
     const inGame = state.screen !== 'setup'
     const timeline = inGame
-      ? `<button class="bar__btn" type="button" data-log>${esc(t.ui.timeline.open)}</button>`
+      ? `<button class="bar__btn" type="button" data-log${atTheDoor ? ' data-door' : ''}
+                 aria-label="${esc(atTheDoor ? `${t.ui.timeline.open} · ${t.ui.timeline[notices[notices.length - 1]!.reason](notices[notices.length - 1]!.name)}` : t.ui.timeline.open)}"
+         >${esc(t.ui.timeline.open)}</button>`
       : '<span></span>'
     return `
       <nav class="bar${inGame ? '' : ' bar--quiet'}">
@@ -1476,6 +1494,7 @@ function bind(): void {
     closeShot()
     // A new game starts at an empty door.
     notices = []
+    noticesRead = 0
     turnedAway.clear()
     clear()
     // A room's table is whoever joins it, so a remembered list would show
@@ -2153,6 +2172,7 @@ function bind(): void {
 
   on(root, '[data-log]', 'click', () => {
     showingLog = true
+    noticesRead = notices.length
     setState({}, false)
   })
 
