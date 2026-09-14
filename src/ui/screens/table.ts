@@ -342,6 +342,17 @@ export const lobbyMarkup = (lobby: Lobby, controls: boolean, locale: Locale): st
         }
       </div>
       ${column}
+      ${
+        // The way back, which the table view has had all along and the lobby
+        // had not: a narrator who taps "Show the table" during setup to put
+        // the code up was left with the lobby's own button as the only
+        // control on the screen — and that button *proceeds*, and is disabled
+        // below four names. Under four, the screen had no working control at
+        // all and the phone was stuck.
+        controls
+          ? `<button class="icon-btn tableview__close" type="button" data-table-close aria-label="${esc(t.ui.common.back)}" title="${esc(t.ui.common.back)}">✕</button>`
+          : ''
+      }
     </section>
   `
 }

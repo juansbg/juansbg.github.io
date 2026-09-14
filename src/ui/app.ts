@@ -434,6 +434,9 @@ function connectRoom(): void {
   link = new NarratorLink(room, {
     onStatus: (status) => {
       roomStatus = status
+      // A status can arrive before the first paint (a phone booting into a
+      // saved room), and there is nothing to repaint yet if it does.
+      if (!painted) return
       // Every fresh socket says hello, so a player who connected first can key up.
       if (status === 'open' && narratorKeys !== null) link?.send({ kind: 'hello', pub: narratorKeys.pub })
       // Always, now that the bar carries the room's health as a mark on ⋯.
@@ -576,7 +579,11 @@ function publish(): void {
 // last game are for an evening without phones; with a room open and no game
 // yet, they would sit in the lobby as players nobody can find.
 if (room !== null && state.screen === 'setup' && state.session.current.players.length === 0) names = []
-if (room !== null) connectRoom()
+// The room is joined after the first paint, never during module evaluation.
+// `NarratorLink.connect()` reports its status synchronously, and that handler
+// repaints — so connecting here reached `setState` before its own declaration
+// and threw, and a narrator who reloaded with a room open came back to a
+// blank app with the game still in storage and no way to it. See `boot()`.
 
 /**
  * A new game in the same room: this phone forgets who sat where and says
@@ -814,6 +821,9 @@ function boot(): AppState {
  * sheet.
  */
 type Paint = 'transition' | 'enter' | 'still'
+
+/** Whether the app has painted once; until it has, there is nothing to update. */
+let painted = false
 
 const setState = (patch: Partial<AppState>, paint: Paint | boolean = 'transition'): void => {
   const how: Paint = paint === true ? 'transition' : paint === false ? 'still' : paint
@@ -2662,3 +2672,8 @@ function advanceReveal(): void {
 }
 
 render()
+painted = true
+
+// Only now is it safe to join the room: the link reports its status the moment
+// it is created, and that status repaints.
+if (room !== null) connectRoom()
