@@ -620,11 +620,18 @@ let ticker: number | null = null
 /** The paper is being drawn for the share sheet; the button waits. */
 let sharing = false
 /**
- * How long the share waits before it gives the button back. Long enough that
- * a real sheet is never cut short — it sits over the page anyway — and short
- * enough that a share which resolves neither way is not a dead end.
+ * How long the share waits before it puts the page up itself.
+ *
+ * It used to be ten seconds and to end in nothing: `navigator.share` can be a
+ * function that settles neither way, so the narrator watched "Drawing…" for
+ * ten seconds in front of the table and got the button back with no sheet, no
+ * image and no message. Three is enough now, because giving up is no longer
+ * empty — the page has already been drawn and the sheet that shows it is the
+ * fallback the app already had. A real share sheet sits over the page, so it
+ * is not cut short by anything happening underneath it, and if it then goes
+ * through, the sheet underneath is put away.
  */
-const SHARE_TIMEOUT_MS = 10_000
+const SHARE_TIMEOUT_MS = 3_000
 /** No canvas to draw the paper on at all. */
 let shareNotice = false
 /** The paper as an image, shown where the browser has no share sheet for files. */
@@ -2464,11 +2471,28 @@ function bind(): void {
       if (state.screen === 'over') setState({}, false)
       else closeShot()
     }
-    const giveUp = window.setTimeout(() => done(() => {}), SHARE_TIMEOUT_MS)
-    void sharePaper(game, state.locale)
+    // The page is drawn before any sheet is asked for, so a share that hangs
+    // still has something to show for the tap.
+    let drawn: string | null = null
+    const giveUp = window.setTimeout(() => done(() => {
+      if (drawn !== null) paperShot = drawn
+    }), SHARE_TIMEOUT_MS)
+    void sharePaper(game, state.locale, (url) => {
+      drawn = url
+    })
       .catch((): ShareResult => ({ kind: 'unavailable' }))
       .then((result) => {
         window.clearTimeout(giveUp)
+        if (settled) {
+          // We had already given up and put the page on screen. If the share
+          // then went through after all, take our own sheet away rather than
+          // leaving the narrator with two answers to one tap.
+          if (result.kind === 'shared') {
+            closeShot()
+            setState({}, false)
+          }
+          return
+        }
         done(() => {
           shareNotice = result.kind === 'unavailable'
           if (result.kind === 'shown') paperShot = result.url

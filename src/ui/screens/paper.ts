@@ -749,9 +749,22 @@ export type ShareResult =
  * where a download link in a standalone window goes nowhere obvious.
  * `unavailable` means there was no canvas to draw on at all.
  */
-export const sharePaper = async (state: GameState, locale: Locale): Promise<ShareResult> => {
+export const sharePaper = async (
+  state: GameState,
+  locale: Locale,
+  /**
+   * Called the moment the page exists, before any share sheet is asked for.
+   * `navigator.share` can settle neither way, and a caller that has to give
+   * up needs something to show for the tap: this is that something, and it
+   * is the same object URL a `shown` result carries, so nothing is drawn or
+   * created twice.
+   */
+  onDrawn?: (url: string) => void,
+): Promise<ShareResult> => {
   const blob = await paperImage(state, locale)
   if (blob === null) return { kind: 'unavailable' }
+  const drawn = URL.createObjectURL(blob)
+  onDrawn?.(drawn)
   const t = strings(locale)
   const file = new File([blob], `${t.appName.toLowerCase().replace(/\s+/g, '-')}-${Date.now()}.png`, { type: 'image/png' })
   const nav = navigator as Navigator & { canShare?: (data: ShareData) => boolean }
@@ -768,5 +781,5 @@ export const sharePaper = async (state: GameState, locale: Locale): Promise<Shar
       if (error instanceof Error && error.name === 'AbortError') return { kind: 'shared' }
     }
   }
-  return { kind: 'shown', url: URL.createObjectURL(blob) }
+  return { kind: 'shown', url: drawn }
 }
