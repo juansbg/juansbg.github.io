@@ -610,6 +610,8 @@ export interface Strings {
       familyMark: string
       /** An action went out and the narrator has not answered yet. */
       sent: string
+      /** Nothing came back, so it did not arrive; the buttons are live again. */
+      notSent: string
       convertOffer: (name: string) => string
       joinCrew: string
       stayTown: string

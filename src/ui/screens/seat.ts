@@ -98,6 +98,13 @@ const castSeat = (p: SeatProjection, s: SeatProjection['players'][number]): Play
 export interface SeatPicks {
   picked: readonly PlayerId[]
   sent: boolean
+  /**
+   * The action went out and nothing came back, so it did not arrive. The
+   * narrator republishes on every paint, which makes a projection the phone's
+   * only receipt — and a socket being OPEN is not one, since the frame can
+   * still be lost after it.
+   */
+  unsent?: boolean
 }
 
 const NO_PICKS: SeatPicks = { picked: [], sent: false }
@@ -705,6 +712,8 @@ const nightMarkup = (
     ? ''
     : picks.sent
       ? `<p class="mine__note">${esc(s.sent)}</p>`
+      : picks.unsent === true
+        ? `<p class="mine__note" data-unsent>${esc(s.notSent)}</p>`
       : hint
         ? `<p class="label mine__hint">${esc(hint)}</p>`
         : acting

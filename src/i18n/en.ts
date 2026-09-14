@@ -816,6 +816,7 @@ export const en: Strings = {
       yourMove: 'Your move',
       familyMark: 'Any of the Family may move the mark, and any may confirm.',
       sent: 'Sent. The narrator has it.',
+      notSent: 'That did not reach the narrator. Tap again.',
       convertOffer: (name) => `The Family chose ${name}. Do you take them in instead?`,
       joinCrew: 'Join the Family',
       stayTown: 'Stay with the town',

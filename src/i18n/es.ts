@@ -821,6 +821,7 @@ export const es: Strings = {
       yourMove: 'Te toca',
       familyMark: 'Cualquiera de la Familia mueve la marca y cualquiera confirma.',
       sent: 'Enviado. Ya lo tiene el narrador.',
+      notSent: 'Eso no le ha llegado al narrador. Tócalo otra vez.',
       convertOffer: (name) => `La Familia ha elegido a ${name}. ¿Le acoges en la Familia en vez de matarle?`,
       joinCrew: 'Unirte a la Familia',
       stayTown: 'Quedarte con el pueblo',
