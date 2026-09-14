@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { askCardMarkup, dayMarkup, legalTargets, nightMarkup, picksNeeded, playerViewMarkup, questionCardMarkup, questionsIntroMarkup } from './night'
+import { askCardMarkup, dayMarkup, hunterMarkup, legalTargets, nightMarkup, picksNeeded, playerViewMarkup, questionCardMarkup, questionsIntroMarkup } from './night'
 import { castVote, createGame, startNight, type PlayerSetup } from '../../engine/state'
 import { LOCALES, strings } from '../../i18n'
 import { ROLE_IDS, type RoleId } from '../../engine/roles'
@@ -617,5 +617,47 @@ describe('a step taken from a phone', () => {
     const t = strings('en')
     expect(nightMarkup(state, 'en', [], 'circle', false, new Set([0, 1]))).toContain(t.ui.night.onPhones(['P0', 'P1']))
     expect(nightMarkup(state, 'en', [], 'circle', false, new Set([1]))).not.toContain('data-on-phones')
+  })
+})
+
+describe('the Gunman’s shot', () => {
+  // It falls after an execution rather than inside the night, and for a long
+  // time that is exactly what it looked like: a title, a subtitle and a column
+  // of bare name buttons, with no card, no sigil, no ring, no line to say and
+  // no way back. It is a night step, so it wears what a night step wears.
+  const shooting = (): GameState => {
+    const state = createGame(setup(['AVENGE', 'KILLER', 'GUARD', 'PLAIN', 'PLAIN', 'PLAIN']))
+    return { ...state, phase: 'day', day: 1, awaitingHunterShot: 0 }
+  }
+
+  it('wears the night’s card, names the shooter and gives the narrator the line', () => {
+    for (const locale of LOCALES) {
+      const t = strings(locale)
+      const html = hunterMarkup(shooting(), locale)
+      expect(html).toContain('card--role')
+      expect(html).toContain('card__sigil')
+      expect(html).toContain(t.roles.AVENGE.name)
+      expect(html).toContain('P0')
+      expect(html).toContain(t.ui.night.askShot)
+    }
+  })
+
+  it('picks on the seating ring, and offers the way back on the screen itself', () => {
+    const html = hunterMarkup(shooting(), 'en')
+    expect(html).toContain('class="circle')
+    // Every living seat, and only living seats: the engine's rule, unnarrowed.
+    for (const id of [1, 2, 3, 4, 5]) expect(html).toContain(`data-shoot="${id}"`)
+    // The shot arrives straight after an execution, so the undo that reverses
+    // it has to be on the screen the narrator is actually looking at.
+    expect(html).toContain('data-undo')
+  })
+
+  it('says nothing about a role, because the table is watching this one', () => {
+    const html = hunterMarkup(shooting(), 'en')
+    const t = strings('en')
+    for (const roleId of ROLE_IDS) {
+      if (roleId === 'AVENGE') continue
+      expect(html).not.toContain(t.roles[roleId].name)
+    }
   })
 })

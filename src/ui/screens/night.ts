@@ -281,6 +281,57 @@ export const nightMarkup = (
 }
 
 /**
+ * The Gunman takes someone with him, and the narrator has to ask him who.
+ *
+ * It is a night step in everything but where it falls, so it wears the night's
+ * furniture: the role's card with its sigil and the holder's name, the line
+ * the narrator says out loud, and the seating ring as the picker — the same
+ * ring every other choice in this app is made on, rather than a column of
+ * bare names. The undo is the point of the header: the shot arrives straight
+ * after an execution, and a narrator who has just hanged the wrong person
+ * needs the way back on the screen they are actually looking at.
+ *
+ * Every living seat is legal, the shooter included: it is the engine's rule
+ * and nothing here narrows it.
+ */
+export const hunterMarkup = (
+  state: GameState,
+  locale: Locale,
+  layout: 'circle' | 'list' = 'circle',
+): string => {
+  const t = strings(locale)
+  const shooter = state.players.find((p) => p.id === state.awaitingHunterShot)
+  const alive = state.players.filter((p) => p.alive)
+  return `
+    <section class="screen screen--night" data-accent="${accentOf('AVENGE')}">
+      <header class="screen__head">
+        <p class="night__counter">${esc(t.ui.dawn.verdict(state.day))}</p>
+        <div class="screen__tools">
+          <button class="icon-btn" type="button" data-undo aria-label="${esc(t.ui.common.undo)}" title="${esc(
+            t.ui.common.undo,
+          )}">↶</button>
+        </div>
+      </header>
+
+      <div class="card card--role" data-role-card>
+        <span class="card__sigil">${sigilMarkup('AVENGE')}</span>
+        <h2 class="card__title">${esc(t.roles.AVENGE.name)}</h2>
+        ${shooter === undefined ? '' : `<p class="card__who">${esc(shooter.name)}</p>`}
+        <p class="card__body">${esc(t.roles.AVENGE.prompt)}</p>
+        <p class="card__situation">${esc(t.ui.night.askShot)}</p>
+      </div>
+
+      <p class="label">${esc(t.ui.night.pickOne)}</p>
+      ${circleMarkup(state.players, locale, {
+        pickAttr: 'shoot',
+        eligible: alive.map((p) => p.id),
+        list: layout === 'list',
+      })}
+    </section>
+  `
+}
+
+/**
  * What the player at this step is allowed to see of the table.
  *
  * Nothing about anyone else's role or side, ever: every colour the narrator

@@ -26,7 +26,6 @@ import {
 } from '../engine/state'
 import type { NightAction, PlayerId } from '../engine/types'
 import { detectLocale, strings } from '../i18n'
-import { accentOf } from './accent'
 import { bindSheetDrag, buzz, esc, markEdges, on, swap } from './dom'
 import { sound, unlockOnGesture } from './sound'
 import { clear, clearRoster, clearStats, forgetGame, load, loadRoster, loadStats, loadTimer, recordGame, save, saveRoster, saveTimer, type AppState } from './store'
@@ -34,7 +33,7 @@ import { statsMarkup } from './screens/stats'
 import { summarise } from '../engine/summary'
 import { editorMarkup, MAX_PLAYERS, MIN_PLAYERS, namesMarkup, rosterMarkup, type ScreenJoin } from './screens/setup'
 import { dealRoles, systemRandom, type Complexity } from '../engine/deal'
-import { askCardMarkup, dayMarkup, inspectionMarkup, nightMarkup, playerViewMarkup, questionCardMarkup, questionsIntroMarkup } from './screens/night'
+import { askCardMarkup, dayMarkup, hunterMarkup, inspectionMarkup, nightMarkup, playerViewMarkup, questionCardMarkup, questionsIntroMarkup } from './screens/night'
 import { countOrder } from './screens/vote'
 import { dawnMarkup, dawnSlides, verdictSlides, winnerSlide, type Reading, type Slide } from './screens/dawn'
 import { tableMarkup } from './screens/table'
@@ -906,7 +905,7 @@ function render(entering = false): void {
   } else if (state.screen === 'day') {
     body =
       game.awaitingHunterShot !== null
-        ? hunterMarkup()
+        ? hunterMarkup(game, state.locale, state.layout)
         : dawn !== null
           ? dawnMarkup(slides, dawn, game.night, state.locale, dawnKind)
           : paperOpen
@@ -1054,22 +1053,6 @@ function render(entering = false): void {
         <h1 class="title">${esc(t.phase.nightFalls)}</h1>
         <p class="subtitle">${esc(t.phase.nightFallsBody)}</p>
         <button class="btn btn--primary" type="button" data-resolve>${esc(t.ui.night.endNight)}</button>
-      </section>
-    `
-  }
-
-  function hunterMarkup(): string {
-    const shooter = game.players.find((p) => p.id === game.awaitingHunterShot)
-    const targets = game.players
-      .filter((p) => p.alive)
-      .map((p) => `<button class="target" type="button" data-shoot="${p.id}">${esc(p.name)}</button>`)
-      .join('')
-
-    return `
-      <section class="screen screen--day" data-accent="${accentOf('AVENGE')}">
-        <h1 class="title title--sm">${esc(t.roles.AVENGE.name)}</h1>
-        <p class="subtitle subtitle--sm">${esc(shooter?.name ?? '')} — ${esc(t.roles.AVENGE.prompt)}</p>
-        <div class="table table--list"><div class="targets">${targets}</div></div>
       </section>
     `
   }

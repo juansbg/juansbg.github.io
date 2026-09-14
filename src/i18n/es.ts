@@ -239,6 +239,7 @@ export const es: Strings = {
       heal: 'Curar',
       poison: 'Envenenar',
       pickOne: 'Elige a quién',
+      askShot: 'Pregúntale en voz alta a quién se lleva.',
       pickTwo: 'Elige a dos',
       endNight: 'Terminar la noche',
       wakeGroup: 'Que despierten juntos.',

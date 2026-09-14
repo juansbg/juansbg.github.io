@@ -231,6 +231,8 @@ export interface Strings {
       heal: string
       poison: string
       pickOne: string
+      /** The Gunman's step: the narrator has to ask, and it is the player's call. */
+      askShot: string
       pickTwo: string
       endNight: string
       wakeGroup: string

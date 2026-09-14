@@ -234,6 +234,7 @@ export const en: Strings = {
       heal: 'Heal',
       poison: 'Poison',
       pickOne: 'Choose who',
+      askShot: 'Ask them, out loud, who they take with them.',
       pickTwo: 'Choose two',
       endNight: 'End the night',
       wakeGroup: 'Wake them together.',
