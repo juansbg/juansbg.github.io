@@ -254,6 +254,43 @@ describe('the vote on the table', () => {
   })
 })
 
+describe('the final edition on the big screen', () => {
+  // The whole evening as a front page used to reach nobody but the narrator
+  // holding it, while the room looked at something else — the one object of
+  // this game anybody would keep, shown to one person.
+  const finished = (): GameState => {
+    let state = startNight(createGame(cast(['KILLER', 'GUARD', 'PLAIN', 'PLAIN', 'PLAIN'])))
+    state = recordAction(state, { roleId: 'KILLER', kind: 'target', actor: 0, target: 2 })
+    state = endNight(state)
+    state = lynch(state, 1)
+    return lynch(state, 3)
+  }
+
+  it('is the same page the narrator is holding, once it is up', () => {
+    const state = finished()
+    for (const locale of LOCALES) {
+      const t = strings(locale)
+      const up = tableMarkup(tvProjection(state, locale, { over: true, finalPaper: true }), false)
+      expect(up).toContain('data-paper')
+      expect(up).toContain(t.ui.paper.whoWasWho)
+      // The banner is the result the room has just been read.
+      expect(up).toContain(t.appName)
+      // It is the room's copy: nothing to tap.
+      expect(up).not.toContain('data-paper-close')
+      expect(up).not.toContain('data-restart')
+    }
+  })
+
+  it('is not up until the narrator has it, and never before the game is over', () => {
+    const state = finished()
+    expect(tableMarkup(tvProjection(state, 'en', { over: true }))).not.toContain('data-paper')
+    // Mid-game the flag cannot put it up: the cast is empty until `over`, so
+    // a page built then would name roles the room may not have.
+    const midGame = startNight(createGame(cast(['KILLER', 'GUARD', 'PLAIN', 'PLAIN', 'PLAIN'])))
+    expect(tableMarkup(tvProjection(midGame, 'en', { finalPaper: true }))).not.toContain('data-paper')
+  })
+})
+
 describe('the lobby a screen opens by itself', () => {
   it('shows the code and the QR with the narrator’s line where the roster will be, in both languages', () => {
     for (const locale of LOCALES) {

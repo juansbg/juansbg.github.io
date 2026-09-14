@@ -5,7 +5,7 @@ import type { TvCast, TvProjection, TvSeat } from '../../room/projections'
 import { esc } from '../dom'
 import { qrSvg } from '../../room/qr'
 import { circleMarkup } from './circle'
-import { dailyMarkup, editionOf } from './paper'
+import { dailyMarkup, editionOf, paperFrom, paperPage } from './paper'
 import { MIN_PLAYERS } from './setup'
 import { timerMarkup } from './timer'
 
@@ -72,6 +72,35 @@ export const tableMarkup = (p: TvProjection, controls = true): string => {
   if (p.paper !== null) {
     const e = editionOf({ day: p.paper, players: p.players, log: p.log, revealed: p.revealed }, p.locale)
     return dailyMarkup(e, p.locale, false)
+  }
+
+  // And the last one the same way. It is the whole evening as a front page and
+  // it used to reach nobody but the narrator holding it, while the room looked
+  // at something else — so the one object of this game anybody would keep was
+  // shown to one person. Nothing on it is new to the room: every death was
+  // read out at dawn, the cast is what the ring reveals once the game is over,
+  // and the record is the public log.
+  if (p.finalPaper && over) {
+    const paper = paperFrom(
+        {
+          night: p.night,
+          players: p.players.map((s) => ({
+            id: s.id,
+            name: s.name,
+            alive: s.alive,
+            roleId: castMap.get(s.id)?.roleId ?? 'PLAIN',
+          })),
+          log: p.log,
+          winner: p.winner,
+        },
+        p.locale,
+      )
+    // The room's copy stops at who was who. The night-by-night record runs the
+    // page past 1080 and a television cannot scroll, so it was simply cut off
+    // mid-heading; and of the three sections it is the one the room least
+    // needs, having sat through every line of it. It stays on the narrator's
+    // page and in the image they share.
+    return paperPage({ ...paper, record: [] }, p.locale)
   }
 
   return `

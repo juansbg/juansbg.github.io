@@ -75,6 +75,13 @@ export interface TvProjection {
    * happened, never what was dealt or to whom.
    */
   dealt: boolean
+  /**
+   * The evening's last page is up on the narrator's phone, so the room reads
+   * it too. Everything on it is already public by then — the deaths the town
+   * heard at dawn, the cast the ring beside it reveals at the end, the public
+   * log — so this carries no fact the projection did not already hold.
+   */
+  finalPaper: boolean
   /** Ballots against each seat today, most first; the count so far while it comes up. Counts only. */
   tally: { target: PlayerId; votes: number }[]
   /** Who the count points at once it is complete, or null on a tie or before. */
@@ -164,6 +171,8 @@ export interface TvContext {
   roster?: { name: string; joined: boolean }[]
   /** The narrator has left the names screen: the cards are out. */
   dealt?: boolean
+  /** The narrator is holding up the final edition, so the room holds it too. */
+  finalPaper?: boolean
 }
 
 /** The ballot as the room may see it: sealed, coming up, or every ballot. */
@@ -224,6 +233,7 @@ export const tvProjection = (
   join: state.phase === 'setup' ? (context.join ?? null) : null,
   roster: state.phase === 'setup' ? (context.roster ?? []) : [],
   dealt: context.dealt === true,
+  finalPaper: context.finalPaper === true,
 })
 
 /**

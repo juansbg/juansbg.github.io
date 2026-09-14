@@ -302,10 +302,15 @@ export const hunterMarkup = (
   const t = strings(locale)
   const shooter = state.players.find((p) => p.id === state.awaitingHunterShot)
   const alive = state.players.filter((p) => p.alive)
+  // He may have been hanged or killed in his bed, and the heading said the
+  // town's verdict either way — a vote the town never took, over a body found
+  // in the morning. His own death in the log knows which.
+  const fall = [...state.log].reverse().find((o) => o.type === 'death' && o.target === state.awaitingHunterShot)
+  const hanged = fall !== undefined && fall.type === 'death' && fall.cause === 'lynch'
   return `
     <section class="screen screen--night" data-accent="${accentOf('AVENGE')}">
       <header class="screen__head">
-        <p class="night__counter">${esc(t.ui.dawn.verdict(state.day))}</p>
+        <p class="night__counter">${esc(hanged ? t.ui.dawn.verdict(state.day) : t.ui.timeline.nightEnd(state.night))}</p>
         <div class="screen__tools">
           <button class="icon-btn" type="button" data-undo aria-label="${esc(t.ui.common.undo)}" title="${esc(
             t.ui.common.undo,

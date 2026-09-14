@@ -558,8 +558,11 @@ function projectionNow(): TvProjection {
     roster: lobbyRoster(),
     // The same test the seat projection uses: the narrator has left the names.
     dealt: state.screen !== 'setup',
-    // The TV shows the paper while the phone does.
+    // The TV shows the paper while the phone does — including the last one,
+    // which is the whole evening as a front page and used to reach nobody but
+    // the narrator holding it.
     paper: paperOpen && state.screen === 'day' ? state.session.current.day : null,
+    finalPaper: state.screen === 'over',
   })
 }
 
