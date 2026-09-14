@@ -281,6 +281,7 @@ export const rosterMarkup = (
         selected: armed === null ? [] : [armed],
         showRoles: assigned,
         revealTeams: assigned,
+        fitRoles: assigned,
       })}
 
       <div class="complexity" role="group" aria-label="${esc(t.ui.setup.complexity)}">

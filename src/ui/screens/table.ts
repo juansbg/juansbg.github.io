@@ -88,6 +88,7 @@ export const tableMarkup = (p: TvProjection, controls = true): string => {
         // the one moment colour may key off a role's team on this screen).
         showRoles: over,
         revealTeams: over,
+        fitRoles: over,
         votes,
         leader: p.leader,
         // A hand up is marked while the ballot is sealed; once the count comes
