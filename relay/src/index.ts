@@ -161,6 +161,8 @@ const GONE = 4004
 const ENDED = 4001
 /** Messages allowed per socket per second before it is dropped. */
 const RATE = 20
+/** How much a room keeps for a narrator who is not connected this second. */
+const HELD = 20
 const IDLE_MS = 6 * 60 * 60 * 1000
 /** A room nobody has claimed is a code on a screen; it waits this long for a narrator. */
 const UNCLAIMED_MS = 15 * 60 * 1000
@@ -320,6 +322,12 @@ export class Room extends DurableObject<Env> {
       // The narrator learns who is in the room already, joins included, so a
       // phone that scanned before the narrator arrived is not lost.
       server.send(JSON.stringify({ kind: 'present', players: await this.joins(), tvs: this.ctx.getWebSockets('tv').length }))
+      // …and anything the phones said while no narrator was listening.
+      const waiting = await this.ctx.storage.get<string[]>('waiting')
+      if (waiting !== undefined) {
+        await this.ctx.storage.delete('waiting')
+        for (const text of waiting) server.send(text)
+      }
     }
 
     await this.touch()
@@ -469,9 +477,29 @@ export class Room extends DurableObject<Env> {
     })
   }
 
+  /**
+   * Everything a phone says goes to the narrator's socket, and if there is
+   * none right now it waits for one. A player who taps while the narrator's
+   * phone is reconnecting has still acted; the alternative is a vote or a
+   * night action that vanishes with nobody the wiser (docs/BIG-SCREEN.md
+   * §12.6). The queue is small and dropped the moment it is delivered: it
+   * is a few seconds of slack, not a mailbox.
+   */
   private tellNarrator(message: unknown): void {
     const text = JSON.stringify(message)
-    for (const n of this.ctx.getWebSockets('narrator')) n.send(text)
+    const narrators = this.ctx.getWebSockets('narrator')
+    if (narrators.length === 0) {
+      void this.hold(text)
+      return
+    }
+    for (const n of narrators) n.send(text)
+  }
+
+  /** Keeps what was said for the narrator who is about to arrive. */
+  private async hold(text: string): Promise<void> {
+    const waiting = (await this.ctx.storage.get<string[]>('waiting')) ?? []
+    waiting.push(text)
+    await this.ctx.storage.put('waiting', waiting.slice(-HELD))
   }
 
   /** Everyone watching: the screens and the phones, never the narrator. */

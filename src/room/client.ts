@@ -173,12 +173,14 @@ export const parseFragment = (hash: string): { room: string | null; relay: strin
 }
 
 /** `gone` is final: the relay closed the socket with 4004, no such room, and the link stops trying. */
-export type LinkStatus = 'connecting' | 'open' | 'closed' | 'gone' | 'ended'
+export type LinkStatus = 'connecting' | 'open' | 'closed' | 'gone' | 'ended' | 'replaced'
 
 /** The relay's close code for a room that does not exist or has expired (docs/BIG-SCREEN.md §11). */
 export const NO_SUCH_ROOM = 4004
 /** The narrator closed the room on purpose (docs/BIG-SCREEN.md §12.2). */
 export const ROOM_ENDED = 4001
+/** A second phone claimed the room with the key; this socket is not coming back. */
+export const REPLACED = 4000
 
 /** What the relay sends the narrator. `cid` is a player's connection, chosen by their page. */
 export type FromRelay =
@@ -313,8 +315,16 @@ export class NarratorLink {
     ws.onclose = (event) => {
       this.stopPing()
       if (this.ws === ws) this.ws = null
-      // Replaced by a newer narrator socket, or the room is gone (4001 closed, 4004 no such room): stop.
-      if (event.code === 4000 || event.code === 4001 || event.code === 4004 || this.closed) {
+      // Another phone claimed the room with the key. This one is not coming
+      // back, and has to say so rather than showing a reconnection that will
+      // never happen.
+      if (event.code === REPLACED) {
+        this.closed = true
+        this.handlers.onStatus?.('replaced')
+        return
+      }
+      // The room is gone (4001 closed, 4004 no such room): stop.
+      if (event.code === ROOM_ENDED || event.code === NO_SUCH_ROOM || this.closed) {
         this.closed = true
         this.handlers.onStatus?.('closed')
         return

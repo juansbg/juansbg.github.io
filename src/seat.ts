@@ -80,6 +80,10 @@ let pendingSealed: string[] = []
 let status: LinkStatus = 'connecting'
 /** Whether a narrator's phone is on the room right now; the relay says so. */
 let narratorHere = true
+/** When this phone last lost the room, so a long wait can say more than a short one. */
+let waitingSince: number | null = null
+const LONG_WAIT_MS = 9_000
+let waitTimer: number | null = null
 let joined = false
 let refused = false
 let projection: SeatProjection | null = null
@@ -137,9 +141,18 @@ const render = (): void => {
 
   // The foot says what the phone cannot do anything about: its own socket is
   // down, or the narrator's phone has gone quiet. Never both, never an alarm.
+  const waiting = status !== 'open' && status !== 'ended'
+  if (waiting && waitingSince === null) waitingSince = Date.now()
+  if (!waiting) waitingSince = null
+  const longWait = waitingSince !== null && Date.now() - waitingSince > LONG_WAIT_MS
+  if (waitTimer !== null) window.clearTimeout(waitTimer)
+  waitTimer = waiting && !longWait ? window.setTimeout(render, LONG_WAIT_MS + 200) : null
+
   const foot =
-    joined && status !== 'open' && status !== 'ended'
-      ? t.ui.tv.reconnecting
+    joined && waiting
+      ? longWait
+        ? `${t.ui.tv.reconnecting} ${t.ui.tv.stillTrying}`
+        : t.ui.tv.reconnecting
       : joined && !narratorHere
         ? s.narratorGone
         : ''

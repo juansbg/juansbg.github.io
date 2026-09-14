@@ -672,3 +672,33 @@ allow-lists do not move.
    a pocket never raises an alarm on the TV.
 3. A phone holds the morning behind a page until the narrator has read it.
    The dawn belongs to the room, not to whoever looks down first.
+
+### 12.6 The unlucky table (added 2026-09-13)
+
+A critic played the evening that goes wrong — a phone dies, the wifi
+hiccups, two people both think they are running the game — and found the
+same shape again in three more places.
+
+**A phone that comes back takes its own seat.** A guest whose last socket
+closes is marked gone rather than forgotten: the seat is held against the
+*name*, not the phone, so the same person opening the link on a borrowed
+handset lands back in it and the headcount does not jump. Whoever held a
+seat and has gone hands it over the moment somebody claims it, since one
+seat must never answer to two guests.
+
+**A narrator that has been replaced is told.** A second phone claiming the
+room with the key closes the first socket with 4000, which the link used
+to fold into the same "closed" as any other drop, so the room sheet said
+"reconnecting" for ever about a connection that was never coming back.
+`LinkStatus` has a final `replaced`, and the sheet says plainly that
+another phone has taken the room over.
+
+**What a phone said while the narrator was away still arrives.** A vote, a
+mark or a night action used to be forwarded only to a narrator socket that
+happened to be attached, so a player who tapped during a two-second
+reconnect had acted into nothing. The room now keeps the last twenty such
+messages and hands them to the next narrator socket, right after `present`
+— a few seconds of slack, not a mailbox.
+
+**And a long wait no longer sounds like a short one.** After nine seconds
+the TV and the phones add a second, quieter sentence to the same line.

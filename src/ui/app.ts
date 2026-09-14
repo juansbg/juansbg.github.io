@@ -153,6 +153,13 @@ interface Guest {
   pub: string
   key: CryptoKey | null
   seat: PlayerId | null
+  /**
+   * The relay says this phone's last socket has closed: a dead battery, a
+   * closed tab. The seat is held against the name rather than the phone, so
+   * the same person coming back on any phone lands in it, and nobody else
+   * counts it as taken.
+   */
+  gone: boolean
   lastSent: string | null
   /** Seals for this guest go out in order. */
   queue: Promise<void>
@@ -178,13 +185,19 @@ const stopCount = (): void => {
 
 const sameName = (a: string, b: string): boolean => a.trim().toLowerCase() === b.trim().toLowerCase()
 
-/** Seats already given to other guests. */
+/** Seats given to other guests whose phones are still in the room. */
 const takenSeats = (except: string): Set<PlayerId> =>
-  new Set([...guests.entries()].filter(([cid, g]) => cid !== except && g.seat !== null).map(([, g]) => g.seat as PlayerId))
+  new Set(
+    [...guests.entries()]
+      .filter(([cid, g]) => cid !== except && g.seat !== null && !g.gone)
+      .map(([, g]) => g.seat as PlayerId),
+  )
 
-/** Seats that have a phone: the pass-around can skip them. */
+/** Seats with a phone on them: the pass-around can skip those. A phone that has gone does not count. */
 const seatedFromPhones = (): Set<PlayerId> =>
-  new Set([...guests.values()].filter((g) => g.seat !== null && g.key !== null).map((g) => g.seat as PlayerId))
+  new Set(
+    [...guests.values()].filter((g) => g.seat !== null && g.key !== null && !g.gone).map((g) => g.seat as PlayerId),
+  )
 
 /**
  * Finds a guest a seat by name. While the roster is still names, a matching
@@ -213,7 +226,14 @@ async function admit(cid: string, name: string, pub: string): Promise<void> {
   const seat = existing?.seat !== null && existing !== undefined && existing.seat !== null && sameName(existing.name, name)
     ? existing.seat
     : claimSeat(cid, name)
-  guests.set(cid, { name: name.trim(), pub, key, seat, lastSent: null, queue: existing?.queue ?? Promise.resolve() })
+  // Whoever held this seat and has gone hands it over: the same person is
+  // back on another phone, and one seat must never answer to two guests.
+  if (seat !== null) {
+    for (const [other, g] of guests) {
+      if (other !== cid && g.seat === seat && g.gone) guests.delete(other)
+    }
+  }
+  guests.set(cid, { name: name.trim(), pub, key, seat, gone: false, lastSent: null, queue: existing?.queue ?? Promise.resolve() })
   setState({}, false)
 }
 
@@ -230,8 +250,15 @@ function handleRoomMessage(message: FromRelay): void {
     case 'join':
       void admit(message.cid, message.name, message.pub)
       return
-    case 'left':
+    case 'left': {
+      // The phone has gone, not the player: the seat waits for them under
+      // their own name, on this phone or the next one.
+      const guest = guests.get(message.cid)
+      if (guest === undefined) return
+      guests.set(message.cid, { ...guest, gone: true })
+      setState({}, false)
       return
+    }
     case 'vote': {
       const guest = guests.get(message.cid)
       const game = state.session.current
@@ -955,7 +982,12 @@ function render(entering = false): void {
     if (room !== null) {
       const tv = tvUrl(room, location.origin)
       const seated = [...guests.values()].filter((g) => g.seat !== null)
-      const status = roomStatus !== 'open' ? r.reconnecting : `${tvs > 0 ? r.tvs(tvs) : r.noTv} · ${r.players(seated.length)}`
+      const status =
+        roomStatus === 'replaced'
+          ? r.replaced
+          : roomStatus !== 'open'
+            ? r.reconnecting
+            : `${tvs > 0 ? r.tvs(tvs) : r.noTv} · ${r.players(seated.length)}`
       body = `
         <p class="title room__code" aria-label="${esc(r.code)}">${esc(room.code)}</p>
         <p class="room__status" data-room-status>${esc(status)}</p>

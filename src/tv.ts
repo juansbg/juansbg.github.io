@@ -67,6 +67,15 @@ let status: LinkStatus = 'connecting'
 let relayDown = false
 /** Whether a narrator's phone is on the room right now; the relay says so. */
 let narratorHere = false
+/**
+ * When the screen stopped being able to reach anybody. A two-second hiccup
+ * and a two-minute outage used to read identically, so a room had no way to
+ * tell "still trying" from "stuck" (docs/BIG-SCREEN.md §12.6).
+ */
+let waitingSince: number | null = null
+/** How long a wait has to run before the screen mentions it. */
+const LONG_WAIT_MS = 9_000
+let waitTimer: number | null = null
 const fallback: Locale = detectLocale(navigator.languages ?? [navigator.language])
 
 /**
@@ -122,14 +131,25 @@ const render = (): void => {
   // One line along the bottom for anything the room should know that the game
   // itself does not say: the relay dropped, or the narrator's phone has gone
   // quiet. The table stays up behind it — nothing here is an error.
+  // Is anything wrong at all? A room that is waiting starts a clock, so the
+  // line can grow a second sentence once the wait stops being ordinary.
+  const waiting = status !== 'open' && status !== 'ended'
+  if (waiting && waitingSince === null) waitingSince = Date.now()
+  if (!waiting) waitingSince = null
+  const longWait = waitingSince !== null && Date.now() - waitingSince > LONG_WAIT_MS
+  if (waitTimer !== null) window.clearTimeout(waitTimer)
+  waitTimer = waiting && !longWait ? window.setTimeout(render, LONG_WAIT_MS + 200) : null
+
   const note =
     status === 'ended'
       ? t.ended
-      : projection !== null && status !== 'open'
-        ? t.reconnecting
-        : projection !== null && !narratorHere
-          ? t.narratorGone
-          : ''
+      : waiting && longWait
+        ? `${relayDown ? t.relayDown : t.reconnecting} ${t.stillTrying}`
+        : projection !== null && status !== 'open'
+          ? t.reconnecting
+          : projection !== null && !narratorHere
+            ? t.narratorGone
+            : ''
 
   const scene = sceneKey()
   const entering = scene !== lastScene

@@ -451,6 +451,8 @@ export interface Strings {
       keyHint: string
       /** The relay refused the key. */
       refused: string
+      /** Another phone claimed this room with the key; this one no longer runs it. */
+      replaced: string
       /** The no-TV evening: this phone opens and shows the room. */
       openHere: string
       /** A second screen joins an open room by this address. */
@@ -536,6 +538,8 @@ export interface Strings {
       forNarrator: string
       enterCode: string
       relayDown: string
+      /** The wait has gone on long enough to be worth saying out loud. */
+      stillTrying: string
       /** The room has a narrator's phone on it, or has lost one. */
       narratorGone: string
       /** The narrator closed the room: the evening is over. */
