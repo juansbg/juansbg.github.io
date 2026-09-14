@@ -3710,6 +3710,11 @@ html[data-dawn] body {
   --on-accent: var(--ledger);
   --role: var(--midnight);
   --role-fill: var(--midnight);
+  /* The mark is Midnight on Vendetta and its glyph has to be the ground it
+     sits on, as the phone's own slide already does: without this the room
+     watched a plain empty square above the name at the very moment the app
+     is built to sell. */
+  --role-ink: var(--vendetta);
   background: var(--vendetta);
 }
 
@@ -4018,6 +4023,30 @@ html[data-dawn] body {
   max-width: min(80vw, 44ch);
   font-size: clamp(2rem, 4.5vmin, 4.5rem);
   text-align: center;
+}
+
+/* The mark over a reading is a stamp, and on a phone three rem of it reads as
+   one. On a 1080p screen the same three rem is a chip in the middle of a wall,
+   so it scales with the frame like everything else the room reads. */
+.stage--tv .tableview__card .dawn__mark {
+  width: clamp(3rem, 9vmin, 9rem);
+  height: clamp(3rem, 9vmin, 9rem);
+  font-size: clamp(1.4rem, 4.5vmin, 4.5rem);
+}
+
+.stage--tv .tableview__card .dawn__mark .sigil {
+  width: 60%;
+  height: 60%;
+}
+
+/* The count the town arrived at is the sentence before a name is read out, and
+   it was set like a quiet night's rumour: the same body line, between two
+   full-bleed name stamps. It is the moment the room leans in, so it carries
+   the weight of the figure the ballot itself uses. */
+.stage--tv .tableview__card[data-kind='tally'] .dawn__name--line {
+  max-width: min(90vw, 30ch);
+  font-size: clamp(3rem, 8vmin, 9rem);
+  line-height: 1.05;
 }
 
 .stage--tv .tableview__card .dawn__line {

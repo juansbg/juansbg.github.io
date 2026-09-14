@@ -494,6 +494,8 @@ export interface Strings {
       title: string
       yourName: string
       join: string
+      /** The same button after the door said no: this is another go, not the first. */
+      joinAgain: string
       /** A phone opened without a room in its address: the code is typed off the screen (docs/BIG-SCREEN.md §11). */
       roomCode: string
       codeHint: string

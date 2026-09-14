@@ -765,6 +765,7 @@ export const en: Strings = {
       title: 'Take your seat',
       yourName: 'Your name',
       join: 'Join',
+      joinAgain: 'Try again',
       roomCode: 'Room code',
       codeHint: 'It is on the screen',
       roomGone: 'That room has closed',

@@ -765,6 +765,7 @@ export const es: Strings = {
       title: 'Toma asiento',
       yourName: 'Tu nombre',
       join: 'Entrar',
+      joinAgain: 'Probar otra vez',
       roomCode: 'Código de sala',
       codeHint: 'Está en la pantalla',
       roomGone: 'Esa sala se ha cerrado',

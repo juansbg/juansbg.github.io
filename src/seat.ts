@@ -130,26 +130,32 @@ const render = (): void => {
   } else if (room === null || status === 'gone') {
     // No room in the address, or the one in it has closed: the code is on the screen, typed here (§11).
     body = codeMarkup(locale, status === 'gone')
-  } else if (refused !== null) {
+  } else if (refused !== null || !joined) {
+    // The door's answer sits above the field that answers it: a player told to
+    // join under a name only they answer to has nothing to do it with if the
+    // form goes away with the news.
     const said: Record<Refusal, { head: string; body: string }> = {
       notOnList: { head: s.refused, body: s.refusedBody },
       nameTaken: { head: s.refusedTaken, body: s.refusedTakenBody },
       tableFull: { head: s.refusedFull, body: s.refusedFullBody },
     }
-    const { head, body: why } = said[refused]
-    body = center(`<h1 class="title title--sm">${esc(head)}</h1><p class="subtitle">${esc(why)}</p>`)
-  } else if (!joined) {
+    const no = refused === null ? null : said[refused]
     body = `
       <section class="screen screen--center mine">
-        <p class="label">${esc(s.title)}</p>
-        <h1 class="title tv__code">${esc(room)}</h1>
+        ${
+          no === null
+            ? `<p class="label">${esc(s.title)}</p>
+               <h1 class="title tv__code">${esc(room)}</h1>`
+            : `<h1 class="title title--sm">${esc(no.head)}</h1>
+               <p class="subtitle">${esc(no.body)}</p>`
+        }
         <form class="mine__join" data-join-form>
           <label class="field">
             <span class="field__label">${esc(s.yourName)}</span>
             <input class="field__input" type="text" data-seat-name value="${esc(name)}" maxlength="40"
                    autocomplete="name" autocapitalize="words" required>
           </label>
-          <button class="btn btn--primary" type="submit"${status !== 'open' ? ' disabled' : ''}>${esc(status === 'open' ? s.join : t.ui.tv.reconnecting)}</button>
+          <button class="btn btn--primary" type="submit"${status !== 'open' ? ' disabled' : ''}>${esc(status === 'open' ? (no === null ? s.join : s.joinAgain) : t.ui.tv.reconnecting)}</button>
         </form>
       </section>`
   } else if (projection === null) {
@@ -308,6 +314,8 @@ const bind = (): void => {
 
   on(root, '[data-join-form]', 'submit', (event) => {
     event.preventDefault()
+    // Whatever the door said last time was about the last name.
+    refused = null
     const input = root.querySelector<HTMLInputElement>('[data-seat-name]')
     name = input?.value.trim() ?? ''
     if (name === '') return
