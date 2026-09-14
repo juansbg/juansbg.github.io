@@ -905,6 +905,19 @@ function render(entering = false): void {
   root.innerHTML = `<main class="stage${ousted === '' ? '' : ' stage--noticed'}"${entering ? ' data-enter' : ''}>${ousted}${body}</main>`
     + `<div class="sheets"${settled ? ' data-settled' : ''}>${overlay}</div>${chromeMarkup()}`
   bind()
+  // A replaced phone's board is not a board any more. Saying so above it was
+  // not enough: a narrator mid-sentence does not read a banner, they keep
+  // tapping, and every tap still worked — a step advanced, a name landed in
+  // the roster, all of it on a phone nobody else can see. The board goes
+  // inert, which stops the pointer and the keyboard and takes it out of the
+  // accessibility tree, and dims to say so. The strip stays, and so does the
+  // bar below it: the way out of this is in ⋯, and it is the one thing on
+  // screen that still means anything.
+  if (ousted !== '') {
+    for (const part of root.querySelectorAll<HTMLElement>('.stage--noticed > *:not(.stage-notice)')) {
+      part.setAttribute('inert', '')
+    }
+  }
   // A circle with no room for readable tiles becomes rows, before it is seen.
   fitTables(root)
   // ...and any region that ends up scrolling says so at the edge it clips.
@@ -1088,15 +1101,23 @@ function render(entering = false): void {
   function roomMarkup(): string {
     const r = t.ui.room
     let body: string
-    if (room !== null) {
+    if (roomStatus === 'replaced') {
+      // The code, the address and a red "Close the room" belong to whoever
+      // holds the room, and that is not this phone. Tapping Close here sent
+      // on a socket that is already gone: it looked like taking the room back
+      // and did nothing at all. What is true is one sentence and a way out.
+      body = `
+        <p class="room__status" data-room-status>${esc(r.replaced)}</p>
+        <button class="btn btn--ghost" type="button" data-room-done>${esc(t.ui.common.done)}</button>
+      `
+    } else if (room !== null) {
       const tv = tvUrl(room, location.origin)
       const seated = [...guests.values()].filter((g) => g.seat !== null)
+      // A replaced room is answered above; here the socket is ours.
       const status =
-        roomStatus === 'replaced'
-          ? r.replaced
-          : roomStatus !== 'open'
-            ? r.reconnecting
-            : `${tvs > 0 ? r.tvs(tvs) : r.noTv} · ${r.players(seated.length)}`
+        roomStatus !== 'open'
+          ? r.reconnecting
+          : `${tvs > 0 ? r.tvs(tvs) : r.noTv} · ${r.players(seated.length)}`
       body = `
         <p class="title room__code" aria-label="${esc(r.code)}">${esc(room.code)}</p>
         <p class="room__status" data-room-status>${esc(status)}</p>
