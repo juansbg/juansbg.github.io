@@ -2862,7 +2862,7 @@ html[data-dawn] body {
    and the type a size up all round, because the phone's steps are capped
    for a hand and the room reads this from the sofa. */
 .stage--tv .screen--paper {
-  max-width: 72rem;
+  max-width: min(92rem, 100%);
 }
 
 .stage--tv .paper__columns {
@@ -2882,7 +2882,7 @@ html[data-dawn] body {
 .stage--tv .paper__edition,
 .stage--tv .paper__note,
 .stage--tv .paper__eyebrow {
-  font-size: clamp(1rem, 1.9vmin, 1.75rem);
+  font-size: clamp(1rem, 2.4vmin, 2rem);
 }
 
 .stage--tv .paper__headline {
@@ -4208,11 +4208,11 @@ html[data-dawn] body {
    news, the way a real front page enlarges a lead when there is little
    else to run. */
 .stage--tv .paper__columns:not([data-many]) .paper__headline {
-  font-size: 2.75rem;
+  font-size: clamp(2rem, 4.4vmin, 4rem);
 }
 
 .stage--tv .paper__columns:not([data-many]) .paper__dek {
-  font-size: 1.5rem;
+  font-size: clamp(1.5rem, 3vmin, 2.75rem);
 }
 
 /* Two codes on the sheet: one for the players, one for the TV. */
