@@ -116,7 +116,7 @@ const render = (): void => {
   // room has not heard the morning yet. A phone that lightens in nine pairs of
   // hands gives the reading away before a word of it is read, so the ground
   // stays night until the narrator has finished (docs/BIG-SCREEN.md §12.3).
-  document.documentElement.dataset['phase'] = projection?.reading === true ? 'night' : (projection?.phase ?? 'night')
+  document.documentElement.dataset['phase'] = projection?.reading != null ? 'night' : (projection?.phase ?? 'night')
   releaseHold?.()
   releaseHold = null
 

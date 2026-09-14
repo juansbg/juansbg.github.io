@@ -258,7 +258,7 @@ export interface SeatProjection {
    * back until the room has heard it: the dawn belongs to everyone at once,
    * not to whoever looks down first.
    */
-  reading: boolean
+  reading: Reading | null
   /** The table, for the phone to draw the ring: names, who is dead, who has voted; public already. */
   players: { id: PlayerId; name: string; alive: boolean; voted: boolean }[]
   /** The night as this seat may see it (docs/BIG-SCREEN.md §10); null by day. */
@@ -349,7 +349,7 @@ export const seatProjection = (
     shown?: number
     over?: boolean
     roster?: { name: string; joined: boolean }[]
-    reading?: boolean
+    reading?: Reading | null
   },
 ): SeatProjection | null => {
   const me = state.players.find((p) => p.id === seat)
@@ -382,7 +382,7 @@ export const seatProjection = (
     won: won === null ? null : wonBy(me, won),
     cast: over ? castOf(state) : [],
     roster: state.phase === 'setup' ? (context.roster ?? []) : [],
-    reading: context.reading === true,
+    reading: context.reading ?? null,
     players: state.players.map((p) => ({ id: p.id, name: p.name, alive: p.alive, voted: state.votes.some((v) => v.voter === p.id) })),
     // A game the narrator has ended has no night left to play on a phone.
     tonight: context.dealt && context.over !== true ? seatNight(state, me, context.picked ?? []) : null,
@@ -417,7 +417,7 @@ export const waitingSeat = (
   won: null,
   cast: [],
   roster,
-  reading: false,
+  reading: null,
   players: [],
   tonight: null,
 })

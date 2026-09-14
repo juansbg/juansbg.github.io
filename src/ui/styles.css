@@ -2866,10 +2866,15 @@ html[data-dawn] body {
   font-size: 4.5rem;
 }
 
+/* The paper is the one screen built to be read rather than glanced at, and on
+   a wall its reading copy was the smallest thing in the room: a 24px dek under
+   a 60px headline, a 16px dateline. The headline was doing all the work and
+   the sentence a viewer actually wants was under the floor. Everything here
+   scales with the frame now. */
 .stage--tv .paper__edition,
 .stage--tv .paper__note,
 .stage--tv .paper__eyebrow {
-  font-size: 1rem;
+  font-size: clamp(1rem, 1.9vmin, 1.75rem);
 }
 
 .stage--tv .paper__headline {
@@ -2882,11 +2887,11 @@ html[data-dawn] body {
 
 .stage--tv .paper__dek,
 .stage--tv .paper__columns .paper__dek {
-  font-size: 1.25rem;
+  font-size: clamp(1.25rem, 2.6vmin, 2.5rem);
 }
 
 .stage--tv .paper__lead .paper__dek {
-  font-size: 1.5rem;
+  font-size: clamp(1.5rem, 3.2vmin, 3rem);
 }
 
 .stage--tv .paper__mark {
@@ -3838,6 +3843,13 @@ html[data-dawn] body {
    room at all (a bare address with no key) — the screen carries only a
    couple of lines, but they are still read from the couch: scale them like
    every other TV label instead of leaving them at a phone's rem sizes. */
+/* The line that says why nothing is happening is the only thing on that frame
+   worth reading, and it was left at a phone's subtitle size: 26px on a wall.
+   The room reads it from the same sofa as everything else. */
+.stage--tv .screen--center .subtitle {
+  font-size: clamp(1.125rem, 2.6vmin, 2.5rem);
+}
+
 .stage--tv .screen--center .label {
   font-size: clamp(1.25rem, 3.2vmin, 3rem);
 }
@@ -4327,6 +4339,27 @@ html[data-dawn] body {
 .mine--lobby {
   align-content: start;
   gap: var(--space-3);
+}
+
+/* The wait is the longest a first-time player looks at anything, and it was a
+   small block pinned under the header with two thirds of the phone empty
+   beneath it. The seat's own name takes the size it deserves, and the table
+   fills the rest of the screen as people arrive. */
+.mine--lobby .mine__head .title {
+  font-size: var(--text-display-min);
+}
+
+.mine__filling {
+  display: grid;
+  align-content: center;
+  gap: var(--space-3);
+  min-height: 0;
+  flex: 1 1 auto;
+}
+
+.mine__filling .mine__guests {
+  grid-template-columns: repeat(auto-fill, minmax(8rem, 1fr));
+  font-size: var(--text-lg);
 }
 
 .mine__guests {

@@ -427,7 +427,7 @@ function seatNow(guest: Guest): SeatProjection | { kind: 'refused'; reason: Noti
       over: state.screen === 'over',
       roster: lobbyRoster(),
       // While the narrator reads, the phones wait with the room.
-      reading: dawn !== null,
+      reading: dawn === null ? null : dawnKind,
       picked,
       sealed: shown === null,
       ...(shown === null ? {} : { shown }),

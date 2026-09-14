@@ -200,7 +200,7 @@ describe('the projection for the whole town', () => {
     // Before the deal, a seat sees the same list the screen's lobby shows.
     const waiting = waitingSeat(0, 'Ana', 'en', roster)
     expect(waiting.roster).toEqual(roster)
-    expect(waiting.reading).toBe(false)
+    expect(waiting.reading).toBeNull()
 
     const table = createGame(cast(['KILLER', 'PLAIN', 'INSPECT', 'GUARD', 'PLAIN'], ['Ana', 'Beto', 'Caro', 'Dani', 'Eva']))
     // Before the first night the game is still setting up, so the list travels.
@@ -210,9 +210,9 @@ describe('the projection for the whole town', () => {
       // Once the game is on, the roster belongs to the past: it is not carried.
       const dealt = seatProjection(playing, 1, locale, { dealt: true, roster })!
       expect(dealt.roster).toEqual([])
-      expect(dealt.reading).toBe(false)
+      expect(dealt.reading).toBeNull()
       // While the narrator reads, every phone knows to wait with the room.
-      expect(seatProjection(playing, 1, locale, { dealt: true, reading: true })!.reading).toBe(true)
+      expect(seatProjection(playing, 1, locale, { dealt: true, reading: 'dawn' })!.reading).toBe('dawn')
     }
   })
 

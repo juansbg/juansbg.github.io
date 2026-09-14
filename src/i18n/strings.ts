@@ -508,14 +508,23 @@ export interface Strings {
       waitingForDeal: string
       /** A seat taken, the table still filling up. */
       atTheTable: string
-      /** How many of the table are on their phones. */
-      seated: (joined: number, total: number) => string
+      /**
+       * How many are at the table. Before the narrator has closed the door
+       * nobody knows the total, and a table where everyone arrived by
+       * scanning read "4 of 4" — which looks like the answer to a question
+       * that has not been asked yet.
+       */
+      seated: (joined: number) => string
       /** The narrator's phone has gone quiet mid-game. */
       narratorGone: string
       /** The narrator closed the room. */
       roomEnded: string
       /** The night is over and the narrator is reading it to the room. */
       waking: string
+      /** The same hold, when what is being read is the town's own verdict. */
+      listening: string
+      /** The hold's released label on a phone its owner is holding. */
+      hidden: string
       youAre: (seat: number) => string
       vote: string
       /** Under the label once a vote is cast: how to take it back. */

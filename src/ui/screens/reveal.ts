@@ -128,14 +128,24 @@ export const revealMarkup = (props: RevealProps): string => {
  * invitation, so the sentence the gesture ends on survives the repaint that
  * hands Done its Ledger.
  */
-export const holdMarkup = (r: ReturnType<typeof strings>['ui']['reveal'], seen: boolean): string => `
+export const holdMarkup = (
+  r: ReturnType<typeof strings>['ui']['reveal'],
+  seen: boolean,
+  /**
+   * The line the gesture ends on. The pass-around says "hand the phone
+   * back", because it is the narrator's phone travelling round a table; a
+   * player holding their own says something else, since nobody handed it to
+   * them and they are not handing it on.
+   */
+  released: string = r.released,
+): string => `
   <button class="reveal__hold" type="button" data-hold${seen ? '' : ' data-lead'}
           style="--hold-ms: ${HOLD_MS}ms"
           data-hold-idle="${esc(r.holdToReveal)}"
           data-hold-holding="${esc(r.keepHolding)}"
-          data-hold-done="${esc(r.released)}">
+          data-hold-done="${esc(released)}">
     <span class="reveal__fill" data-fill aria-hidden="true"></span>
-    <span class="reveal__hold-label" data-hold-label>${esc(seen ? r.released : r.holdToReveal)}</span>
+    <span class="reveal__hold-label" data-hold-label>${esc(seen ? released : r.holdToReveal)}</span>
   </button>
 `
 

@@ -37,7 +37,7 @@ const seat = (id: PlayerId, roleId: RoleId, tonight: Partial<SeatNight>, extra: 
   won: null,
   cast: [],
   roster: [],
-  reading: false,
+  reading: null,
   players,
   tonight: { ...quiet(), view: { self: [id], crew: [], doomed: [], marked: [] }, ...tonight },
   alive: id !== 5,
@@ -467,3 +467,21 @@ describe('a phone without a room in its address', () => {
     }
   })
 })
+
+describe('the reading a phone is held out of', () => {
+  it('says which reading it is: a morning after a night, or the town’s own verdict', () => {
+    for (const locale of LOCALES) {
+      const t = strings(locale)
+      const dawn = seatMarkup({ ...seat(0, 'PLAIN', {}), phase: 'day', reading: 'dawn', night: 2, day: 2 }, locale)
+      const verdict = seatMarkup({ ...seat(0, 'PLAIN', {}), phase: 'day', reading: 'verdict', night: 2, day: 2 }, locale)
+      // A morning is read after a night; a hanging happens in the afternoon,
+      // to somebody the table has just voted for.
+      expect(dawn).toContain(t.ui.seat.waking)
+      expect(dawn).toContain(t.ui.timeline.nightEnd(2))
+      expect(verdict).toContain(t.ui.seat.listening)
+      expect(verdict).toContain(t.ui.dawn.verdict(2))
+      expect(verdict).not.toContain(t.ui.seat.waking)
+    }
+  })
+})
+

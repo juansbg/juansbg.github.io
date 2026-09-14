@@ -207,33 +207,42 @@ const lobbySeatMarkup = (p: SeatProjection, locale: Locale, head: string): strin
         }</li>`,
     )
     .join('')
+  // The first screen a new player holds, and the one they hold longest: the
+  // seat they have been given, big enough to be the thing on the screen, the
+  // table filling up under it, and the count as what it is — how many are here
+  // so far, not a fraction of a total nobody has fixed yet.
   return `
     <section class="screen mine mine--lobby">
       ${head}
       <p class="subtitle">${esc(s.atTheTable)}</p>
-      <p class="label">${esc(s.seated(joined, p.roster.length))}</p>
-      <ul class="lobby__names mine__guests">${names}</ul>
+      <div class="mine__filling">
+        <p class="label">${esc(s.seated(joined))}</p>
+        <ul class="lobby__names mine__guests">${names}</ul>
+      </div>
     </section>`
 }
 
 /**
- * The night is resolved and the narrator is reading it to the room (§12.3).
- * The phone waits with everyone else: the same page the night gate uses, so
- * nobody reads the morning off a screen before it is said aloud.
+ * A reading is up and the narrator is saying it to the room (§12.3). The phone
+ * waits with everyone else, so nobody reads the outcome off a screen before it
+ * is heard — and it says which reading: a morning after a night, or the
+ * town's own verdict, which happens in the middle of an afternoon and to
+ * somebody the table has just voted for.
  */
 const wakingMarkup = (p: SeatProjection, locale: Locale, head: string): string => {
   const t = strings(locale)
   const s = t.ui.seat
+  const verdict = p.reading === 'verdict'
   // Nine people look at this for the length of a reading, so it carries the
   // hour and the seat's own card, and nothing about the night: who died is
   // the narrator's to say, and this screen exists so no phone says it first.
   return `
     <section class="screen mine mine--waking">
       ${head}
-      <p class="label">${esc(t.ui.timeline.nightEnd(p.night))}</p>
-      <p class="mine__waking">${esc(s.waking)}</p>
+      <p class="label">${esc(verdict ? t.ui.dawn.verdict(p.day) : t.ui.timeline.nightEnd(p.night))}</p>
+      <p class="mine__waking">${esc(verdict ? s.listening : s.waking)}</p>
       <div class="reveal__slot mine__card" data-card></div>
-      ${p.roleId === null ? '' : holdMarkup(t.ui.reveal, false)}
+      ${p.roleId === null ? '' : holdMarkup(t.ui.reveal, false, s.hidden)}
     </section>`
 }
 
@@ -272,7 +281,7 @@ const overMarkup = (p: SeatProjection, locale: Locale, head: string): string => 
       ${mine}
       ${table}
       <div class="reveal__slot mine__card" data-card></div>
-      ${holdMarkup(t.ui.reveal, false)}
+      ${holdMarkup(t.ui.reveal, false, t.ui.seat.hidden)}
     </section>`
 }
 
@@ -298,7 +307,7 @@ export const seatMarkup = (
   }
 
   // The narrator is reading the night to the room; the phone hears it first.
-  if (p.reading) return wakingMarkup(p, locale, head)
+  if (p.reading !== null) return wakingMarkup(p, locale, head)
 
   if (p.phase === 'night' && p.tonight !== null && p.roleId !== null) {
     return gate !== null && gate.kind !== 'chooser'
@@ -312,7 +321,7 @@ export const seatMarkup = (
         <div class="reveal__slot" data-card></div>
         <div class="reveal__idle" data-idle><p class="reveal__hint">${esc(t.ui.reveal.shieldScreen)}</p></div>
       </div>
-      ${holdMarkup(t.ui.reveal, false)}`
+      ${holdMarkup(t.ui.reveal, false, s.hidden)}`
     : `<p class="subtitle mine__waitline">${esc(s.waitingForDeal)}</p>`
 
   if (p.phase === 'day' && p.roleId !== null) {
@@ -393,7 +402,7 @@ const dayMarkup = (p: SeatProjection, locale: Locale, head: string): string => {
       ${note}
       ${table}
       <div class="reveal__slot mine__card" data-card></div>
-      ${holdMarkup(t.ui.reveal, false)}
+      ${holdMarkup(t.ui.reveal, false, s.hidden)}
     </section>`
 }
 
@@ -594,7 +603,7 @@ const nightMarkup = (
       ${table}
       ${actions}
       <div class="reveal__slot mine__card" data-card></div>
-      ${holdMarkup(t.ui.reveal, false)}
+      ${holdMarkup(t.ui.reveal, false, s.hidden)}
     </section>`
 }
 
