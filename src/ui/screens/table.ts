@@ -257,6 +257,14 @@ export interface Lobby {
   dealt?: boolean
 }
 
+/**
+ * The join address as a person would type it: the QR's own target, without
+ * its protocol or its fragment. A camera that will not scan is the only way
+ * into this game that does not exist otherwise.
+ */
+export const addressOf = (join: string | null): string | null =>
+  join === null ? null : (join.split('#')[0] ?? '').replace(/^https?:\/\//, '').replace(/\/+$/, '') || null
+
 /** The code inside a join address, so the projection need not carry it twice. */
 export const codeOf = (join: string | null): string | null =>
   join === null ? null : new URLSearchParams(join.split('#')[1] ?? '').get('room')
@@ -275,6 +283,7 @@ export const lobbyMarkup = (lobby: Lobby, controls: boolean, locale: Locale): st
   const joined = roster.filter((r) => r.joined).length
   const enough = roster.length >= MIN_PLAYERS
   const dealing = lobby.dealt === true
+  const address = addressOf(lobby.join)
   // Everyone at the table already holds a phone — a fresh lobby that just
   // filled, or a rematch where every phone reconnected under its old name in
   // the seconds after "Play again". Either way the QR has done its job: the
@@ -328,7 +337,8 @@ export const lobbyMarkup = (lobby: Lobby, controls: boolean, locale: Locale): st
             ? `<h1 class="title lobby__dealt">${esc(t.ui.reveal.dealt)}</h1>`
             : `<p class="label">${esc(t.ui.table.scanToJoin)}</p>
                ${lobby.code === null ? '' : `<p class="title lobby__room">${esc(lobby.code)}</p>`}
-               ${lobby.join === null ? '' : `<div class="room__qr lobby__qr" aria-hidden="true">${qrSvg(lobby.join)}</div>`}`
+               ${lobby.join === null ? '' : `<div class="room__qr lobby__qr" aria-hidden="true">${qrSvg(lobby.join)}</div>`}
+               ${address === null ? '' : `<p class="lobby__address">${esc(t.ui.tv.orType(address))}</p>`}`
         }
       </div>
       ${column}

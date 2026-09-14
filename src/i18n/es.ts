@@ -841,6 +841,7 @@ export const es: Strings = {
       connecting: 'Conectando…',
       forNarrator: 'Para el narrador',
       enterCode: `Abre ${APP_NAME} en tu móvil y escribe este código`,
+      orType: (address) => `o entra en ${address}`,
       relayDown: 'El relé no ha respondido. Reintentando…',
       stillTrying: 'Seguimos intentando. Mira el wifi si esto dura.',
       narratorGone: 'Esperando a que vuelva el narrador…',

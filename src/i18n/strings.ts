@@ -646,6 +646,8 @@ export interface Strings {
       /** The screen opened the room itself and no narrator has claimed it yet (docs/BIG-SCREEN.md §11). */
       forNarrator: string
       enterCode: string
+      /** The address under the QR, for a camera that will not scan. */
+      orType: (address: string) => string
       relayDown: string
       /** The wait has gone on long enough to be worth saying out loud. */
       stillTrying: string

@@ -836,6 +836,7 @@ export const en: Strings = {
       connecting: 'Connecting…',
       forNarrator: 'For the narrator',
       enterCode: `Open ${APP_NAME} on your phone and enter this code`,
+      orType: (address) => `or go to ${address}`,
       relayDown: 'The relay did not answer. Trying again…',
       stillTrying: 'Still trying. Check the wifi if this lasts.',
       narratorGone: 'Waiting for the narrator to come back…',
