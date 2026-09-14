@@ -1564,6 +1564,24 @@ body {
   background: var(--surface-raised);
 }
 
+/* The room is not answering: one mark in the corner of ⋯, in the same Ash as
+   a hairline. Square, because the radius is zero everywhere, and still,
+   because a pulse in the dark would pull the whole table's eye to a phone
+   that is meant to be furniture. */
+.bar__menu[data-room-quiet] {
+  position: relative;
+}
+
+.bar__menu[data-room-quiet]::after {
+  content: '';
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  width: 6px;
+  height: 6px;
+  background: var(--fg-muted);
+}
+
 /* ---------- The overflow menu ---------- */
 
 /* The list scrolls, the way out does not. Letting the whole panel scroll put

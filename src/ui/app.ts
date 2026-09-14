@@ -372,11 +372,15 @@ function connectRoom(): void {
       roomStatus = status
       // Every fresh socket says hello, so a player who connected first can key up.
       if (status === 'open' && narratorKeys !== null) link?.send({ kind: 'hello', pub: narratorKeys.pub })
-      // A repaint only when the room's sheet was open meant the one status
-      // that changes what this phone *is* — replaced, another phone runs the
-      // game now — reached no screen at all unless the narrator happened to
-      // have the sheet up. The stage carries that one itself.
-      if (roomOpen || status === 'replaced') setState({}, false)
+      // Always, now that the bar carries the room's health as a mark on ⋯.
+      // This used to repaint only while the room's sheet was open, which left
+      // the one status that changes what this phone *is* — replaced, another
+      // phone runs the game now — reaching no screen at all unless the
+      // narrator happened to have the sheet up; and with the mark on the bar
+      // it would have left that mark stuck at whatever it was when something
+      // else last painted. The status changes on a connect or a drop, not per
+      // frame, so this is a handful of repaints an evening.
+      setState({}, false)
     },
     onMessage: handleRoomMessage,
   })
@@ -1098,6 +1102,19 @@ function render(entering = false): void {
     // A player is looking at the screen: the timeline would show them every
     // move so far, and the menu can end the game.
     if (state.screen === 'night' && showingPlayer && !isNightComplete(game)) return ''
+    // The room's health, as one mark on a button that is already on the bar.
+    //
+    // The narrator's own phone said nothing at all when its socket died: the
+    // status lived only inside the Big screen sheet, so a live room and a
+    // dead one looked identical to the person running the game. A banner is
+    // the wrong answer — they are reading aloud to eight people in a dark
+    // room, and a strip that appears mid-sentence is exactly the noise the
+    // chrome rules exist to keep out. So: no new chrome, no colour outside
+    // the palette, nothing that moves. Somewhere to look for a narrator who
+    // wonders, and nothing at all for one who does not. The sheet keeps the
+    // detail. A replaced phone is not marked here; it has the stage's own
+    // notice, which is louder on purpose and says something different.
+    const roomQuiet = room !== null && roomStatus !== 'open' && roomStatus !== 'replaced'
     const inGame = state.screen !== 'setup'
     const timeline = inGame
       ? `<button class="bar__btn" type="button" data-log>${esc(t.ui.timeline.open)}</button>`
@@ -1105,8 +1122,9 @@ function render(entering = false): void {
     return `
       <nav class="bar${inGame ? '' : ' bar--quiet'}">
         ${timeline}
-        <button class="bar__menu" type="button" data-menu aria-haspopup="dialog"
-                aria-label="${esc(t.ui.menu.more)}" title="${esc(t.ui.menu.more)}">⋯</button>
+        <button class="bar__menu" type="button" data-menu aria-haspopup="dialog"${roomQuiet ? ' data-room-quiet' : ''}
+                aria-label="${esc(roomQuiet ? `${t.ui.menu.more} · ${t.ui.room.reconnecting}` : t.ui.menu.more)}"
+                title="${esc(t.ui.menu.more)}">⋯</button>
       </nav>
     `
   }
