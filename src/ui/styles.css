@@ -1283,7 +1283,13 @@ body {
    already been read from the slideshow by the time anyone looks here. */
 .report--scroll {
   flex: 0 1 auto;
-  min-height: 0;
+  /* It may give way to the seats — that is the decision above — but never
+     below one whole card. At 375x667 it shrank to 69px against a first card
+     of 81, so the narrator got a card cut through the middle, which reads as
+     a paint fault rather than as a list with more in it; they read out the
+     half they could see. A box that cannot hold one entry is not a smaller
+     list, it is a broken one. */
+  min-height: min(100%, 5.5rem);
   max-height: 26dvh;
   overflow-y: auto;
 }
