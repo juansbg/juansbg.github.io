@@ -144,6 +144,8 @@ export interface Strings {
       /** Joining the big screen's room from the names screen (docs/BIG-SCREEN.md §11). */
       screen: string
       screenCode: string
+      /** The one line the code block is until a narrator with a screen asks for it. */
+      screenOpen: string
       screenJoin: string
       screenJoining: string
       /** Where the TV goes to start a room; the address is set as a link a TV on the root page can follow. */
@@ -156,6 +158,8 @@ export interface Strings {
       thisIsScreen: string
       /** Two or more people at the table answer to the same name. */
       sameName: (names: readonly string[]) => string
+      /** On the door itself, which stays shut while a name is repeated. */
+      sameNameFirst: string
       /** Asked before a room empties a list of names typed for a phoneless evening. */
       roomTakesNames: string
       moveLeft: string
@@ -273,6 +277,8 @@ export interface Strings {
       nextNight: string
       /** Asked before the night takes a vote the town has started but not finished. */
       nextNightConfirm: string
+      /** Said where the question was, once the town has executed somebody today. */
+      executed: (name: string) => string
       silencedToday: (name: string) => string
       /** The one word button on the day head: replays the reading and lands on the paper. */
       morning: string

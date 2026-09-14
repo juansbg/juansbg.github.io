@@ -170,6 +170,7 @@ export const en: Strings = {
       rearrangeDone: 'Seats done',
       screen: 'Big screen',
       screenCode: 'The code on the screen',
+      screenOpen: 'Join a screen with its code',
       screenJoin: 'Join',
       screenJoining: 'Joining…',
       screenHint: (address) => `On the TV, open ${address}.`,
@@ -177,6 +178,7 @@ export const en: Strings = {
       noSuchScreen: 'No screen shows that code',
       onScreen: (code) => `Screen ${code}`,
       thisIsScreen: 'This device is the big screen',
+      sameNameFirst: 'Tell the repeated names apart first',
       sameName: (names) =>
         names.length === 1
           ? `One name is repeated: ${names[0]}`
@@ -272,6 +274,7 @@ export const en: Strings = {
       nobody: 'Nobody dies today',
       nextNight: 'Night falls',
       nextNightConfirm: 'The town has votes recorded and nobody has been executed. Night falls anyway?',
+      executed: (name) => `The town executed ${name}. Today is done.`,
       silencedToday: (name) => `${name} cannot speak or vote today`,
       morning: 'Morning',
       votes: 'Votes',

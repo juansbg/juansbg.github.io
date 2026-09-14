@@ -87,7 +87,7 @@ describe('the names screen', () => {
 })
 
 describe('the big screen from the names screen', () => {
-  const idle = { room: null, needsKey: false, busy: false, error: null, address: 'juansbg.github.io/tv', code: '', key: '' } as const
+  const idle = { room: null, needsKey: false, busy: false, error: null, address: 'juansbg.github.io/tv', code: '', key: '', open: true } as const
   const four = ['Ana', 'Beto', 'Caro', 'Dani']
 
   it('asks for the code the TV shows, and says where the TV goes, when no room is open', () => {
@@ -155,13 +155,21 @@ describe('the big screen from the names screen', () => {
     expect(open.indexOf('data-room-line')).toBeLessThan(open.indexOf('data-new-name'))
   })
 
-  it('marks the names two people answer to, in the spelling they were first typed in', () => {
+  it('marks the names two people answer to, and keeps the door shut until they differ', () => {
     const html = namesMarkup(['Ana', 'Beto', 'ana ', 'Caro'], 'en', new Set(), null)
     expect(html.match(/data-clash/g)?.length).toBe(2)
     expect(html).toContain(strings('en').ui.setup.sameName(['Ana']))
-    // Repeating a name is allowed, so this is a note and never a refusal.
-    expect(html).toContain(strings('en').ui.setup.namesReady(4))
-    expect(namesMarkup(four, 'en', new Set(), null)).not.toContain('data-clash')
+    // A repeated name used to be a footnote beside a bright button, and
+    // dealing with it unresolved handed a role to a seat nobody was sitting
+    // in: four names, three people. The door says what it is waiting for.
+    expect(html).toMatch(/data-names-done[^>]*disabled/)
+    expect(html).toContain(strings('en').ui.setup.sameNameFirst)
+    expect(html).not.toContain(strings('en').ui.setup.namesReady(4))
+    // A table with four different names opens as it always did.
+    const clean = namesMarkup(four, 'en', new Set(), null)
+    expect(clean).not.toContain('data-clash')
+    expect(clean).toMatch(/data-names-done(?![^>]*disabled)/)
+    expect(clean).toContain(strings('en').ui.setup.namesReady(4))
   })
 })
 

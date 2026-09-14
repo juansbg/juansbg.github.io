@@ -410,6 +410,19 @@ export const dayMarkup = (
 
   const living = state.players.filter((p) => p.alive).map((p) => p.id)
 
+  /**
+   * The town gets one execution a day, and after it the day screen went on
+   * asking who to execute with every living seat still tappable — one stray
+   * tap killed a second person, with no confirmation and nothing to say it
+   * had happened but a second line in the log. Once the verdict is in, the
+   * question gives way to the verdict and the seats stop being a choice,
+   * until "Night falls" opens the next day.
+   */
+  const verdict = state.log.find(
+    (o) => o.type === 'death' && o.cause === 'lynch' && o.night === state.night,
+  )
+  const executed = verdict !== undefined && verdict.type === 'death' ? nameOf(state, verdict.target) : null
+
   // Recording the vote is two taps a voter and optional; the seats swap from
   // executing to voting while it is on, and the count stays up either way.
   const counts = voteCounts(state)
@@ -419,15 +432,19 @@ export const dayMarkup = (
   // While the count comes up on the room's screen the question gives way to
   // its progress; the narrator's own tally underneath stays complete.
   const counting = ballot?.count !== null && ballot?.count !== undefined && ballot.count.shown < ballot.count.total ? ballot.count : null
-  const question = counting
-    ? `<p class="label-row__hint">${esc(t.ui.day.counting)} · ${counting.shown} / ${counting.total}</p>`
-    : voting
-      ? `<p class="label-row__hint">${esc(armed === null ? t.ui.day.voteHint : t.ui.day.pickFor(armedName))}</p>`
-      : `<p class="label">${esc(t.ui.day.whoDies)}</p>`
-  const reveal = ballot?.revealable
+  const question = executed !== null
+    ? `<p class="label" data-verdict-in>${esc(t.ui.day.executed(executed))}</p>`
+    : counting
+      ? `<p class="label-row__hint">${esc(t.ui.day.counting)} · ${counting.shown} / ${counting.total}</p>`
+      : voting
+        ? `<p class="label-row__hint">${esc(armed === null ? t.ui.day.voteHint : t.ui.day.pickFor(armedName))}</p>`
+        : `<p class="label">${esc(t.ui.day.whoDies)}</p>`
+  const reveal = ballot?.revealable === true && executed === null
     ? `<button class="icon-btn icon-btn--word" type="button" data-reveal-votes>${esc(t.ui.day.reveal)}</button>`
     : ''
-  const pickAttr = voting ? 'vote' : 'lynch'
+  // No attribute at all once the verdict is in: a seat with nothing to pick
+  // it for is not a button, and `circleMarkup` renders the table read-only.
+  const picking = executed !== null ? {} : { pickAttr: voting ? 'vote' : 'lynch' }
   const eligible = voting ? voteChoices(state, armed) : living
   const selected = armed === null ? [] : [armed]
 
@@ -464,12 +481,12 @@ export const dayMarkup = (
         ${question}
         <span class="label-row__tools">
           ${reveal}
-          <button class="icon-btn icon-btn--word" type="button" data-voting aria-pressed="${voting !== null}">${esc(voting ? t.ui.common.done : t.ui.day.votes)}</button>
+          ${executed !== null ? '' : `<button class="icon-btn icon-btn--word" type="button" data-voting aria-pressed="${voting !== null}">${esc(voting ? t.ui.common.done : t.ui.day.votes)}</button>`}
         </span>
       </div>
       ${tallyMarkup(state, locale)}
       ${circleMarkup(state.players, locale, {
-        pickAttr, eligible, selected, showRoles: peek, revealTeams: peek, votes: counts, leader: top,
+        ...picking, eligible, selected, showRoles: peek, revealTeams: peek, votes: counts, leader: top,
         list: layout === 'list', fitRoles: peek,
       })}
 

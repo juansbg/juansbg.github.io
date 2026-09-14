@@ -170,6 +170,7 @@ export const es: Strings = {
       rearrangeDone: 'Asientos listos',
       screen: 'Pantalla grande',
       screenCode: 'El código de la pantalla',
+      screenOpen: 'Entrar con el código de una pantalla',
       screenJoin: 'Entrar',
       screenJoining: 'Entrando…',
       screenHint: (address) => `En la tele, abre ${address}.`,
@@ -177,6 +178,7 @@ export const es: Strings = {
       noSuchScreen: 'Ninguna pantalla muestra ese código',
       onScreen: (code) => `Pantalla ${code}`,
       thisIsScreen: 'Este dispositivo es la pantalla grande',
+      sameNameFirst: 'Primero distingue los nombres repetidos',
       sameName: (names) =>
         names.length === 1
           ? `Se repite el nombre: ${names[0]}`
@@ -272,6 +274,7 @@ export const es: Strings = {
       nobody: 'Nadie muere hoy',
       nextNight: 'Cae la noche',
       nextNightConfirm: 'El pueblo tiene votos anotados y no ha ejecutado a nadie. ¿Cae la noche igualmente?',
+      executed: (name) => `El pueblo ha ejecutado a ${name}. El día ha terminado.`,
       silencedToday: (name) => `${name} no puede hablar ni votar hoy`,
       morning: 'La mañana',
       votes: 'Votos',

@@ -141,6 +141,8 @@ let roomError: 'key' | 'relay' | 'room' | null = null
  */
 let screenCode = ''
 let screenKey = ''
+/** Whether the narrator has asked for the code and key fields. */
+let screenFormOpen = false
 
 /**
  * A player who joined from their own phone: a name they typed, the public
@@ -211,6 +213,13 @@ function claimSeat(cid: string, name: string): PlayerId | null {
   if (state.screen === 'setup' && game.players.length === 0) {
     const match = names.findIndex((n, i) => sameName(n, name) && !taken.has(i))
     if (match !== -1) return match
+    // A name somebody else's phone already holds is refused rather than given
+    // a seat of its own. It used to be appended, so a QR scanned twice, or a
+    // friend retyping a name they thought had not gone through, quietly grew
+    // the roster: six names, five people, and a role dealt to nobody. This is
+    // what the same claim has always done once the game has players; setup is
+    // no different, and the phone is told which door it is (`refusal`).
+    if (names.some((n) => sameName(n, name))) return null
     if (names.length >= MAX_PLAYERS) return null
     names = [...names, name.trim()]
     saveRoster(names)
@@ -237,7 +246,9 @@ const turnedAway = new Set<string>()
 /** Why the door said no, in the words the narrator needs. */
 function refusal(name: string): Notice['reason'] {
   const game = state.session.current
-  if (state.screen === 'setup' && game.players.length === 0) return 'tableFull'
+  if (state.screen === 'setup' && game.players.length === 0) {
+    return names.some((n) => sameName(n, name)) ? 'nameTaken' : 'tableFull'
+  }
   const answers = game.players.some((p) => sameName(p.name, name))
   return answers ? 'nameTaken' : 'notOnList'
 }
@@ -360,7 +371,11 @@ function connectRoom(): void {
       roomStatus = status
       // Every fresh socket says hello, so a player who connected first can key up.
       if (status === 'open' && narratorKeys !== null) link?.send({ kind: 'hello', pub: narratorKeys.pub })
-      if (roomOpen) setState({}, false)
+      // A repaint only when the room's sheet was open meant the one status
+      // that changes what this phone *is* — replaced, another phone runs the
+      // game now — reached no screen at all unless the narrator happened to
+      // have the sheet up. The stage carries that one itself.
+      if (roomOpen || status === 'replaced') setState({}, false)
     },
     onMessage: handleRoomMessage,
   })
@@ -380,6 +395,10 @@ function screenJoin(): ScreenJoin | null {
     error: roomError,
     code: screenCode,
     key: screenKey,
+    // Unfolded once the narrator asks for it, and kept unfolded while
+    // anything is typed or the relay has said no, so a refusal never folds
+    // the fields away from under the person fixing them.
+    open: screenFormOpen || roomError !== null || screenCode !== '' || screenKey !== '',
     address: screenUrl(location.origin).replace(/^https?:\/\//, ''),
   }
 }
@@ -677,11 +696,33 @@ function boot(): AppState {
   }
 }
 
-const setState = (patch: Partial<AppState>, animate = true): void => {
+/**
+ * How a change reaches the screen.
+ *
+ * 'transition' cross-fades the whole page through a View Transition, which is
+ * right for arriving somewhere new — the deal, the night, the morning.
+ *
+ * 'enter' paints at once and lets the entrance animations play. The page is
+ * rebuilt inside the tap that asked for it, so the controls that replace the
+ * ones just tapped are live before the finger is off the glass. That matters
+ * for the night: the transition's snapshots sit over the document for 150ms,
+ * and a narrator tapping through a run of quiet steps ("no one, no one, no
+ * one") lost the second tap of any pair inside that window — it landed on a
+ * page that was on its way out, bound to the step that had already been
+ * answered. A cross-fade between two step cards that differ by a name was
+ * never worth a dead window on the app's fastest control.
+ *
+ * 'still' repaints the same scene with nothing moving: a pick, a toggle, a
+ * sheet.
+ */
+type Paint = 'transition' | 'enter' | 'still'
+
+const setState = (patch: Partial<AppState>, paint: Paint | boolean = 'transition'): void => {
+  const how: Paint = paint === true ? 'transition' : paint === false ? 'still' : paint
   state = { ...state, ...patch }
   save(state)
-  if (animate) swap(() => render(true))
-  else render(false)
+  if (how === 'transition') swap(() => render(true))
+  else render(how === 'enter')
 }
 
 const mutate = (
@@ -692,7 +733,8 @@ const mutate = (
   // the next step starts safe to turn around again.
   showingPlayer = false
   peeking = false
-  setState({ session: advance(state.session, change, entry) })
+  // Painted inside the tap, not across a transition: see `Paint`.
+  setState({ session: advance(state.session, change, entry) }, 'enter')
 }
 
 // ---------------------------------------------------------------------------
@@ -852,7 +894,14 @@ function render(entering = false): void {
   ].filter(Boolean).join('+')
   const settled = sheetKey !== '' && sheetKey === sheetsUp
   sheetsUp = sheetKey
-  root.innerHTML = `<main class="stage"${entering ? ' data-enter' : ''}>${body}</main>`
+  // Replaced, and the only place that said so was a sheet nobody opens
+  // mid-game: this phone looked exactly as it had a second earlier, every
+  // control answering taps that now reach nobody. The stage says it itself.
+  const ousted =
+    roomStatus === 'replaced' && !tableView && dawn === null && !paperOpen
+      ? `<p class="stage-notice" data-replaced>${esc(t.ui.room.replaced)}</p>`
+      : ''
+  root.innerHTML = `<main class="stage${ousted === '' ? '' : ' stage--noticed'}"${entering ? ' data-enter' : ''}>${ousted}${body}</main>`
     + `<div class="sheets"${settled ? ' data-settled' : ''}>${overlay}</div>${chromeMarkup()}`
   bind()
   // A circle with no room for readable tiles becomes rows, before it is seen.
@@ -1909,6 +1958,12 @@ function bind(): void {
     }
   })
 
+  // "Join a screen with its code": the fields, for the tables that have one.
+  on(root, '[data-screen-open]', 'click', () => {
+    screenFormOpen = true
+    setState({}, false)
+  })
+
   on(root, '[data-screen-key]', 'input', (_e, el) => {
     screenKey = (el as HTMLInputElement).value
   })
@@ -2079,6 +2134,9 @@ function bind(): void {
 
   // ---- Day ----
   on(root, '[data-lynch]', 'click', (_e, el) => {
+    // One execution a day. The day screen stops offering a second, but a tap
+    // already on its way when the verdict landed must not take a life either.
+    if (game.log.some((o) => o.type === 'death' && o.cause === 'lynch' && o.night === game.night)) return
     buzz([120, 80, 120])
     sound.drum()
     // The vote ends the discussion, whatever the clock says.

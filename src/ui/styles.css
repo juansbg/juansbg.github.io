@@ -65,6 +65,25 @@ body {
   overflow: hidden;
 }
 
+/* A strip the stage itself carries when this phone is no longer the one
+   running the room. Vendetta is the colour of anything lethal, and a phone
+   whose taps reach nobody is exactly that: it looks like it is running the
+   game and it is not. */
+.stage--noticed {
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: var(--space-3);
+}
+
+.stage-notice {
+  margin: 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--danger);
+  color: var(--danger);
+  font-size: var(--text-sm);
+  text-align: center;
+  text-wrap: balance;
+}
+
 /* ---------- Type ---------- */
 
 /* Every label is Bebas: caps, tracked, never below --text-display-min. */
@@ -686,10 +705,19 @@ body {
    stays at the edge while the content moves under it. One mechanism for the
    morning report, the seat rows, the timeline, the ledger, the paper, the
    names and the menu. */
+/* The fade alone does not read on this palette: Ash dissolving into Midnight
+   looks like Midnight, and where the cut falls in the gap between two rows
+   there is nothing to dissolve at all — a thirteenth name simply was not
+   there, and neither was the × that removes it. So the cut carries a
+   hairline as well, which is what depth is in this design, and it is drawn
+   inside the box so it costs no layout and moves with no content. */
 [data-scroll] {
   --edge: var(--space-5);
   --edge-up: 0px;
   --edge-down: 0px;
+  --edge-rule-up: 0 0 transparent;
+  --edge-rule-down: 0 0 transparent;
+  box-shadow: var(--edge-rule-up), var(--edge-rule-down);
   -webkit-mask-image: linear-gradient(
     to bottom,
     transparent 0,
@@ -715,10 +743,12 @@ body {
 
 [data-scroll~='up'] {
   --edge-up: var(--edge);
+  --edge-rule-up: inset 0 1px 0 var(--hairline-strong);
 }
 
 [data-scroll~='down'] {
   --edge-down: var(--edge);
+  --edge-rule-down: inset 0 -1px 0 var(--hairline-strong);
 }
 
 /* ---------- After the deal: who has actually looked ---------- */
@@ -4690,6 +4720,14 @@ html[data-dawn] body {
 /* A word inside a sentence, but still a link a narrator taps once with a
    thumb: the slop takes the target to the 44px floor without moving the
    sentence, since the padding is drawn outside the line box. */
+/* The code block folded to what a table without a screen needs: where a TV
+   goes, and the way in for a narrator who has one. */
+.screen-fold {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: start;
+}
+
 .screen-link {
   display: inline-block;
   padding: 0.9rem 0.25rem;

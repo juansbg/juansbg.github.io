@@ -25,6 +25,16 @@ export interface ScreenJoin {
   /** Where a TV goes to start a room, as something to read out. */
   address: string
   /**
+   * Whether the code and key fields are unfolded.
+   *
+   * They are two hundred pixels of room plumbing on a screen whose job is
+   * names — on a 375x667 phone they left the roster one row tall, so a
+   * narrator typing four names could see two of them. Most tables have no
+   * screen at all, so the fields wait behind one line until somebody with a
+   * screen asks for them.
+   */
+  open: boolean
+  /**
    * What is typed in the two fields right now.
    *
    * A refused claim used to come back with both boxes empty, so a narrator
@@ -75,6 +85,13 @@ export const namesMarkup = (
       <div class="room-line" data-room-line>
         <span class="room-line__code">${esc(st.onScreen(screen.room.code))}</span>
         <span class="room-line__status">${esc(status)}</span>
+      </div>`
+  } else if (screen !== null && !screen.open) {
+    // Folded: where a TV goes, and the way in for a narrator who has one.
+    screenBlock = `
+      <div class="screen-fold">
+        <p class="field__hint">${addressLine(st.screenHint(ADDRESS), screen.address, st.thisIsScreen)}</p>
+        <button class="btn btn--ghost btn--small" type="button" data-screen-open>${esc(st.screenOpen)}</button>
       </div>`
   } else if (screen !== null) {
     const error =
@@ -154,13 +171,15 @@ export const namesMarkup = (
       ${screen?.room ? '' : screenBlock}
 
       <div class="actions">
-        <button class="btn btn--primary" type="button" data-names-done ${enough ? '' : 'disabled'}>
+        <button class="btn btn--primary" type="button" data-names-done ${enough && clashing.length === 0 ? '' : 'disabled'}>
           ${esc(
             !enough
               ? t.ui.setup.minPlayers(MIN_PLAYERS)
-              : screen?.room !== null && screen !== null
-                ? t.ui.table.proceed
-                : t.ui.setup.namesReady(names.length),
+              : clashing.length > 0
+                ? t.ui.setup.sameNameFirst
+                : screen?.room !== null && screen !== null
+                  ? t.ui.table.proceed
+                  : t.ui.setup.namesReady(names.length),
           )}
         </button>
         ${names.length > 0 ? `<button class="btn btn--ghost btn--small" type="button" data-clear-names>${esc(t.ui.setup.clearNames)}</button>` : ''}
