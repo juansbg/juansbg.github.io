@@ -150,6 +150,30 @@ describe('the table for the room', () => {
     expect(html).toContain('data-timer-digits')
     expect(html).toContain('1:30')
   })
+
+  it('says a step is being decided at night, as a count and nothing that names it', () => {
+    let state = createGame(
+      cast(['CONVERT', 'KILLER', 'INSPECT', 'GUARD', 'PLAIN', 'PLAIN'], ['Ana', 'Beto', 'Caro', 'Dani', 'Eva', 'Fer']),
+    )
+    state = startNight(state)
+    for (const locale of LOCALES) {
+      const t = strings(locale)
+      const html = tableMarkup(tvProjection(state, locale))
+      expect(html).toContain(t.ui.tv.deciding)
+      expect(html).toContain(t.ui.night.stepCounter(1, state.schedule.length))
+      // Never a role name, whatever step is actually live.
+      for (const roleId of state.schedule) expect(html, roleId).not.toContain(t.roles[roleId].name)
+    }
+    // A step taken moves the count.
+    state = recordAction(state, { kind: 'target', roleId: 'GUARD', actor: 3, target: 3 })
+    const html = tableMarkup(tvProjection(state, 'en'))
+    expect(html).toContain(strings('en').ui.night.stepCounter(2, state.schedule.length))
+    // By day, and once the game is over, there is nothing to decide.
+    const day = tableMarkup(tvProjection(morning(), 'en'))
+    expect(day).not.toContain(strings('en').ui.tv.deciding)
+    const over = tableMarkup(tvProjection(morning(), 'en', { over: true }))
+    expect(over).not.toContain(strings('en').ui.tv.deciding)
+  })
 })
 
 describe('the paper on the table', () => {

@@ -3564,6 +3564,35 @@ html[data-dawn] body {
   animation: line-in var(--dur-slow) var(--ease-out) both;
 }
 
+/* The night used to leave this spot empty for the whole night, whatever was
+   being decided: same pixels from the first step to the last. This is the
+   room's one honest sign that something is happening — a role-blind step
+   count, never who or what — quiet on purpose: most of the table has its
+   eyes shut. `data-enter` (a step actually taken, from `nightStep`) is what
+   lets the count itself replace the last one instead of sitting still. */
+.tableview__night {
+  display: grid;
+  gap: var(--space-2);
+  justify-items: center;
+}
+
+.tableview__night-label {
+  color: var(--fg-muted);
+}
+
+.tableview__night-count {
+  margin: 0;
+  color: var(--fg-2);
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: var(--text-lg);
+  animation: line-in var(--dur-base) var(--ease-out) both;
+}
+
+.stage:not([data-enter]) .tableview__night-count {
+  animation-name: none;
+}
+
 .tableview__clock {
   grid-row: 1;
   grid-column: 3;
@@ -3709,7 +3738,7 @@ html[data-dawn] body {
 
 /* ---------- The TV page ---------- */
 .stage--tv {
-  padding: var(--space-4);
+  padding: var(--space-3);
 }
 
 /* Before any room is up — asking the relay, the relay not answering, or no
@@ -3763,15 +3792,24 @@ html[data-dawn] body {
    screen up to 14rem, every label scales with the smaller side of the
    screen (vmin), nothing on it is muted, and the reading takes the whole
    screen the way the phone's own dawn slide does. The paper's own TV scale
-   is beside it above. */
+   is beside it above.
+
+   The ring used to sit capped at 90vmin — on a 1920×1080 frame that is
+   about 972px, well inside the room the middle column actually has, with
+   two nearly-empty columns either side of it. There is no honest way to
+   make a round table fill a 16:9 rectangle (a wider ring stops being a
+   ring), so this raises the cap to what the column's own height allows
+   instead of an arbitrary fraction of it, and lets the tiles grow a little
+   further with it — the frame is claimed by making the table itself
+   bigger, not by padding the space around it. */
 .stage--tv .circle {
   /* The ring takes the screen's smaller side; the tile grows with it (a
      4K monitor at 100% is twice a 1080p screen in CSS px, a 4K TV is not). */
-  --avail: max(min(100cqw, 100cqh, 90vmin), 9rem);
+  --avail: max(min(100cqw, 100cqh, 97vmin), 9rem);
   --seat: clamp(
     3.5rem,
     min(calc(var(--avail) * 0.31), calc(var(--avail) * var(--gap) / (sqrt(2) + var(--gap)))),
-    20vmin
+    22vmin
   );
 }
 
@@ -3801,10 +3839,36 @@ html[data-dawn] body {
   font-size: 1.1rem;
 }
 
+/* The badge hangs a little off its own corner by design (`.seat__votes,
+   .seat__cast` above) at `-0.15 * --seat`. At some positions around a ring
+   two tiles meet corner to corner with no gap between them at all, so any
+   hang there is not room the badge is borrowing, it is the next seat's own
+   tile — measured on a TV ring at 8 seats, it landed square in the middle
+   of the neighbour's own box. Flush (no hang) is the only offset that is
+   correct at every position the ring can put two seats in, so the flourish
+   is dropped here and kept where the gaps are generous (the phone). */
 .stage--tv .seat__votes,
 .stage--tv .seat__cast {
   --badge: clamp(1.5rem, calc(var(--seat) * 0.3), 3rem);
+  right: 0;
+  bottom: 0;
   font-size: clamp(0.875rem, calc(var(--badge) * 0.55), 1.75rem);
+}
+
+/* A hand going up used to just appear — the ballot's own figure in the
+   ring's centre counts up, but the mark on the seat itself never moved. The
+   room's cue for a fresh vote, in the same family as the count's own
+   badge-land: only while `data-vote-enter` says a hand actually changed
+   (tv.ts's own `voteKey`, separate from the scene the rest of the ring
+   enters on), so re-casting the same ballots twice does not replay it. */
+.stage--tv[data-vote-enter] .seat__cast {
+  animation: badge-land var(--dur-base) var(--ease-out) both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stage--tv[data-vote-enter] .seat__cast {
+    animation: none;
+  }
 }
 
 .stage--tv .tableview__ballot .label,
@@ -3819,6 +3883,14 @@ html[data-dawn] body {
 
 .stage--tv .tableview__verdict {
   font-size: clamp(2rem, 6vmin, 5.5rem);
+}
+
+.stage--tv .tableview__night-label {
+  font-size: clamp(1.25rem, 2.6vmin, 2.25rem);
+}
+
+.stage--tv .tableview__night-count {
+  font-size: clamp(2rem, 5vmin, 4rem);
 }
 
 .stage--tv .seat[data-dead]::after {
@@ -3855,7 +3927,15 @@ html[data-dawn] body {
 
 /* The reading fills the TV: a death paints the whole screen Vendetta. Enters
    on its own (not gated by data-enter): a fresh card is a new thing every
-   time it lands, the way a dawn slide is on the narrator's own phone. */
+   time it lands, the way a dawn slide is on the narrator's own phone.
+
+   It used to keep the phone's left-aligned column (`justify-items: start`,
+   a `28ch` cap) blown up to cinema size, which left the whole right half to
+   two-thirds of a 1920px frame as unbroken flat colour — a widescreen photo
+   cropped from a phone screenshot. Composed for the rectangle instead: the
+   same centred card the phone already uses (`.tableview__card` above), just
+   at sofa scale, with room for a line to run most of the width before it
+   wraps rather than folding at a phone's measure. */
 .stage--tv .tableview__card {
   position: fixed;
   inset: 0;
@@ -3863,11 +3943,12 @@ html[data-dawn] body {
   max-width: none;
   height: auto;
   margin: 0;
-  padding: 6vmin 8vmin;
+  padding: 6vmin 10vmin;
   border: 0;
   align-content: center;
-  justify-items: start;
+  justify-items: center;
   gap: 3vmin;
+  text-align: center;
   animation: card-in var(--dur-base) var(--ease-out) both;
 }
 
@@ -3878,13 +3959,14 @@ html[data-dawn] body {
 .stage--tv .tableview__card .dawn__mark {
   width: 8vmin;
   height: 8vmin;
-  margin: 0;
+  margin: 0 auto;
   font-size: 4vmin;
 }
 
 .stage--tv .tableview__card .dawn__name {
+  max-width: 90vw;
   font-size: clamp(6rem, 18vmin, 16rem);
-  text-align: left;
+  text-align: center;
 }
 
 /* A calm slide (a quiet night, a growl, a card taken, the paper's own
@@ -3892,16 +3974,61 @@ html[data-dawn] body {
    spot — but it is prose, not a stamp, and the name's own TV size above
    (up to 16rem) ran a clue's full sentence off the edge of the screen
    before this rule existed to take precedence back for it. Sized like
-   `.dawn__line` below it: display size for a sofa, not a name's. */
+   `.dawn__line` below it: display size for a sofa, not a name's, and wide
+   enough that a full sentence composes across the frame in two or three
+   lines rather than the phone's narrow column stretched tall. */
 .stage--tv .tableview__card .dawn__name--line {
-  max-width: 28ch;
+  max-width: min(80vw, 44ch);
   font-size: clamp(2rem, 4.5vmin, 4.5rem);
+  text-align: center;
 }
 
 .stage--tv .tableview__card .dawn__line {
-  max-width: 28ch;
+  max-width: min(80vw, 44ch);
   font-size: clamp(2rem, 4vmin, 4rem);
-  text-align: left;
+  text-align: center;
+}
+
+/* The morning paper, read again for a TV frame.
+   `.paper` (the newsprint article itself, "The town's paper" above) grows
+   to fill whatever height the screen leaves it and scrolls if it has to —
+   right for a long final edition, but on a light day of two short colour
+   pieces it left the masthead and two headlines sitting at the top of a
+   box that ran most of the way down a 1080p frame, the rest bare newsprint.
+   `safe center` keeps the fill-and-scroll behaviour for a long edition
+   (it only centres when everything already fits; overflowing content still
+   starts at the top, so nothing is ever clipped) and balances a short one
+   in the middle of its own box instead of leaving it stranded at the top. */
+.stage--tv .paper {
+  display: flex;
+  flex-direction: column;
+  justify-content: safe center;
+}
+
+/* `.paper__columns` on a TV asked for three CSS columns, but the box it is
+   on is `display: grid` (`.paper__columns` above), which a multicol
+   `columns` declaration cannot affect — inert since the TV scale was
+   written. Set the same three-up layout the grid already understands, on
+   the breakpoint the paper itself uses for "there is enough news to split
+   in two" (`[data-many]`, three or more follow-up stories). */
+.stage--tv .paper__columns[data-many] {
+  grid-template-columns: repeat(3, 1fr);
+}
+
+/* A quiet day's edition never reaches `[data-many]` (fewer than three
+   follow-ups): the two short colour pieces that stand in for it read as
+   an unfinished page at a phone's type size blown up onto a TV. Nothing
+   else about a light day can be made to look intentional without inventing
+   copy the engine did not write, so this is the one thing CSS can still
+   do — read the size the story is given as if it were the day's whole
+   news, the way a real front page enlarges a lead when there is little
+   else to run. */
+.stage--tv .paper__columns:not([data-many]) .paper__headline {
+  font-size: 2.75rem;
+}
+
+.stage--tv .paper__columns:not([data-many]) .paper__dek {
+  font-size: 1.5rem;
 }
 
 /* Two codes on the sheet: one for the players, one for the TV. */
@@ -4084,7 +4211,28 @@ html[data-dawn] body {
   border-color: var(--fg);
 }
 
-/* The night is read to the room before any phone shows the morning. */
+/* The night is read to the room before any phone shows the morning: the hour,
+   the sentence, and this seat's own card under the thumb. The block spreads
+   over the height rather than sitting in the middle of an empty screen — it is
+   the one screen a whole table looks at for minutes at a time. */
+.mine--waking {
+  /* The stage is a grid of one row, so the screen already has the height: the
+     hour sits under the name, the sentence takes the middle, and the hold stays
+     in the thumb's reach at the bottom. */
+  justify-content: space-between;
+  align-items: center;
+  text-align: center;
+}
+
+.mine--waking .mine__waking {
+  margin: auto 0;
+}
+
+/* The hold is a bar like everywhere else, not a button in the middle. */
+.mine--waking .reveal__hold {
+  align-self: stretch;
+}
+
 .mine__waking {
   margin: 0;
   max-width: 18rem;

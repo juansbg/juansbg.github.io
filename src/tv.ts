@@ -96,9 +96,30 @@ const sceneKey = (): string => {
   if (p.phase === 'setup') return `lobby:${p.roster.map((r) => `${r.name}:${r.joined}`).join(',')}`
   if (p.paper !== null) return `paper:${p.paper}`
   if (p.reading !== null) return `reading:${p.reading.kind}:${p.reading.index}`
-  return `table:${p.phase}:${p.night}:${p.day}:${p.over}`
+  // The night step: plain numbers, so a step taken changes the scene even
+  // though nothing else on the room's screen is allowed to (tv-01) — the
+  // ring itself, and the step's own count in its centre, enter afresh.
+  const step = p.nightStep ? `${p.nightStep.index}/${p.nightStep.of}` : '-'
+  return `table:${p.phase}:${p.night}:${p.day}:${p.over}:${step}`
 }
 let lastScene: string | null = null
+
+/**
+ * A hand going up used to replace itself with no motion at all — the room
+ * had no way to notice a vote landed. This is separate from `sceneKey`
+ * (which also gates the whole ring's own entrance) on purpose: re-entering
+ * every seat each time one hand goes up would be busy, not quiet, so only
+ * the cast mark itself gets the cue, via its own attribute.
+ */
+const voteKey = (): string | null => {
+  const p = projection
+  if (p === null || p.phase !== 'day') return null
+  return p.players
+    .filter((s) => s.voted)
+    .map((s) => s.id)
+    .join(',')
+}
+let lastVoteKey: string | null = null
 
 const render = (): void => {
   const locale = projection?.locale ?? fallback
@@ -155,8 +176,12 @@ const render = (): void => {
   const entering = scene !== lastScene
   lastScene = scene
 
+  const vote = voteKey()
+  const voteEntering = vote !== null && vote !== lastVoteKey
+  lastVoteKey = vote
+
   root.innerHTML = `
-    <main class="stage stage--tv"${entering ? ' data-enter' : ''}>${body}</main>
+    <main class="stage stage--tv"${entering ? ' data-enter' : ''}${voteEntering ? ' data-vote-enter' : ''}>${body}</main>
     ${note === '' ? '' : `<p class="tv__status">${esc(note)}</p>`}
   `
   keepAwake()

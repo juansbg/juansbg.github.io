@@ -547,6 +547,12 @@ export interface Strings {
       narratorGone: string
       /** The narrator closed the room: the evening is over. */
       ended: string
+      /**
+       * Night, no reading up: the room's only cue that a step is being
+       * decided right now. Never says who or what — the room already cannot
+       * see that — only that the table is choosing something.
+       */
+      deciding: string
     }
     timeline: {
       title: string

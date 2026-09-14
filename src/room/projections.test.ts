@@ -242,6 +242,38 @@ describe('the projection for the whole town', () => {
     expect(JSON.parse(JSON.stringify(p))).toEqual(p)
     expect(p.players.find((s) => s.id === 0)?.alive).toBe(false)
   })
+
+  it('carries how far into the night the table is, as plain numbers and nothing else', () => {
+    // Nobody has anything to act on yet: no phase, no schedule.
+    const table = createGame(cast(['PLAIN', 'PLAIN', 'PLAIN', 'PLAIN']))
+    expect(tvProjection(table, 'en').nightStep).toBeNull()
+
+    let state = createGame(
+      cast(['CONVERT', 'KILLER', 'INSPECT', 'GUARD', 'SILENCE', 'PLAIN', 'PLAIN'],
+           ['Ana', 'Beto', 'Caro', 'Dani', 'Eva', 'Fer', 'Gus']),
+    )
+    state = startNight(state)
+    const of = state.schedule.length
+    expect(of).toBeGreaterThan(0)
+    // The first step: index 0, before anything is recorded.
+    expect(tvProjection(state, 'en').nightStep).toEqual({ index: 0, of })
+
+    state = recordAction(state, { kind: 'target', roleId: currentStep(state)!, actor: 3, target: 5 })
+    // One step taken: the index moves with it, the total does not.
+    expect(tvProjection(state, 'en').nightStep).toEqual({ index: 1, of })
+
+    // By day the night is behind the table.
+    while (currentStep(state) !== null) {
+      state = recordAction(state, { kind: 'skip', roleId: currentStep(state)! })
+    }
+    state = endNight(state)
+    expect(tvProjection(state, 'en').nightStep).toBeNull()
+
+    // Never a role id or anything but the two numbers.
+    const json = JSON.stringify(tvProjection(startNight(state), 'en'))
+    expect(json).toContain('"nightStep":{"index":0,"of":')
+    for (const id of ROLE_IDS) expect(json, id).not.toContain(`"${id}"`)
+  })
 })
 
 describe('a seat’s own projection', () => {

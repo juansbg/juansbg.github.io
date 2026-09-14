@@ -805,6 +805,7 @@ export const en: Strings = {
       stillTrying: 'Still trying. Check the wifi if this lasts.',
       narratorGone: 'Waiting for the narrator to come back…',
       ended: 'The narrator closed the room',
+      deciding: 'The table is deciding…',
     },
     timeline: {
       title: 'Everything that happened',

@@ -67,6 +67,8 @@ export interface TvProjection {
   log: Outcome[]
   reading: TvReading | null
   timer: TvTimer | null
+  /** How far into the night the table is; null outside the night. */
+  nightStep: TvNightStep | null
   /** Ballots against each seat today, most first; the count so far while it comes up. Counts only. */
   tally: { target: PlayerId; votes: number }[]
   /** Who the count points at once it is complete, or null on a tie or before. */
@@ -117,6 +119,19 @@ export interface TvCast {
   roleId: RoleId
   trade: number | null
   team: 'town' | 'crew'
+}
+
+/**
+ * How far into the night the narrator is, and nothing else: plain numbers
+ * from `state.schedule.length` and `state.stepIndex`, never a `RoleId`,
+ * never the acting seat. It is the room's only signal that a step is being
+ * decided right now — the room already cannot see who or what, by design
+ * (`TvProjection` carries no role); this at least says time is passing.
+ * Null outside the night, and while nobody has anything to act on.
+ */
+export interface TvNightStep {
+  index: number
+  of: number
 }
 
 /** The whole table for what it was: only ever built once the game is over. */
@@ -183,6 +198,10 @@ export const tvProjection = (
   log: state.log.filter((o) => o.public),
   reading: context.reading ?? null,
   timer: context.timer ?? null,
+  nightStep:
+    state.phase === 'night' && state.schedule.length > 0
+      ? { index: state.stepIndex, of: state.schedule.length }
+      : null,
   ...ballot(state, context),
   winner: winner(state),
   revealed: revealedDead(state).map((p) => ({ id: p.id, roleId: p.roleId, trade: p.trade })),

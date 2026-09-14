@@ -97,12 +97,32 @@ export const tableMarkup = (p: TvProjection, controls = true): string => {
           ? `<p class="tableview__result" data-result>${esc(ended)}</p>`
           : verdict
             ? `<p class="tableview__verdict" data-verdict>${esc(verdict)}</p>`
-            : ballotMarkup(p, t),
+            : p.phase === 'night'
+              ? nightMarkup(p, t)
+              : ballotMarkup(p, t),
       })}
       ${readingMarkup(p, controls)}
       ${controls ? `<button class="icon-btn tableview__close" type="button" data-table-close aria-label="${esc(t.ui.common.back)}" title="${esc(t.ui.common.back)}">✕</button>` : ''}
     </section>
   `
+}
+
+/**
+ * The night, with nothing to read aloud yet: the ring's centre used to sit
+ * empty and unchanged for the whole night, whatever step was live, so a
+ * couch three metres away had no way to tell the game had not frozen. This
+ * is the room's one cue that time is passing — a role-blind step count, the
+ * only thing `TvProjection.nightStep` carries — never who is acting or what
+ * they are deciding, which the room could not see before and still cannot.
+ */
+const nightMarkup = (p: TvProjection, t: ReturnType<typeof strings>): string => {
+  const step = p.nightStep
+  if (step === null) return ''
+  return `
+    <div class="tableview__night">
+      <p class="label tableview__night-label">${esc(t.ui.tv.deciding)}</p>
+      <p class="tableview__night-count">${esc(t.ui.night.stepCounter(Math.min(step.index + 1, step.of), step.of))}</p>
+    </div>`
 }
 
 /**
