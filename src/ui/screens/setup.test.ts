@@ -87,7 +87,7 @@ describe('the names screen', () => {
 })
 
 describe('the big screen from the names screen', () => {
-  const idle = { room: null, needsKey: false, busy: false, error: null, address: 'juansbg.github.io/tv', code: '', key: '', open: true } as const
+  const idle = { room: null, needsKey: false, busy: false, error: null, address: 'juansbg.github.io/tv', code: '', key: '', open: true, turned: [] } as const
   const four = ['Ana', 'Beto', 'Caro', 'Dani']
 
   it('asks for the code the TV shows, and says where the TV goes, when no room is open', () => {
@@ -126,6 +126,60 @@ describe('the big screen from the names screen', () => {
     // The door reads "Everyone is in" and the phones are marked on the list.
     expect(html).toContain(strings('en').ui.table.proceed)
     expect(html.match(/data-joined/g)?.length).toBe(2)
+  })
+
+  it('names the phones turned away at the door, in both languages', () => {
+    // The setup case is the one that mattered: the Timeline button does not
+    // exist until the cards are dealt, so before this the narrator's only
+    // window on a refused scan opened after the roster had locked.
+    const room = { code: 'AB2CD', tvs: 1, phones: 2 }
+    for (const locale of LOCALES) {
+      const t = strings(locale)
+      const html = namesMarkup(four, locale, new Set([0]), {
+        ...idle,
+        room,
+        turned: [{ night: 0, at: 0, cid: 'c1', name: 'Ana', reason: 'nameTaken' }],
+      })
+      expect(html).toContain('data-turned')
+      expect(html).toContain(t.ui.setup.turned.nameTaken(['Ana']))
+      // One name refused is one name, not a list read as a plural.
+      expect(html).not.toContain(t.ui.setup.turned.nameTaken(['Ana', 'Beto']))
+    }
+  })
+
+  it('says nothing about the door when nobody has been turned away', () => {
+    const html = namesMarkup(four, 'en', new Set(), { ...idle, room: { code: 'AB2CD', tvs: 1, phones: 2 } })
+    expect(html).not.toContain('data-turned')
+  })
+
+  it('sets one line a reason, not one a phone, and names everyone on it', () => {
+    const t = strings('en')
+    const html = namesMarkup(four, 'en', new Set(), {
+      ...idle,
+      room: { code: 'AB2CD', tvs: 1, phones: 2 },
+      turned: [
+        { night: 0, at: 0, cid: 'c1', name: 'Ana', reason: 'nameTaken' },
+        { night: 0, at: 1, cid: 'c2', name: 'Zeke', reason: 'notOnList' },
+        // The same person on two phones is one person to seat.
+        { night: 0, at: 2, cid: 'c3', name: 'ana', reason: 'nameTaken' },
+      ],
+    })
+    expect(html.match(/turned__row/g)?.length).toBe(2)
+    expect(html).toContain(t.ui.setup.turned.nameTaken(['Ana']))
+    expect(html).toContain(t.ui.setup.turned.notOnList(['Zeke']))
+  })
+
+  it('keeps the newest four, so a queue never crowds out the list it is about', () => {
+    const t = strings('en')
+    const html = namesMarkup(four, 'en', new Set(), {
+      ...idle,
+      room: { code: 'AB2CD', tvs: 1, phones: 2 },
+      turned: ['Uno', 'Dos', 'Tres', 'Cuatro', 'Cinco'].map((name, i) => ({
+        night: 0, at: i, cid: `c${i}`, name, reason: 'notOnList' as const,
+      })),
+    })
+    expect(html).toContain(t.ui.setup.turned.notOnList(['Dos', 'Tres', 'Cuatro', 'Cinco']))
+    expect(html).not.toContain('Uno')
   })
 
   it('shows nothing of the screen when no relay is configured', () => {
@@ -300,7 +354,7 @@ describe('a phone turned away at the door', () => {
     for (const locale of LOCALES) {
       const t = strings(locale)
       const html = timelineMarkup(session, locale, [
-        { night: 1, at: session.timeline.length, name: 'Zeke', reason: 'notOnList' },
+        { night: 1, at: session.timeline.length, cid: 'c-Zeke', name: 'Zeke', reason: 'notOnList' },
       ])
       expect(html).toContain(t.ui.timeline.notOnList('Zeke'))
       expect(html).toContain('log__row--quiet')
@@ -313,11 +367,11 @@ describe('a phone turned away at the door', () => {
   it('tells a name nobody has from a name somebody already holds', () => {
     const session = started()
     const t = strings('en')
-    expect(timelineMarkup(session, 'en', [{ night: 1, at: 1, name: 'Zeke', reason: 'notOnList' }]))
+    expect(timelineMarkup(session, 'en', [{ night: 1, at: 1, cid: 'c-Zeke', name: 'Zeke', reason: 'notOnList' }]))
       .toContain(t.ui.timeline.notOnList('Zeke'))
-    expect(timelineMarkup(session, 'en', [{ night: 1, at: 1, name: 'Ana', reason: 'nameTaken' }]))
+    expect(timelineMarkup(session, 'en', [{ night: 1, at: 1, cid: 'c-Ana', name: 'Ana', reason: 'nameTaken' }]))
       .toContain(t.ui.timeline.nameTaken('Ana'))
-    expect(timelineMarkup(session, 'en', [{ night: 1, at: 1, name: 'Zeke', reason: 'tableFull' }]))
+    expect(timelineMarkup(session, 'en', [{ night: 1, at: 1, cid: 'c-Zeke', name: 'Zeke', reason: 'tableFull' }]))
       .toContain(t.ui.timeline.tableFull('Zeke'))
   })
 
@@ -329,7 +383,7 @@ describe('a phone turned away at the door', () => {
     session = advance(session, (s) => recordAction(s, skip), {
       night: 1, kind: 'action', roleId: 'INSPECT', action: skip,
     })
-    const html = timelineMarkup(session, 'en', [{ night: 1, at, name: 'Zeke', reason: 'notOnList' }])
+    const html = timelineMarkup(session, 'en', [{ night: 1, at, cid: 'c-Zeke', name: 'Zeke', reason: 'notOnList' }])
     const t = strings('en')
     const detective = html.indexOf(t.ui.timeline.skipped(t.roles.INSPECT.name))
     const door = html.indexOf(t.ui.timeline.notOnList('Zeke'))

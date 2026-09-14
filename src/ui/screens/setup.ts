@@ -6,6 +6,7 @@ import type { Player } from '../../engine/types'
 import { strings, type Locale } from '../../i18n'
 import { esc } from '../dom'
 import { circleMarkup } from './circle'
+import type { Notice } from './timeline'
 
 export const MIN_PLAYERS = 4
 export const MAX_PLAYERS = 20
@@ -44,6 +45,23 @@ export interface ScreenJoin {
    */
   code: string
   key: string
+  /**
+   * The phones standing at the door with no seat, right now.
+   *
+   * A refusal used to reach every device except the one that could do
+   * anything about it, and during setup that was absolute: the narrator's
+   * only window on it was the Timeline, and there is no Timeline button
+   * until the cards are dealt — by which point the roster has locked and the
+   * moment to fix it has gone. This is the moment the whole flow is built
+   * around: someone scans twice, or two people type the same name a beat
+   * apart, and the host is looking straight at the list wondering why
+   * somebody is not on it.
+   *
+   * Live, not history: app.ts hands over only the phones that still have no
+   * seat and have not closed their tab, so seating the person who was turned
+   * away takes their line off the screen.
+   */
+  turned: readonly Notice[]
 }
 
 /** Two people at the table answer to the same name. Case and spacing aside. */
@@ -138,6 +156,34 @@ export const namesMarkup = (
   // "ana" are the same collision, and naming both of them would read as two.
   const clashing = clashes.filter((name, i) => !clashes.some((other, j) => j < i && sameName(name, other)))
     .map((n) => n.trim())
+  // The phones at the door, one line a reason and every name on it. One line
+  // a phone crowded the roster it was about off a short phone in Spanish, and
+  // the names are the part the narrator acts on — they are what goes into the
+  // list. The words are the Timeline's, so a refusal reads the same in both
+  // places. Four at most: past that it is a queue to work through, not a thing
+  // to fix mid-sentence, and the newest are the ones still in the air.
+  const turned = (screen?.turned ?? []).slice(-4)
+  const turnedBlock =
+    turned.length === 0
+      ? ''
+      : `
+      <ul class="turned" data-turned>
+        ${(['nameTaken', 'notOnList', 'tableFull'] as const)
+          .map((reason) => {
+            // One entry a person, in the spelling their phone first sent.
+            const named = turned.filter((n) => n.reason === reason).map((n) => n.name)
+            const once = named.filter((name, i) => !named.some((other, j) => j < i && sameName(name, other)))
+            return once.length === 0
+              ? ''
+              : `
+          <li class="turned__row">
+            <span class="turned__mark" aria-hidden="true">\u2715</span>
+            <span>${esc(st.turned[reason](once))}</span>
+          </li>`
+          })
+          .join('')}
+      </ul>`
+
   const chips = names
     .map(
       (name, i) => `
@@ -168,6 +214,7 @@ export const namesMarkup = (
 
       <ul class="name-list"${names.length === 0 ? ' data-empty' : ''}>${chips}</ul>
       ${clashing.length === 0 ? '' : `<p class="field__hint field__hint--clash">${esc(st.sameName(clashing))}</p>`}
+      ${turnedBlock}
       ${screen?.room ? '' : screenBlock}
 
       <div class="actions">

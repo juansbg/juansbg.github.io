@@ -183,6 +183,15 @@ export const en: Strings = {
         names.length === 1
           ? `One name is repeated: ${names[0]}`
           : `Some names are repeated: ${names.join(', ')}`,
+      turned: {
+        notOnList: (names) =>
+          `${names.join(', ')} tried to join \u2014 ${names.length === 1 ? 'not on the list' : 'none of them on the list'}`,
+        nameTaken: (names) =>
+          `${names.join(', ')} tried to join \u2014 ${
+            names.length === 1 ? 'that name is already on a phone' : 'those names are already on a phone'
+          }`,
+        tableFull: (names) => `${names.join(', ')} tried to join \u2014 the table is full`,
+      },
       roomInPlay:
         'A game is already being played on that screen. Taking it over ends that game for everyone in the room.',
       roomTakesNames: 'In a room, the table is whoever joins it — the names typed here will step aside.',
@@ -745,6 +754,7 @@ export const en: Strings = {
       keyHint: 'The relay only lets a phone that knows its key run a room.',
       refused: 'The relay refused the key.',
       replaced: 'Another phone has taken this room over. This one no longer runs the game.',
+      handedOver: 'Another phone',
       openHere: 'Open a room from this phone',
       secondScreen: 'A second screen joins at this address',
       open: 'Open a room',

@@ -111,6 +111,15 @@ export interface Notice {
   readonly night: number
   /** How many entries the timeline had when it happened, so it sorts. */
   readonly at: number
+  /**
+   * The phone that was turned away.
+   *
+   * The log keeps every refusal, since it is a record of the evening. The
+   * names screen shows only the ones still standing outside, and this is how
+   * it tells them apart: a phone that has since been given a seat, or has
+   * closed its tab, is no longer at the door.
+   */
+  readonly cid: string
   readonly name: string
   readonly reason: 'notOnList' | 'nameTaken' | 'tableFull'
 }
