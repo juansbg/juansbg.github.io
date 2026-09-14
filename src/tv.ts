@@ -67,6 +67,8 @@ let status: LinkStatus = 'connecting'
 let relayDown = false
 /** Whether a narrator's phone is on the room right now; the relay says so. */
 let narratorHere = false
+/** Whether one ever has been: a room waiting to be started reads differently. */
+let narratorEver = false
 /**
  * When the screen stopped being able to reach anybody. A two-second hiccup
  * and a two-minute outage used to read identically, so a room had no way to
@@ -169,7 +171,9 @@ const render = (): void => {
         : projection !== null && status !== 'open'
           ? t.reconnecting
           : projection !== null && !narratorHere
-            ? t.narratorGone
+            ? narratorEver
+              ? t.narratorGone
+              : t.narratorYet
             : ''
 
   const scene = sceneKey()
@@ -234,6 +238,7 @@ const connect = (r: OpenRoom): void => {
     },
     (here) => {
       narratorHere = here
+      if (here) narratorEver = true
       render()
     },
   )

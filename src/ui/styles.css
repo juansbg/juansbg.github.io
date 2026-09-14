@@ -4222,6 +4222,15 @@ html[data-dawn] body {
   gap: var(--space-4);
 }
 
+/* The wordmark on the one screen a stranger meets: smaller than the setup
+   screen's, since the code under it is what they came for, but the first thing
+   on the page rather than nothing at all. */
+.mine__wordmark {
+  margin: 0;
+  font-size: var(--text-display-min);
+  letter-spacing: var(--track-display);
+}
+
 .mine__join {
   display: grid;
   gap: var(--space-3);

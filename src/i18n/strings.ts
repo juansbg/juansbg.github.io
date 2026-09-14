@@ -517,6 +517,8 @@ export interface Strings {
       seated: (joined: number) => string
       /** The narrator's phone has gone quiet mid-game. */
       narratorGone: string
+      /** Nobody has claimed this room yet: a first join, not a loss. */
+      narratorYet: string
       /** The narrator closed the room. */
       roomEnded: string
       /** The night is over and the narrator is reading it to the room. */
@@ -582,6 +584,8 @@ export interface Strings {
       stillTrying: string
       /** The room has a narrator's phone on it, or has lost one. */
       narratorGone: string
+      /** Nobody has claimed this room yet: a screen waiting to be started. */
+      narratorYet: string
       /** The narrator closed the room: the evening is over. */
       ended: string
       /**

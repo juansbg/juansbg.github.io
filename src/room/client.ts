@@ -241,6 +241,8 @@ const wsUrl = (relay: string): string => relay.replace(/^http/, 'ws')
 const FRAME_MS = 16
 
 export class NarratorLink {
+  /** The last time anything arrived on this socket, pings included. */
+  private lastSeen = 0
   private ws: WebSocket | null = null
   private closed = false
   private attempt = 0
@@ -318,10 +320,12 @@ export class NarratorLink {
       this.handlers.onStatus?.('open')
       // A fresh socket has no idea what the room last saw: send the latest.
       this.lastSent = null
+      this.lastSeen = Date.now()
       this.flush()
       this.startPing()
     }
     ws.onmessage = (event) => {
+      this.lastSeen = Date.now()
       if (typeof event.data !== 'string' || event.data === 'pong') return
       try {
         this.handlers.onMessage?.(JSON.parse(event.data) as FromRelay)
@@ -359,7 +363,21 @@ export class NarratorLink {
 
   private startPing(): void {
     this.stopPing()
-    this.ping = window.setInterval(() => this.ws?.send('ping'), 25_000)
+    // The narrator's own socket gets the same watchdog as a player's: a wifi
+    // drop does not always close one, and a narrator publishing into a dead
+    // connection is the worst version of this — the room sits on the last
+    // thing it heard while the game goes on in the narrator's hand.
+    this.ping = window.setInterval(() => {
+      if (Date.now() - this.lastSeen > 40_000) {
+        this.ws?.close()
+        return
+      }
+      try {
+        this.ws?.send('ping')
+      } catch {
+        // The close this provokes is answer enough.
+      }
+    }, 12_000)
   }
 
   private stopPing(): void {
@@ -375,6 +393,8 @@ export class NarratorLink {
 export class ScreenLink {
   private attempt = 0
   private ping: number | null = null
+  /** The last time anything arrived, pings included; see PlayerLink. */
+  private lastSeen = 0
 
   constructor(
     private readonly relay: string,
@@ -392,10 +412,26 @@ export class ScreenLink {
     const ws = new WebSocket(`${wsUrl(this.relay)}/rooms/${this.code}/ws?as=tv`)
     ws.onopen = () => {
       this.attempt = 0
+      this.lastSeen = Date.now()
       this.onStatus('open')
-      this.ping = window.setInterval(() => ws.send('ping'), 25_000)
+      // A wifi drop does not always close a socket: the screen would sit on a
+      // dead connection looking merely quiet, which on a TV is indistinguishable
+      // from a narrator who has not tapped anything for a minute. A socket that
+      // has heard nothing back closes itself, and the reconnect takes over.
+      this.ping = window.setInterval(() => {
+        if (Date.now() - this.lastSeen > 40_000) {
+          ws.close()
+          return
+        }
+        try {
+          ws.send('ping')
+        } catch {
+          // The close this provokes is answer enough.
+        }
+      }, 12_000)
     }
     ws.onmessage = (event) => {
+      this.lastSeen = Date.now()
       if (typeof event.data !== 'string' || event.data === 'pong') return
       try {
         const parsed = JSON.parse(event.data) as { kind?: unknown; here?: unknown }

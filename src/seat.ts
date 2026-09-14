@@ -80,6 +80,13 @@ let pendingSealed: string[] = []
 let status: LinkStatus = 'connecting'
 /** Whether a narrator's phone is on the room right now; the relay says so. */
 let narratorHere = true
+/**
+ * Whether one has ever been on it. A room nobody has claimed yet and a room
+ * whose narrator has just walked off look identical on the wire, and a first
+ * timer's first screen read "waiting for the narrator to come back" about
+ * somebody who had never been there.
+ */
+let narratorEver = false
 /** When this phone last lost the room, so a long wait can say more than a short one. */
 let waitingSince: number | null = null
 const LONG_WAIT_MS = 9_000
@@ -144,8 +151,13 @@ const render = (): void => {
       <section class="screen screen--center mine">
         ${
           no === null
-            ? `<p class="label">${esc(s.title)}</p>
-               <h1 class="title tv__code">${esc(room)}</h1>`
+            ? // A phone scanned cold, by somebody who has not been told what
+              // this is: the wordmark before anything else, because this is the
+              // screen where a stranger types their real name into a strange
+              // link and the only one where nothing else identifies the game.
+              `<h1 class="title mine__wordmark">${esc(t.appName)}</h1>
+               <p class="label">${esc(s.title)}</p>
+               <p class="title tv__code">${esc(room)}</p>`
             : `<h1 class="title title--sm">${esc(no.head)}</h1>
                <p class="subtitle">${esc(no.body)}</p>`
         }
@@ -179,7 +191,9 @@ const render = (): void => {
         ? `${t.ui.tv.reconnecting} ${t.ui.tv.stillTrying}`
         : t.ui.tv.reconnecting
       : joined && !narratorHere
-        ? s.narratorGone
+        ? narratorEver
+          ? s.narratorGone
+          : s.narratorYet
         : ''
 
   root.innerHTML = `
@@ -288,6 +302,7 @@ const start = async (): Promise<void> => {
     },
     onNarrator: (here) => {
       narratorHere = here
+      if (here) narratorEver = true
       render()
     },
   })
