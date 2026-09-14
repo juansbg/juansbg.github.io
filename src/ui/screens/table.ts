@@ -78,6 +78,7 @@ export const tableMarkup = (p: TvProjection, controls = true): string => {
       <header class="tableview__head">
         <p class="label">${esc(caption)}</p>
         ${over || p.phase !== 'day' ? '' : ballotEyebrow(p, t)}
+        ${over || p.phase !== 'night' ? '' : nightMarkup(p, t)}
       </header>
       ${p.timer && p.phase === 'day' ? `<div class="tableview__clock">${timerMarkup(p.timer, p.locale)}</div>` : ''}
       ${circleMarkup(p.players.map((s) => seatOf(s, over ? castMap.get(s.id) : undefined)), p.locale, {
@@ -98,7 +99,7 @@ export const tableMarkup = (p: TvProjection, controls = true): string => {
           : verdict
             ? `<p class="tableview__verdict" data-verdict>${esc(verdict)}</p>`
             : p.phase === 'night'
-              ? nightMarkup(p, t)
+              ? ''
               : ballotMarkup(p, t),
       })}
       ${readingMarkup(p, controls)}

@@ -3683,6 +3683,29 @@ html[data-dawn] body {
   align-self: center;
 }
 
+/* A 1920x1080 frame holding a ring that is bounded by its height is two
+   symmetric 458px gutters, one carrying a single label shoved against the far
+   edge and the other carrying nothing: the void the room reads is that, not
+   the unused fraction. At night the hour and the night's own progress stand
+   together in the left column as one stack, and the ring takes the room the
+   right gutter was wasting. By day the middle of the ring is already spoken
+   for by the count and the verdict, so only the night moves. */
+.stage--tv .screen--table[data-phase='night'] {
+  grid-template-columns: minmax(0, 1.3fr) minmax(0, 5fr) minmax(0, 0.3fr);
+}
+
+.stage--tv .screen--table[data-phase='night'] .tableview__head {
+  display: grid;
+  gap: var(--space-4);
+  justify-items: start;
+  padding-left: var(--space-4);
+}
+
+.stage--tv .screen--table[data-phase='night'] .tableview__night {
+  justify-items: start;
+  text-align: left;
+}
+
 .stage--tv .tableview__head .label {
   font-size: clamp(1.25rem, 4vmin, 4rem);
 }
