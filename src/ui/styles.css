@@ -3823,8 +3823,15 @@ html[data-dawn] body {
 }
 
 /* ---------- The TV page ---------- */
+/* A television is not a monitor: many overscan, and a browser over HDMI is
+   only one of the ways this screen reaches a wall. The phase label — the one
+   thing on the frame that says which part of the evening the room is in — sat
+   twelve pixels from the edge, which is inside the crop of any set that does.
+   Two and a half percent is the lenient modern title-safe figure and enough
+   room for the label to survive; everything on this frame is already inset
+   generously enough that this reads as the same decision rather than padding. */
 .stage--tv {
-  padding: var(--space-3);
+  padding: max(var(--space-3), 3.5vmin) max(var(--space-3), 2.5vw);
 }
 
 /* Before any room is up — asking the relay, the relay not answering, or no
