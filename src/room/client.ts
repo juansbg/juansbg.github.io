@@ -466,6 +466,20 @@ export class ScreenLink {
     this.connect()
   }
 
+  /**
+   * How long since anything at all arrived on this socket, pings included.
+   *
+   * The relay auto-responds `pong` to a ping, and it does so even while the
+   * Durable Object is hibernating, so this is a real liveness signal and not
+   * a measure of how busy the narrator is. A screen needs it because the
+   * watchdog deliberately waits forty seconds before giving up on a socket —
+   * right for deciding to reconnect, far too long for a room to sit looking
+   * at a table that stopped being true. Zero before the first message.
+   */
+  silentFor(): number {
+    return this.lastSeen === 0 ? 0 : Date.now() - this.lastSeen
+  }
+
   private connect(): void {
     this.onStatus('connecting')
     const ws = new WebSocket(`${wsUrl(this.relay)}/rooms/${this.code}/ws?as=tv`)

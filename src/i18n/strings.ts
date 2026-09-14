@@ -643,6 +643,23 @@ export interface Strings {
        * which reads as a fault before anything has happened.
        */
       connecting: string
+      /**
+       * Nothing has come back on the socket for a while.
+       *
+       * The watchdog waits forty seconds before giving up, which is right for
+       * deciding to reconnect and far too long for a room to sit in front of
+       * a table that stopped being true. This is said long before that, and
+       * says only what is actually known: nothing has answered lately.
+       */
+      quiet: string
+      /**
+       * The room this screen was pointed at is not there any more.
+       *
+       * Distinct from the narrator closing one: a code that never existed, or
+       * a room the relay has forgotten, was being reported as "the narrator
+       * closed the room", which names a person for something nobody did.
+       */
+      roomGone: string
       /** The screen opened the room itself and no narrator has claimed it yet (docs/BIG-SCREEN.md §11). */
       forNarrator: string
       enterCode: string

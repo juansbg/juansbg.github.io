@@ -834,6 +834,8 @@ export const en: Strings = {
       waiting: 'Waiting for the narrator…',
       reconnecting: 'Reconnecting…',
       connecting: 'Connecting…',
+      quiet: 'Checking the connection…',
+      roomGone: 'That room is no longer there',
       forNarrator: 'For the narrator',
       enterCode: `Open ${APP_NAME} on your phone and enter this code`,
       relayDown: 'The relay did not answer. Trying again…',

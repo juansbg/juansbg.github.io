@@ -839,6 +839,8 @@ export const es: Strings = {
       waiting: 'Esperando al narrador…',
       reconnecting: 'Reconectando…',
       connecting: 'Conectando…',
+      quiet: 'Comprobando la conexión…',
+      roomGone: 'Esa sala ya no existe',
       forNarrator: 'Para el narrador',
       enterCode: `Abre ${APP_NAME} en tu móvil y escribe este código`,
       relayDown: 'El relé no ha respondido. Reintentando…',
