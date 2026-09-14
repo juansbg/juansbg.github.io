@@ -3871,6 +3871,20 @@ html[data-dawn] body {
   padding: max(var(--space-3), 3.5vmin) max(var(--space-3), 2.5vw);
 }
 
+/* Except while a reading is up, when the frame belongs to the reading.
+   `.tableview__card` is `position: fixed; inset: 0`, which should be the
+   whole 1920x1080 — but `.screen--table` finishes its entrance with a
+   transform still on it (`both` fill leaves the identity matrix in place),
+   and a transformed ancestor is a containing block for a fixed child. So the
+   slide was clipped to the screen's own box: measured 1824x1004 at 48,38, a
+   full-red field with a Midnight frame around it, which reads as browser
+   chrome rather than as a design. Title-safe exists for the labels that live
+   near the edge; a reading has 6vmin of padding of its own and nothing to
+   lose to a set's crop but coloured ground. */
+.stage--tv:has(.tableview__card) {
+  padding: 0;
+}
+
 /* Before any room is up — asking the relay, the relay not answering, or no
    room at all (a bare address with no key) — the screen carries only a
    couple of lines, but they are still read from the couch: scale them like
@@ -4853,10 +4867,45 @@ html[data-dawn] body {
   grid-template-columns: repeat(auto-fill, minmax(clamp(9rem, 14vmin, 16rem), 1fr));
 }
 
+/* A claimed lobby is the table itself, and the roster is what the room is
+   watching: it takes the frame rather than floating in a band across the
+   middle of it. One column, rows that divide the height between them — rows
+   sharing `1fr` cannot overflow, so twelve names fill the same frame with
+   shorter rows and the type clamps — and the dot beside the name instead of
+   a thousand pixels away at the far edge of its own box. */
+.stage--tv .screen--lobby:not([data-unclaimed]) {
+  align-items: stretch;
+}
+
+.stage--tv .screen--lobby:not([data-unclaimed]) .lobby__code {
+  align-self: center;
+}
+
+.stage--tv .screen--lobby:not([data-unclaimed]) .lobby__roster {
+  /* The heading takes its own height and the names take the rest; stretching
+     both left the count pinned to the top of the frame with 290px of nothing
+     between it and the first name. */
+  grid-template-rows: auto minmax(0, 1fr);
+  align-content: stretch;
+  min-height: 0;
+}
+
+.stage--tv .screen--lobby:not([data-unclaimed]) .lobby__names {
+  grid-template-columns: minmax(0, 1fr);
+  grid-auto-rows: minmax(0, 1fr);
+  min-height: 0;
+}
+
+.stage--tv .screen--lobby:not([data-unclaimed]) .lobby__name {
+  align-items: center;
+  justify-content: start;
+  gap: var(--space-4);
+  font-size: clamp(1.25rem, 3.6vmin, 3.25rem);
+}
+
 /* The cards are out: nobody is joining, so the QR and the code go — a person
    who scanned one now would be refused — and the screen says the thing that is
-   actually happening. The roster keeps its column and takes the weight, since
-   the room is about to spend two minutes watching those names hold a phone. */
+   actually happening. */
 .stage--tv .screen--lobby[data-dealing] {
   grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
 }
@@ -4871,15 +4920,7 @@ html[data-dawn] body {
 }
 
 .stage--tv .screen--lobby[data-dealing] .lobby__roster {
-  /* The names take the height rather than being centred inside it — centring
-     the block is what left five names as a band adrift in the frame. */
-  align-content: stretch;
   gap: var(--space-4);
-}
-
-/* The headline keeps the middle of its own column, beside them. */
-.stage--tv .screen--lobby[data-dealing] .lobby__code {
-  align-self: center;
 }
 
 /* Nobody is scanning any more, so the names may have the frame. One column of
@@ -4887,29 +4928,12 @@ html[data-dawn] body {
    band adrift in 1080 of ground, which is the same void the room reads on
    every other lobby state. Rows that share `1fr` cannot overflow, so a table
    of twelve fills the same frame with shorter rows and the type clamps. */
-.stage--tv .screen--lobby[data-dealing] {
-  align-items: stretch;
-}
-
-.stage--tv .screen--lobby[data-dealing] .lobby__roster,
-.stage--tv .screen--lobby[data-dealing] .lobby__names {
-  height: 100%;
-  min-height: 0;
-}
-
-.stage--tv .screen--lobby[data-dealing] .lobby__names {
-  grid-template-columns: minmax(0, 1fr);
-  grid-auto-rows: minmax(0, 1fr);
-}
-
 /* And they are read at full strength: the room is watching these people be
    handed a card, so a name is not a pending item any more. */
+/* They are read at full strength while the cards go round: the room is
+   watching these people be handed one, so a name is not a pending item. */
 .stage--tv .screen--lobby[data-dealing] .lobby__name {
-  /* The row is as tall as its share of the frame, so the name sits in the
-     middle of it rather than perched on the top edge of a tall empty box. */
-  align-items: center;
   color: var(--fg);
-  font-size: clamp(1.5rem, 4vmin, 3.5rem);
 }
 
 /* A settled lobby is the table itself, and it should look like one from the
@@ -4930,22 +4954,11 @@ html[data-dawn] body {
 }
 
 .stage--tv .screen--lobby[data-settled] .lobby__roster {
-  align-content: center;
   gap: var(--space-4);
 }
 
-.stage--tv .screen--lobby[data-settled] .lobby__names {
-  /* Wide tracks so the table wraps into rows and occupies the column's height
-     rather than lying in one thin band across the middle of the screen. */
-  grid-template-columns: repeat(auto-fit, minmax(clamp(12rem, 20vmin, 24rem), 1fr));
-  grid-auto-rows: minmax(clamp(3.5rem, 9vmin, 7rem), auto);
-  gap: var(--space-3);
-}
-
 .stage--tv .screen--lobby[data-settled] .lobby__name {
-  align-items: center;
   padding: var(--space-3) var(--space-4);
-  font-size: clamp(1.5rem, 4.5vmin, 4rem);
 }
 
 .stage--tv .screen--lobby[data-settled] .lobby__code {
