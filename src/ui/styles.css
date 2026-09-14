@@ -4434,6 +4434,59 @@ html[data-dawn] body {
   font-size: clamp(1.25rem, 3.2vmin, 3rem);
 }
 
+/* The tiles are sized for the name, not the other way round. At the TV's own
+   type size a nine-rem track holds about 147px of content, and "Inmaculada"
+   wants 157 and "Maximiliano" 163 — so a Spanish table's names ran into their
+   neighbours on the one screen the whole room is looking at. The track grows
+   with the type, and a tile still takes its share of a wide screen. */
+.stage--tv .lobby__names {
+  grid-template-columns: repeat(auto-fill, minmax(clamp(9rem, 14vmin, 16rem), 1fr));
+}
+
+/* A settled lobby is the table itself, and it should look like one from the
+   sofa. The QR steps back rather than disappearing — a latecomer still needs
+   it, and without it the frame is a thin band of names in a void — while the
+   roster takes the larger column and sets the names big enough to read across
+   a room. Two columns, as before; a different balance between them. */
+.stage--tv .screen--lobby[data-settled] {
+  grid-template-columns: minmax(0, 2fr) minmax(0, 3fr);
+}
+
+.stage--tv .screen--lobby[data-settled] .lobby__qr svg {
+  width: min(30vmin, 20rem);
+}
+
+.stage--tv .screen--lobby[data-settled] .lobby__room {
+  font-size: clamp(2rem, 7vmin, 6rem);
+}
+
+.stage--tv .screen--lobby[data-settled] .lobby__roster {
+  align-content: center;
+  gap: var(--space-4);
+}
+
+.stage--tv .screen--lobby[data-settled] .lobby__names {
+  /* Wide tracks so the table wraps into rows and occupies the column's height
+     rather than lying in one thin band across the middle of the screen. */
+  grid-template-columns: repeat(auto-fit, minmax(clamp(12rem, 20vmin, 24rem), 1fr));
+  grid-auto-rows: minmax(clamp(3.5rem, 9vmin, 7rem), auto);
+  gap: var(--space-3);
+}
+
+.stage--tv .screen--lobby[data-settled] .lobby__name {
+  align-items: center;
+  padding: var(--space-3) var(--space-4);
+  font-size: clamp(1.5rem, 4.5vmin, 4rem);
+}
+
+.stage--tv .screen--lobby[data-settled] .lobby__code {
+  align-content: center;
+}
+
+.stage--tv .screen--lobby[data-settled] .lobby__headline {
+  font-size: clamp(2rem, 4.5vmin, 4rem);
+}
+
 .stage--tv .lobby__note {
   font-size: clamp(0.875rem, 1.8vmin, 1.5rem);
 }
