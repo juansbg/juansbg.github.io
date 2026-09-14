@@ -221,12 +221,19 @@ const lobbySeatMarkup = (p: SeatProjection, locale: Locale, head: string): strin
  * The phone waits with everyone else: the same page the night gate uses, so
  * nobody reads the morning off a screen before it is said aloud.
  */
-const wakingMarkup = (locale: Locale, head: string): string => {
-  const s = strings(locale).ui.seat
+const wakingMarkup = (p: SeatProjection, locale: Locale, head: string): string => {
+  const t = strings(locale)
+  const s = t.ui.seat
+  // Nine people look at this for the length of a reading, so it carries the
+  // hour and the seat's own card, and nothing about the night: who died is
+  // the narrator's to say, and this screen exists so no phone says it first.
   return `
-    <section class="screen screen--center mine">
+    <section class="screen mine mine--waking">
       ${head}
+      <p class="label">${esc(t.ui.timeline.nightEnd(p.night))}</p>
       <p class="mine__waking">${esc(s.waking)}</p>
+      <div class="reveal__slot mine__card" data-card></div>
+      ${p.roleId === null ? '' : holdMarkup(t.ui.reveal, false)}
     </section>`
 }
 
@@ -291,7 +298,7 @@ export const seatMarkup = (
   }
 
   // The narrator is reading the night to the room; the phone hears it first.
-  if (p.reading) return wakingMarkup(locale, head)
+  if (p.reading) return wakingMarkup(p, locale, head)
 
   if (p.phase === 'night' && p.tonight !== null && p.roleId !== null) {
     return gate !== null && gate.kind !== 'chooser'
