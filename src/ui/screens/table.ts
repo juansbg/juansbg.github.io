@@ -78,7 +78,6 @@ export const tableMarkup = (p: TvProjection, controls = true): string => {
       <header class="tableview__head">
         <p class="label">${esc(caption)}</p>
         ${over || p.phase !== 'day' ? '' : ballotEyebrow(p, t)}
-        ${over || p.phase !== 'night' ? '' : nightMarkup(p, t)}
       </header>
       ${p.timer && p.phase === 'day' ? `<div class="tableview__clock">${timerMarkup(p.timer, p.locale)}</div>` : ''}
       ${circleMarkup(p.players.map((s) => seatOf(s, over ? castMap.get(s.id) : undefined)), p.locale, {
@@ -99,7 +98,7 @@ export const tableMarkup = (p: TvProjection, controls = true): string => {
           : verdict
             ? `<p class="tableview__verdict" data-verdict>${esc(verdict)}</p>`
             : p.phase === 'night'
-              ? ''
+              ? nightMarkup(p, t)
               : ballotMarkup(p, t),
       })}
       ${readingMarkup(p, controls)}
@@ -119,10 +118,13 @@ export const tableMarkup = (p: TvProjection, controls = true): string => {
 const nightMarkup = (p: TvProjection, t: ReturnType<typeof strings>): string => {
   const step = p.nightStep
   if (step === null) return ''
+  const at = Math.min(step.index + 1, step.of)
+  const through = step.of > 0 ? Math.round((at / step.of) * 100) : 0
   return `
     <div class="tableview__night">
       <p class="label tableview__night-label">${esc(t.ui.tv.deciding)}</p>
-      <p class="tableview__night-count">${esc(t.ui.night.stepCounter(Math.min(step.index + 1, step.of), step.of))}</p>
+      <p class="tableview__night-count">${esc(t.ui.night.stepCounter(at, step.of))}</p>
+      <div class="tableview__night-track" aria-hidden="true"><span style="--through: ${through}%"></span></div>
     </div>`
 }
 
@@ -239,7 +241,14 @@ export const lobbyMarkup = (lobby: Lobby, controls: boolean, locale: Locale): st
   // filled, or a rematch where every phone reconnected under its old name in
   // the seconds after "Play again". Either way the QR has done its job: the
   // roster leads, and the code stays only for a latecomer or a second screen.
-  const settled = roster.length > 0 && joined === roster.length
+  //
+  // It takes a table, though, not a person. On the road where the screen opens
+  // the room, the roster IS the list of phones that have joined, so equality
+  // holds from the very first one: the code and the QR were measured dropping
+  // from 194px and 626px to 76px and 320px the moment ONE person was in, which
+  // is exactly when everybody else still has to scan. Nothing here can know
+  // how many are coming, so the floor is the smallest table the game will run.
+  const settled = roster.length >= MIN_PLAYERS && joined === roster.length
   const names = roster
     .map(
       (r) => `<li class="lobby__name"${r.joined ? ' data-joined' : ''}>${esc(r.name)}${

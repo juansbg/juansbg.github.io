@@ -3661,6 +3661,26 @@ html[data-dawn] body {
   animation-name: none;
 }
 
+.tableview__night-track {
+  width: clamp(4rem, 40cqw, 12rem);
+  height: 2px;
+  background: var(--hairline);
+}
+
+.tableview__night-track span {
+  display: block;
+  width: var(--through, 0%);
+  height: 100%;
+  background: var(--fg-2);
+  transition: width var(--dur-slow) var(--ease-out);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tableview__night-track span {
+    transition: none;
+  }
+}
+
 /* On a 1080p screen the ring is as tall as the frame allows, so the hollow in
    the middle of it is the largest empty thing on the wall — and it is exactly
    where the room is already looking. The night's own line goes there at a size
@@ -3670,41 +3690,16 @@ html[data-dawn] body {
   gap: var(--space-3);
 }
 
-.stage--tv .tableview__night-label {
-  font-size: clamp(0.875rem, 1.8vmin, 1.75rem);
-}
-
-.stage--tv .tableview__night-count {
-  font-size: clamp(2rem, 9vmin, 9rem);
-  line-height: 1;
-}
-
 .stage--tv .screen--table .tableview__head {
   align-self: center;
 }
 
-/* A 1920x1080 frame holding a ring that is bounded by its height is two
-   symmetric 458px gutters, one carrying a single label shoved against the far
-   edge and the other carrying nothing: the void the room reads is that, not
-   the unused fraction. At night the hour and the night's own progress stand
-   together in the left column as one stack, and the ring takes the room the
-   right gutter was wasting. By day the middle of the ring is already spoken
-   for by the count and the verdict, so only the night moves. */
-.stage--tv .screen--table[data-phase='night'] {
-  grid-template-columns: minmax(0, 1.3fr) minmax(0, 5fr) minmax(0, 0.3fr);
-}
-
-.stage--tv .screen--table[data-phase='night'] .tableview__head {
-  display: grid;
-  gap: var(--space-4);
-  justify-items: start;
-  padding-left: var(--space-4);
-}
-
-.stage--tv .screen--table[data-phase='night'] .tableview__night {
-  justify-items: start;
-  text-align: left;
-}
+/* The ring keeps the frame's centre. An earlier pass widened the middle
+   column to give the ring the room the empty right gutter was wasting, which
+   was wrong twice over: --avail is bounded by the frame's HEIGHT, so a wider
+   column buys the ring nothing at all, and the asymmetry pushed it 136px
+   right of centre, which on a 1920 screen reads as a page that has slipped.
+   The columns are symmetric and nothing here overrides them. */
 
 .stage--tv .tableview__head .label {
   font-size: clamp(1.25rem, 4vmin, 4rem);
@@ -4022,15 +4017,44 @@ html[data-dawn] body {
 }
 
 .stage--tv .tableview__night-label {
-  font-size: clamp(1.25rem, 2.6vmin, 2.25rem);
+  /* Nothing the room is asked to read on a 1080p wall may fall under about
+     32px; this was 28 and sat in the hollow of the ring, which is the one
+     place on the screen with room to spare. */
+  font-size: clamp(1.25rem, 3.4vmin, 3rem);
 }
 
 .stage--tv .tableview__night-count {
-  font-size: clamp(2rem, 5vmin, 4rem);
+  font-size: clamp(2rem, 8vmin, 7rem);
+  line-height: 1;
+}
+
+.stage--tv .tableview__night-track {
+  width: clamp(8rem, 26vmin, 22rem);
+  margin-top: var(--space-3);
 }
 
 .stage--tv .seat[data-dead]::after {
   height: 4px;
+}
+
+.stage--tv .seat[data-dead],
+.stage--tv .seat[data-dead] .seat__name,
+.stage--tv .seat[data-dead] .seat__role,
+.stage--tv .seat[data-dead] .seat__n {
+  color: var(--fg-muted);
+}
+
+/* And on the over screen the dead are most of the table and their roles are
+   the whole payoff of the evening — the one state where every seat has to
+   read at full strength. */
+.stage--tv .screen--table[data-over] .seat[data-dead],
+.stage--tv .screen--table[data-over] .seat[data-dead] .seat__name,
+.stage--tv .screen--table[data-over] .seat[data-dead] .seat__n {
+  color: var(--fg);
+}
+
+.stage--tv .screen--table[data-over] .seat[data-dead] {
+  border-color: var(--hairline-strong);
 }
 
 .stage--tv .tableview__head .label {

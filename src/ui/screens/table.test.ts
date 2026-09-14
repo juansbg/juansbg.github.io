@@ -290,23 +290,38 @@ describe('the lobby a screen opens by itself', () => {
   })
 
   it('leads with the roster once everyone at the table already holds a phone, and demotes the code', () => {
-    const filling = lobbyMarkup(
-      { code: 'AB2CD', join: 'https://site/seat.html#room=AB2CD', roster: [{ name: 'Ana', joined: true }, { name: 'Beto', joined: false }] },
-      false,
-      'en',
-    )
+    const seats = (joined: number, of: number): { name: string; joined: boolean }[] =>
+      ['Ana', 'Beto', 'Caro', 'Dani', 'Eva'].slice(0, of).map((name, i) => ({ name, joined: i < joined }))
+
+    const filling = lobbyMarkup({ code: 'AB2CD', join: 'https://site/seat.html#room=AB2CD', roster: seats(3, 4) }, false, 'en')
     expect(filling).not.toContain('data-settled')
     expect(filling).not.toContain('lobby__headline')
 
-    const settled = lobbyMarkup(
-      { code: 'AB2CD', join: 'https://site/seat.html#room=AB2CD', roster: [{ name: 'Ana', joined: true }, { name: 'Beto', joined: true }] },
-      false,
-      'en',
-    )
+    const settled = lobbyMarkup({ code: 'AB2CD', join: 'https://site/seat.html#room=AB2CD', roster: seats(4, 4) }, false, 'en')
     expect(settled).toContain('data-settled')
     expect(settled).toContain('lobby__headline')
     // The code and QR are still there, for a latecomer or a second screen.
     expect(settled).toContain('AB2CD')
     expect(settled).toContain('<svg')
+  })
+
+  // On the road where the screen opens the room, the roster IS the list of
+  // phones that have joined, so "everyone has joined" is true of the very
+  // first person through the door — and the code and the QR were measured
+  // collapsing from 194px and 626px to 76px and 320px at exactly the moment
+  // the rest of the party still needed to scan them.
+  it('does not call a table settled before there is a table', () => {
+    for (const n of [1, 2, 3]) {
+      const early = lobbyMarkup(
+        {
+          code: 'AB2CD',
+          join: 'https://site/seat.html#room=AB2CD',
+          roster: ['Ana', 'Beto', 'Caro'].slice(0, n).map((name) => ({ name, joined: true })),
+        },
+        false,
+        'en',
+      )
+      expect(early).not.toContain('data-settled')
+    }
   })
 })
