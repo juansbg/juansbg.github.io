@@ -109,6 +109,29 @@ let inspecting: PlayerId | null = null
 let showingPlayer = false
 /** The narrator has asked to see roles and colours on this night step. */
 let peeking = false
+/**
+ * The Roles toggle is a glance, not a mode.
+ *
+ * It was cleared only by a game move, and CLAUDE.md's "every move resets it"
+ * quietly meant a mutation — but a discussion is minutes long and contains
+ * none. So a narrator who tapped ROLES to check the Family, started the
+ * three-minute clock and put the phone down on the table left every seat's
+ * role and both Family glows face-up in a room of players; measured surviving
+ * the clock, the ballot, the menu, the timeline, a replayed reading and even
+ * a language change. The whole security model of this app is that nothing
+ * showing a role outlives the hand holding it, and this was the one hole in
+ * it. It now closes itself.
+ */
+const PEEK_MS = 8_000
+let peekTimer: number | null = null
+
+const stopPeeking = (): void => {
+  if (peekTimer !== null) {
+    clearTimeout(peekTimer)
+    peekTimer = null
+  }
+  peeking = false
+}
 let showingLog = false
 /**
  * The screen is turned to the whole room: the seating plan with the public
@@ -752,7 +775,7 @@ const mutate = (
   // Any move belongs to the narrator, so the phone comes back to them — and
   // the next step starts safe to turn around again.
   showingPlayer = false
-  peeking = false
+  stopPeeking()
   // Painted inside the tap, not across a transition: see `Paint`.
   setState({ session: advance(state.session, change, entry) }, 'enter')
 }
@@ -1895,9 +1918,16 @@ function bind(): void {
     setState({})
   })
 
-  // The narrator's board, for this step only.
+  // The narrator's board, for this step only — and only for a few seconds.
   on(root, '[data-peek]', 'click', () => {
-    peeking = !peeking
+    if (peeking) stopPeeking()
+    else {
+      peeking = true
+      peekTimer = window.setTimeout(() => {
+        stopPeeking()
+        setState({}, false)
+      }, PEEK_MS)
+    }
     setState({}, false)
   })
 
@@ -2150,7 +2180,7 @@ function bind(): void {
     showingLog = false
     inspecting = null
     showingPlayer = false
-    peeking = false
+    stopPeeking()
     picked = []
     const session = revertTo(state.session, index)
     buzz()
@@ -2170,7 +2200,7 @@ function bind(): void {
     if (!canUndo(state.session)) return
     picked = []
     showingPlayer = false
-    peeking = false
+    stopPeeking()
     inspecting = null
     buzz()
     const session = undo(state.session)
