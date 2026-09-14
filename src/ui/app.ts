@@ -219,6 +219,21 @@ const takenSeats = (except: string): Set<PlayerId> =>
       .map(([, g]) => g.seat as PlayerId),
   )
 
+/**
+ * Seats whose phones can answer *right now*.
+ *
+ * The night card says "Dani is choosing on their phone" whenever every seat a
+ * step wakes holds one, and it read that off who had joined — not off whether
+ * the room was still reachable. With the relay down it therefore told the
+ * narrator, on the one screen they stare at all night, to wait for a tap that
+ * could not arrive. It is the same lie as a screen that goes on showing a
+ * frozen table: the seats were always tappable underneath, so with no room the
+ * card simply says nothing and the night is played the way it is at a table
+ * with no phones at all.
+ */
+const phonesAnswering = (): ReadonlySet<PlayerId> =>
+  room !== null && roomStatus === 'open' ? seatedFromPhones() : new Set<PlayerId>()
+
 /** Seats with a phone on them: the pass-around can skip those. A phone that has gone does not count. */
 const seatedFromPhones = (): Set<PlayerId> =>
   new Set(
@@ -887,7 +902,7 @@ function render(entering = false): void {
         ? nightDoneMarkup()
         : showingPlayer
           ? playerViewMarkup(game, state.locale, picked)
-          : nightMarkup(game, state.locale, picked, state.layout, peeking, seatedFromPhones())
+          : nightMarkup(game, state.locale, picked, state.layout, peeking, phonesAnswering())
   } else if (state.screen === 'day') {
     body =
       game.awaitingHunterShot !== null
