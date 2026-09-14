@@ -488,6 +488,8 @@ function projectionNow(): TvProjection {
     ...(shown === null ? {} : { shown }),
     join: room === null ? null : seatUrl(room, location.origin),
     roster: lobbyRoster(),
+    // The same test the seat projection uses: the narrator has left the names.
+    dealt: state.screen !== 'setup',
     // The TV shows the paper while the phone does.
     paper: paperOpen && state.screen === 'day' ? state.session.current.day : null,
   })

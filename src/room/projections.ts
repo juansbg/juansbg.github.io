@@ -69,6 +69,12 @@ export interface TvProjection {
   timer: TvTimer | null
   /** How far into the night the table is; null outside the night. */
   nightStep: TvNightStep | null
+  /**
+   * Still in setup, but the cards are dealt and the table is learning who it
+   * is. A plain boolean and nothing else: the room may know that the deal has
+   * happened, never what was dealt or to whom.
+   */
+  dealt: boolean
   /** Ballots against each seat today, most first; the count so far while it comes up. Counts only. */
   tally: { target: PlayerId; votes: number }[]
   /** Who the count points at once it is complete, or null on a tie or before. */
@@ -156,6 +162,8 @@ export interface TvContext {
   shown?: number
   join?: string | null
   roster?: { name: string; joined: boolean }[]
+  /** The narrator has left the names screen: the cards are out. */
+  dealt?: boolean
 }
 
 /** The ballot as the room may see it: sealed, coming up, or every ballot. */
@@ -210,6 +218,7 @@ export const tvProjection = (
   paper: context.paper ?? null,
   join: state.phase === 'setup' ? (context.join ?? null) : null,
   roster: state.phase === 'setup' ? (context.roster ?? []) : [],
+  dealt: context.dealt === true,
 })
 
 /**

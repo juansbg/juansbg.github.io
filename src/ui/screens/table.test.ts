@@ -305,6 +305,31 @@ describe('the lobby a screen opens by itself', () => {
     expect(settled).toContain('<svg')
   })
 
+  // For the two or three minutes it takes to deal and pass the phone round,
+  // the big screen went on saying "scan to take a seat" over a QR that now
+  // refuses anyone who scans it. The phase is still `setup` through all of it,
+  // so the screen had no way to know until the projection carried `dealt`.
+  it('stops asking the room to scan once the cards are out', () => {
+    const roster = ['Ana', 'Beto', 'Caro', 'Dani'].map((name) => ({ name, joined: true }))
+    const join = 'https://site/seat.html#room=AB2CD'
+    for (const locale of LOCALES) {
+      const t = strings(locale)
+      const dealing = lobbyMarkup({ code: 'AB2CD', join, roster, dealt: true }, false, locale)
+      expect(dealing).toContain('data-dealing')
+      expect(dealing).toContain(t.ui.reveal.dealt)
+      // The door is shut: no QR, and nobody is told to scan one.
+      expect(dealing).not.toContain('<svg')
+      expect(dealing).not.toContain(t.ui.table.scanToJoin)
+      // The names are still there — they are the whole screen now.
+      for (const r of roster) expect(dealing).toContain(r.name)
+
+      const before = lobbyMarkup({ code: 'AB2CD', join, roster, dealt: false }, false, locale)
+      expect(before).not.toContain('data-dealing')
+      expect(before).toContain(t.ui.table.scanToJoin)
+      expect(before).toContain('<svg')
+    }
+  })
+
   // On the road where the screen opens the room, the roster IS the list of
   // phones that have joined, so "everyone has joined" is true of the very
   // first person through the door — and the code and the QR were measured

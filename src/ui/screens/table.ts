@@ -47,7 +47,8 @@ const seatOf = (s: TvSeat, cast?: TvCast): Player => ({
 
 export const tableMarkup = (p: TvProjection, controls = true): string => {
   const t = strings(p.locale)
-  if (p.phase === 'setup') return lobbyMarkup({ code: codeOf(p.join), join: p.join, roster: p.roster }, controls, p.locale)
+  if (p.phase === 'setup')
+    return lobbyMarkup({ code: codeOf(p.join), join: p.join, roster: p.roster, dealt: p.dealt }, controls, p.locale)
   // The engine's phase stays where the game ended; the projection says when it
   // is over (a win, or the narrator ending it early from the menu).
   const over = p.over
@@ -218,6 +219,12 @@ export interface Lobby {
   roster: { name: string; joined: boolean }[] | null
   /** One quiet line under the narrator's: the relay's state, when it is not simply open. */
   note?: string
+  /**
+   * The cards are out and the table is learning who it is. The door is shut:
+   * the QR would refuse anyone who scanned it now, so it goes, and the screen
+   * says what is actually happening instead of what happened ten minutes ago.
+   */
+  dealt?: boolean
 }
 
 /** The code inside a join address, so the projection need not carry it twice. */
@@ -237,6 +244,7 @@ export const lobbyMarkup = (lobby: Lobby, controls: boolean, locale: Locale): st
   const roster = lobby.roster ?? []
   const joined = roster.filter((r) => r.joined).length
   const enough = roster.length >= MIN_PLAYERS
+  const dealing = lobby.dealt === true
   // Everyone at the table already holds a phone — a fresh lobby that just
   // filled, or a rematch where every phone reconnected under its old name in
   // the seconds after "Play again". Either way the QR has done its job: the
@@ -264,7 +272,11 @@ export const lobbyMarkup = (lobby: Lobby, controls: boolean, locale: Locale): st
            ${lobby.note === undefined ? '' : `<p class="lobby__note">${esc(lobby.note)}</p>`}
          </div>`
       : `<div class="lobby__roster">
-           <p class="${settled ? 'title title--sm lobby__headline' : 'label'}">${esc(t.ui.table.joined(joined, roster.length))}</p>
+           ${
+             dealing
+               ? ''
+               : `<p class="${settled ? 'title title--sm lobby__headline' : 'label'}">${esc(t.ui.table.joined(joined, roster.length))}</p>`
+           }
            <ul class="lobby__names">${names}</ul>
            ${
              controls
@@ -277,11 +289,17 @@ export const lobbyMarkup = (lobby: Lobby, controls: boolean, locale: Locale): st
            }
          </div>`
   return `
-    <section class="screen screen--lobby" data-table data-phase="setup"${lobby.roster === null ? ' data-unclaimed' : ''}${settled ? ' data-settled' : ''}>
+    <section class="screen screen--lobby" data-table data-phase="setup"${lobby.roster === null ? ' data-unclaimed' : ''}${
+      settled ? ' data-settled' : ''
+    }${dealing ? ' data-dealing' : ''}>
       <div class="lobby__code">
-        <p class="label">${esc(t.ui.table.scanToJoin)}</p>
-        ${lobby.code === null ? '' : `<p class="title lobby__room">${esc(lobby.code)}</p>`}
-        ${lobby.join === null ? '' : `<div class="room__qr lobby__qr" aria-hidden="true">${qrSvg(lobby.join)}</div>`}
+        ${
+          dealing
+            ? `<h1 class="title lobby__dealt">${esc(t.ui.reveal.dealt)}</h1>`
+            : `<p class="label">${esc(t.ui.table.scanToJoin)}</p>
+               ${lobby.code === null ? '' : `<p class="title lobby__room">${esc(lobby.code)}</p>`}
+               ${lobby.join === null ? '' : `<div class="room__qr lobby__qr" aria-hidden="true">${qrSvg(lobby.join)}</div>`}`
+        }
       </div>
       ${column}
     </section>
