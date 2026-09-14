@@ -144,10 +144,15 @@ export const nightMarkup = (
       : ''
 
   const needed = picksNeeded(roleId)
+  // The Apothecary's card is the tallest in the night — a prompt, a name and
+  // two vials — and hers is the step where the narrator most needs to see the
+  // whole table, since she is choosing who to poison. Her prompt already says
+  // to pick somebody, and the vials are under it, so the line that says it
+  // again is what gives up the height.
   const hint =
     spec.kind === 'split'
       ? `<p class="label">${esc(t.ui.night.splitHint)}</p>`
-      : needed > 0 && picked.length < needed
+      : needed > 0 && picked.length < needed && spec.kind !== 'potion'
         ? `<p class="label">${esc(needed === 2 ? t.ui.night.pickTwo : t.ui.night.pickOne)}</p>`
         : ''
 

@@ -98,21 +98,43 @@ const entryGlyph = (entry: TimelineEntry): string => {
   }
 }
 
-export const timelineMarkup = (session: Session, locale: Locale): string => {
+/**
+ * A phone turned away at the door.
+ *
+ * Nothing in the game changed, so a notice is not a timeline entry: it has no
+ * state behind it and nothing to rewind to. It rides beside the entries and
+ * sits where it happened, which is what a narrator needs — they were reading
+ * the night aloud when somebody's phone said "no seat for that name", and
+ * until now the only device that never heard about it was theirs.
+ */
+export interface Notice {
+  readonly night: number
+  /** How many entries the timeline had when it happened, so it sorts. */
+  readonly at: number
+  readonly name: string
+  readonly reason: 'notOnList' | 'nameTaken' | 'tableFull'
+}
+
+export const timelineMarkup = (
+  session: Session,
+  locale: Locale,
+  notices: readonly Notice[] = [],
+): string => {
   const t = strings(locale)
   const players = session.current.players
 
   // Newest first: the narrator is almost always looking at what just happened.
   // Setup edits are kept in history so they can be rewound to, but they are
   // not moves in the game and would drown the log.
-  const rows = session.timeline
+  const moves = session.timeline
     .map((entry, i) => ({ entry, i }))
     .filter(({ entry }) => entry.kind !== 'setup')
-    .reverse()
     .map(({ entry, i }) => {
       const divider = entry.kind === 'nightStart' || entry.kind === 'nightEnd'
       const mark = entry.roleId ? sigilMarkup(entry.roleId) : entryGlyph(entry)
-      return `
+      return {
+        at: i,
+        html: `
         <li class="log__row${divider ? ' log__row--divider' : ''}${
           entry.action?.kind === 'skip' ? ' log__row--quiet' : ''
         }"
@@ -125,8 +147,29 @@ export const timelineMarkup = (session: Session, locale: Locale): string => {
                   aria-label="${esc(`${t.ui.timeline.revertHere} · ${describeEntry(entry, players, locale)}`)}"
                   title="${esc(t.ui.timeline.revertHere)}">↶</button>
         </li>
-      `
+      `,
+      }
     })
+
+  // The door's own lines, in the same order, with no rewind: there is
+  // nothing behind them to go back to.
+  const turned = notices.map((notice) => ({
+    // `at` is how long the timeline was when the door said no, so the notice
+    // belongs just before whatever became that entry.
+    at: notice.at - 0.5,
+    html: `
+      <li class="log__row log__row--quiet" data-night="${notice.night}" data-accent="system">
+        <span class="log__night" aria-hidden="true">N${notice.night}</span>
+        <span class="mark" aria-hidden="true">✕</span>
+        <span class="log__text">${esc(t.ui.timeline[notice.reason](notice.name))}</span>
+      </li>
+    `,
+  }))
+
+  // Newest first: the narrator is almost always looking at what just happened.
+  const rows = [...moves, ...turned]
+    .sort((a, b) => b.at - a.at)
+    .map((row) => row.html)
     .join('')
 
   return `
@@ -166,7 +209,13 @@ export const outcomeCardMarkup = (
   const line = renderOutcome(outcome, players, locale)
   if (line === null) return null
   const source = outcomeAccent(outcome)
-  const mark = source === 'town' ? '⚖' : sigilMarkup(source)
+  // The town's accent covers two different things: what the town decided,
+  // which is the scales, and what somebody let slip, which is a paragraph
+  // mark. The dawn reading and the paper have always told them apart; the
+  // morning report and the record did not, so a rumour from a neighbour
+  // carried the same scales of justice as the execution above it — and on a
+  // day with both, the report showed two verdicts.
+  const mark = source !== 'town' ? sigilMarkup(source) : outcome.type === 'clue' ? '¶' : '⚖'
 
   const subject =
     'target' in outcome ? players.find((p) => p.id === outcome.target)?.name : undefined

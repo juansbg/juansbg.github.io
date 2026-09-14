@@ -85,7 +85,16 @@ let waitingSince: number | null = null
 const LONG_WAIT_MS = 9_000
 let waitTimer: number | null = null
 let joined = false
-let refused = false
+/**
+ * The door said no, and why, or null while it has not.
+ *
+ * The reason comes from the narrator's device, because it is the only one
+ * that can know it: this phone knows the name it typed and nothing else about
+ * the table. The three cases are the ones the narrator's own timeline names,
+ * so the two screens describe one event in the same words.
+ */
+type Refusal = 'notOnList' | 'nameTaken' | 'tableFull'
+let refused: Refusal | null = null
 let projection: SeatProjection | null = null
 let link: PlayerLink | null = null
 let releaseHold: (() => void) | null = null
@@ -121,8 +130,14 @@ const render = (): void => {
   } else if (room === null || status === 'gone') {
     // No room in the address, or the one in it has closed: the code is on the screen, typed here (§11).
     body = codeMarkup(locale, status === 'gone')
-  } else if (refused) {
-    body = center(`<h1 class="title title--sm">${esc(s.refused)}</h1><p class="subtitle">${esc(s.refusedBody)}</p>`)
+  } else if (refused !== null) {
+    const said: Record<Refusal, { head: string; body: string }> = {
+      notOnList: { head: s.refused, body: s.refusedBody },
+      nameTaken: { head: s.refusedTaken, body: s.refusedTakenBody },
+      tableFull: { head: s.refusedFull, body: s.refusedFullBody },
+    }
+    const { head, body: why } = said[refused]
+    body = center(`<h1 class="title title--sm">${esc(head)}</h1><p class="subtitle">${esc(why)}</p>`)
   } else if (!joined) {
     body = `
       <section class="screen screen--center mine">
@@ -196,14 +211,14 @@ const applySealed = async (payload: string): Promise<void> => {
   }
   const text = await unseal(shared, payload)
   if (text === null) return
-  const parsed = JSON.parse(text) as SeatProjection | { kind: 'refused' }
+  const parsed = JSON.parse(text) as SeatProjection | { kind: 'refused'; reason?: Refusal }
   if (parsed.kind === 'refused') {
-    refused = true
+    refused = parsed.reason ?? 'notOnList'
     joined = true
   } else if (parsed.kind === 'seat') {
     projection = parsed
     joined = true
-    refused = false
+    refused = null
     remember(nameKey, parsed.name)
     picks = settlePicks(parsed, picks, stepKey)
     stepKey = stepKeyOf(parsed)
