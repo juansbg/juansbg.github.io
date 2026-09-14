@@ -963,8 +963,13 @@ body {
 
 .night__counter {
   margin: 0;
-  color: var(--fg-muted);
-  font-size: var(--text-xs);
+  /* How far through the night the narrator is, which is the one thing on this
+     screen they cannot work out for themselves — and it was the smallest,
+     dimmest thing on it, 12px of muted mono in a corner, read one-handed in a
+     dark room. The audit calls anything under 13px tiny; this is the sentence
+     it was written for. */
+  color: var(--fg-2);
+  font-size: var(--text-sm);
   letter-spacing: var(--track-label);
   text-transform: uppercase;
 }

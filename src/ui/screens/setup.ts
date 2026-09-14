@@ -140,6 +140,16 @@ export const namesMarkup = (
             : ''
         }
         ${error === '' ? `<p class="field__hint">${addressLine(st.screenHint(ADDRESS), screen.address, st.thisIsScreen)}</p>` : `<p class="notice" data-screen-error>${esc(error)}</p>`}
+        ${
+          // A refused key is the one refusal a person cannot act on from what
+          // the screen says: the hint tells them the relay wants a key and
+          // nothing tells them where a key comes from, or that the whole game
+          // plays with no room at all. Both, at the point it happens.
+          screen.error === 'key'
+            ? `<p class="field__hint">${esc(r.keyWhere)}</p>
+               <p class="field__hint">${esc(r.noRoom)}</p>`
+            : ''
+        }
       </form>`
   }
 

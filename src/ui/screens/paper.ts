@@ -466,7 +466,10 @@ export const paperMarkup = (state: GameState, locale: Locale): string => {
     const cause: Outcome = { type: 'death', night: s.night, target: -1, cause: s.cause, public: true }
     return {
       kind: s.cause === 'lynch' ? 'verdict' : 'death',
-      eyebrow: t.ui.timeline.nightStart(s.night),
+      // An execution happened in daylight, in front of everybody. Filing it
+      // under "Night 1" on a newspaper — the one artefact of this game that
+      // leaves the room — reads as a paper that does not know its own dates.
+      eyebrow: s.cause === 'lynch' ? t.ui.table.day(s.night) : t.ui.timeline.nightStart(s.night),
       headline: s.headline,
       dek: s.line,
       note: null,

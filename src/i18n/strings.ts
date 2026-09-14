@@ -483,6 +483,10 @@ export interface Strings {
       keyHint: string
       /** The relay refused the key. */
       refused: string
+      /** What a key is and where it comes from, for somebody who has never had one. */
+      keyWhere: string
+      /** The road that needs no room at all, offered at the point of refusal. */
+      noRoom: string
       /** Another phone claimed this room with the key; this one no longer runs it. */
       replaced: string
       /**

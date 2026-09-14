@@ -25,7 +25,7 @@ import {
   type TimelineEntry,
 } from '../engine/state'
 import type { NightAction, PlayerId } from '../engine/types'
-import { detectLocale, strings } from '../i18n'
+import { LOCALES, detectLocale, strings, type Locale } from '../i18n'
 import { bindSheetDrag, buzz, esc, markEdges, on, swap } from './dom'
 import { sound, unlockOnGesture } from './sound'
 import { clear, clearRoster, clearStats, forgetGame, load, loadRoster, loadStats, loadTimer, recordGame, save, saveRoster, saveTimer, type AppState } from './store'
@@ -1256,7 +1256,6 @@ function render(entering = false): void {
 
   /** The overflow sheet. Rows are per screen; destructive ones sit last. */
   function menuMarkup(): string {
-    const other = state.locale === 'es' ? 'en' : 'es'
     const inPlay = state.screen === 'night' || state.screen === 'day'
     const restartable = state.screen !== 'setup' || game.players.length > 0
     const row = (attr: string, label: string, value = '', danger = false): string => `
@@ -1266,7 +1265,15 @@ function render(entering = false): void {
       </button>
     `
     const items = [
-      row('data-lang', t.ui.menu.language, strings(other).languageName),
+      `<div class="menu__item menu__item--static menu__item--stack">
+         <span class="menu__label">${esc(t.ui.menu.language)}</span>
+         <span class="menu__segment" role="radiogroup" aria-label="${esc(t.ui.menu.language)}">
+           ${LOCALES.map(
+             (locale) => `<button class="menu__seg" type="button" role="radio" data-lang="${locale}"
+                   aria-checked="${state.locale === locale}">${esc(strings(locale).languageName)}</button>`,
+           ).join('')}
+         </span>
+       </div>`,
       inPlay
         ? `<div class="menu__item menu__item--static menu__item--stack">
              <span class="menu__label">${esc(t.ui.menu.layout)}</span>
@@ -1380,9 +1387,11 @@ function bind(): void {
 
   // Every other row in the menu can be changed with the sheet still open —
   // mute, layout, the clock's length — so the one that closed it read as a
-  // different, less considered control. It relabels itself in place instead.
-  on(root, '[data-lang]', 'click', () => {
-    setState({ locale: state.locale === 'es' ? 'en' : 'es' }, false)
+  // different, less considered control. It marks itself in place instead.
+  on(root, '[data-lang]', 'click', (_e, el) => {
+    const locale = el.dataset.lang
+    if (locale === undefined || locale === state.locale) return
+    setState({ locale: locale as Locale }, false)
   })
 
   on(root, '[data-menu]', 'click', () => {
