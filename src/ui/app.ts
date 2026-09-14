@@ -31,7 +31,7 @@ import { sound, unlockOnGesture } from './sound'
 import { clear, clearRoster, clearStats, forgetGame, load, loadRoster, loadStats, loadTimer, recordGame, save, saveRoster, saveTimer, type AppState } from './store'
 import { statsMarkup } from './screens/stats'
 import { summarise } from '../engine/summary'
-import { editorMarkup, MAX_PLAYERS, MIN_PLAYERS, namesMarkup, rosterMarkup, type ScreenJoin } from './screens/setup'
+import { editorMarkup, MAX_PLAYERS, MIN_PLAYERS, namesMarkup, rosterMarkup, seatFor, type ScreenJoin } from './screens/setup'
 import { dealRoles, systemRandom, type Complexity } from '../engine/deal'
 import { askCardMarkup, dayMarkup, hunterMarkup, inspectionMarkup, nightMarkup, playerViewMarkup, questionCardMarkup, questionsIntroMarkup } from './screens/night'
 import { countOrder } from './screens/vote'
@@ -233,6 +233,13 @@ const takenSeats = (except: string): Set<PlayerId> =>
 const phonesAnswering = (): ReadonlySet<PlayerId> =>
   room !== null && roomStatus === 'open' ? seatedFromPhones() : new Set<PlayerId>()
 
+/**
+ * How the table sat at the end of the last game, so "Play again" can put it
+ * back. Empty until a game has been restarted, and cleared by a new table,
+ * which forgets the people on purpose.
+ */
+let seatOrder: string[] = []
+
 /** Seats with a phone on them: the pass-around can skip those. A phone that has gone does not count. */
 const seatedFromPhones = (): Set<PlayerId> =>
   new Set(
@@ -259,9 +266,18 @@ function claimSeat(cid: string, name: string): PlayerId | null {
     // no different, and the phone is told which door it is (`refusal`).
     if (names.some((n) => sameName(n, name))) return null
     if (names.length >= MAX_PLAYERS) return null
-    names = [...names, name.trim()]
+    // Back into the seat they had last game, if the table has played one.
+    const at = seatFor(names, seatOrder, name)
+    names = [...names.slice(0, at), name.trim(), ...names.slice(at)]
     saveRoster(names)
-    return names.length - 1
+    // A seat is a position in the list while the list is all there is, so
+    // everyone already sitting past the newcomer shuffles round one.
+    if (at < names.length - 1) {
+      for (const guest of guests.values()) {
+        if (guest.seat !== null && guest.seat >= at) guest.seat = (guest.seat + 1) as PlayerId
+      }
+    }
+    return at as PlayerId
   }
   const player = game.players.find((p) => sameName(p.name, name) && !taken.has(p.id))
   return player ? player.id : null
@@ -280,6 +296,17 @@ function claimSeat(cid: string, name: string): PlayerId | null {
  */
 let notices: Notice[] = []
 const turnedAway = new Set<string>()
+/**
+ * How many of the door's lines the narrator has actually looked at.
+ *
+ * During setup the refusals are on the names screen itself, where the roster
+ * is being fixed. Once the game starts there is no names screen and the
+ * Timeline is the only place they live — so in play a phone knocking and
+ * being turned away changed nothing whatsoever on the narrator's screen. It
+ * was recorded faithfully and shown to nobody, which is the same defect the
+ * setup line fixed, one screen along.
+ */
+let noticesRead = 0
 
 /** Why the door said no, in the words the narrator needs. */
 function refusal(name: string): Notice['reason'] {
@@ -409,11 +436,15 @@ function connectRoom(): void {
       roomStatus = status
       // Every fresh socket says hello, so a player who connected first can key up.
       if (status === 'open' && narratorKeys !== null) link?.send({ kind: 'hello', pub: narratorKeys.pub })
-      // A repaint only when the room's sheet was open meant the one status
-      // that changes what this phone *is* — replaced, another phone runs the
-      // game now — reached no screen at all unless the narrator happened to
-      // have the sheet up. The stage carries that one itself.
-      if (roomOpen || status === 'replaced') setState({}, false)
+      // Always, now that the bar carries the room's health as a mark on ⋯.
+      // This used to repaint only while the room's sheet was open, which left
+      // the one status that changes what this phone *is* — replaced, another
+      // phone runs the game now — reaching no screen at all unless the
+      // narrator happened to have the sheet up; and with the mark on the bar
+      // it would have left that mark stuck at whatever it was when something
+      // else last painted. The status changes on a connect or a drop, not per
+      // frame, so this is a handful of repaints an evening.
+      setState({}, false)
     },
     onMessage: handleRoomMessage,
   })
@@ -1128,15 +1159,36 @@ function render(entering = false): void {
     // A player is looking at the screen: the timeline would show them every
     // move so far, and the menu can end the game.
     if (state.screen === 'night' && showingPlayer && !isNightComplete(game)) return ''
+    // The room's health, as one mark on a button that is already on the bar.
+    //
+    // The narrator's own phone said nothing at all when its socket died: the
+    // status lived only inside the Big screen sheet, so a live room and a
+    // dead one looked identical to the person running the game. A banner is
+    // the wrong answer — they are reading aloud to eight people in a dark
+    // room, and a strip that appears mid-sentence is exactly the noise the
+    // chrome rules exist to keep out. So: no new chrome, no colour outside
+    // the palette, nothing that moves. Somewhere to look for a narrator who
+    // wonders, and nothing at all for one who does not. The sheet keeps the
+    // detail. A replaced phone is not marked here; it has the stage's own
+    // notice, which is louder on purpose and says something different.
+    const roomQuiet = room !== null && roomStatus !== 'open' && roomStatus !== 'replaced'
+    // Somebody knocked and the door said no. The same mark as the room's, on
+    // the button that already leads to the words: the Timeline is where the
+    // door's lines live, so the mark points at the answer rather than being
+    // one. It goes as soon as the sheet has been opened.
+    const atTheDoor = notices.length > noticesRead
     const inGame = state.screen !== 'setup'
     const timeline = inGame
-      ? `<button class="bar__btn" type="button" data-log>${esc(t.ui.timeline.open)}</button>`
+      ? `<button class="bar__btn" type="button" data-log${atTheDoor ? ' data-door' : ''}
+                 aria-label="${esc(atTheDoor ? `${t.ui.timeline.open} · ${t.ui.timeline[notices[notices.length - 1]!.reason](notices[notices.length - 1]!.name)}` : t.ui.timeline.open)}"
+         >${esc(t.ui.timeline.open)}</button>`
       : '<span></span>'
     return `
       <nav class="bar${inGame ? '' : ' bar--quiet'}">
         ${timeline}
-        <button class="bar__menu" type="button" data-menu aria-haspopup="dialog"
-                aria-label="${esc(t.ui.menu.more)}" title="${esc(t.ui.menu.more)}">⋯</button>
+        <button class="bar__menu" type="button" data-menu aria-haspopup="dialog"${roomQuiet ? ' data-room-quiet' : ''}
+                aria-label="${esc(roomQuiet ? `${t.ui.menu.more} · ${t.ui.room.reconnecting}` : t.ui.menu.more)}"
+                title="${esc(t.ui.menu.more)}">⋯</button>
       </nav>
     `
   }
@@ -1497,6 +1549,7 @@ function bind(): void {
     closeShot()
     // A new game starts at an empty door.
     notices = []
+    noticesRead = 0
     turnedAway.clear()
     clear()
     // A room's table is whoever joins it, so a remembered list would show
@@ -1504,6 +1557,16 @@ function bind(): void {
     // emptied list always comes with a fresh hello (a no-op with no room
     // open), or the phones would stay seated at a table with no names on it
     // and nobody could rejoin without reloading.
+    // What the table looked like, before the list is thrown away: the seats
+    // if a game was played, the typed list if it never got that far. A new
+    // table forgets it, which is the thing its label promises.
+    seatOrder = forgetPeople
+      ? []
+      : state.session.current.players.length > 0
+        ? state.session.current.players.map((p) => p.name)
+        : names.length > 0
+          ? [...names]
+          : seatOrder
     const startEmpty = forgetPeople || room !== null
     names = startEmpty ? [] : loadRoster()
     if (startEmpty) rekeyRoom()
@@ -2181,6 +2244,7 @@ function bind(): void {
 
   on(root, '[data-log]', 'click', () => {
     showingLog = true
+    noticesRead = notices.length
     setState({}, false)
   })
 

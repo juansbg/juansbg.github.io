@@ -1575,6 +1575,29 @@ body {
   background: var(--surface-raised);
 }
 
+/* Something the narrator might want and nobody should be interrupted by: the
+   room has stopped answering (on ⋯, which holds the room), or somebody
+   knocked and was turned away (on Timeline, which holds the words). One mark
+   in the corner of a button that is already there, in the same Ash as a
+   hairline. Square, because the radius is zero everywhere, and still, because
+   a pulse in the dark would pull the whole table's eye to a phone that is
+   meant to be furniture. */
+.bar__btn[data-door],
+.bar__menu[data-room-quiet] {
+  position: relative;
+}
+
+.bar__btn[data-door]::after,
+.bar__menu[data-room-quiet]::after {
+  content: '';
+  position: absolute;
+  top: var(--space-2);
+  right: var(--space-2);
+  width: 6px;
+  height: 6px;
+  background: var(--fg-muted);
+}
+
 /* ---------- The overflow menu ---------- */
 
 /* The list scrolls, the way out does not. Letting the whole panel scroll put
@@ -4279,6 +4302,13 @@ html[data-dawn] body {
    line under the list names them. */
 .name-chip[data-clash] {
   border-color: color-mix(in oklab, var(--accent) 60%, var(--hairline-strong));
+}
+
+/* The label over the name field once a room is open: the field is no longer
+   what the screen is for, so its label reads as an aside rather than a
+   heading. */
+.field__label--aside {
+  color: var(--fg-muted);
 }
 
 .field__hint--clash {

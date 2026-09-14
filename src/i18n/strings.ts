@@ -113,6 +113,19 @@ export interface Strings {
       howMany: string
       /** The name-entry screen. */
       whoIsPlaying: string
+      /**
+       * The same screen once a room is open, where the phones are doing the
+       * joining.
+       *
+       * With a room claimed and nobody seated yet, the biggest thing on the
+       * narrator's phone was a text field and the word "Who is playing?",
+       * while the screen across the room told everybody to scan — two
+       * instructions that contradict each other in one room. The field is
+       * still there for somebody who has no phone; it is just no longer the
+       * thing the screen is about.
+       */
+      roomJoining: string
+      noPhone: string
       addName: string
       addHint: string
       minPlayers: (n: number) => string
@@ -622,6 +635,14 @@ export interface Strings {
       noRoom: string
       waiting: string
       reconnecting: string
+      /**
+       * The first connection, which is not a RE-connection.
+       *
+       * A television switched on at the start of an evening led with
+       * "Reconnecting..." on a socket that had never once been connected,
+       * which reads as a fault before anything has happened.
+       */
+      connecting: string
       /** The screen opened the room itself and no narrator has claimed it yet (docs/BIG-SCREEN.md §11). */
       forNarrator: string
       enterCode: string

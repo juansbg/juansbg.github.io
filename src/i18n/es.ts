@@ -142,6 +142,8 @@ export const es: Strings = {
     setup: {
       howMany: '¿Cuántos jugadores?',
       whoIsPlaying: '¿Quién juega?',
+      roomJoining: 'La mesa se está sentando desde la pantalla.',
+      noPhone: 'Alguien sin móvil',
       addName: 'Añadir',
       addHint: 'Escribe un nombre y pulsa Intro. Uno detrás de otro.',
       minPlayers: (n) => `Hacen falta al menos ${n} jugadores`,
@@ -836,6 +838,7 @@ export const es: Strings = {
       noRoom: 'No hay sala en esta dirección',
       waiting: 'Esperando al narrador…',
       reconnecting: 'Reconectando…',
+      connecting: 'Conectando…',
       forNarrator: 'Para el narrador',
       enterCode: `Abre ${APP_NAME} en tu móvil y escribe este código`,
       relayDown: 'El relé no ha respondido. Reintentando…',

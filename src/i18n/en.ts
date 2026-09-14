@@ -142,6 +142,8 @@ export const en: Strings = {
     setup: {
       howMany: 'How many players?',
       whoIsPlaying: 'Who is playing?',
+      roomJoining: 'The table is taking its seats from the screen.',
+      noPhone: 'Someone without a phone',
       addName: 'Add',
       addHint: 'Type a name and hit Enter. One after another.',
       minPlayers: (n) => `You need at least ${n} players`,
@@ -831,6 +833,7 @@ export const en: Strings = {
       noRoom: 'No room at this address',
       waiting: 'Waiting for the narrator…',
       reconnecting: 'Reconnecting…',
+      connecting: 'Connecting…',
       forNarrator: 'For the narrator',
       enterCode: `Open ${APP_NAME} on your phone and enter this code`,
       relayDown: 'The relay did not answer. Trying again…',

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { balanceMarkup, namesMarkup, rosterMarkup, MIN_PLAYERS } from './setup'
+import { balanceMarkup, namesMarkup, rosterMarkup, seatFor, MIN_PLAYERS } from './setup'
 import { LOCALES } from '../../i18n'
 import { describeEntry, historyMarkup, outcomeCardMarkup, timelineMarkup } from './timeline'
 import { strings } from '../../i18n'
@@ -180,6 +180,33 @@ describe('the big screen from the names screen', () => {
     })
     expect(html).toContain(t.ui.setup.turned.notOnList(['Dos', 'Tres', 'Cuatro', 'Cinco']))
     expect(html).not.toContain('Uno')
+  })
+
+  it('leads with the room and demotes the name field, once a room is open', () => {
+    const room = { code: 'AB2CD', tvs: 1, phones: 2 }
+    for (const locale of LOCALES) {
+      const t = strings(locale)
+      const html = namesMarkup(four, locale, new Set([0, 1]), { ...idle, room })
+      // The screen is about the room filling up, not about typing names.
+      expect(html).toContain(t.ui.setup.roomJoining)
+      expect(html).not.toContain(t.ui.setup.whoIsPlaying)
+      // The field is still there, for the one person who has no phone.
+      expect(html).toContain('data-new-name')
+      expect(html).toContain(t.ui.setup.noPhone)
+      // Under the roster, not over it.
+      expect(html.indexOf('name-list')).toBeLessThan(html.indexOf('data-new-name'))
+      // And the keyboard stays down: it covered the roster it was opened to watch.
+      expect(html).not.toContain('autofocus')
+    }
+  })
+
+  it('still leads with the name field when there is no room', () => {
+    const t = strings('en')
+    const html = namesMarkup(four, 'en', new Set(), idle)
+    expect(html).toContain(t.ui.setup.whoIsPlaying)
+    expect(html).not.toContain(t.ui.setup.roomJoining)
+    expect(html).toContain('autofocus')
+    expect(html.indexOf('data-new-name')).toBeLessThan(html.indexOf('name-list'))
   })
 
   it('shows nothing of the screen when no relay is configured', () => {
@@ -398,5 +425,43 @@ describe('a vote in the log', () => {
     const players = createGame(cast(['KILLER', 'PLAIN'], ['Ana', 'Beto'])).players
     expect(describeEntry({ night: 1, kind: 'vote', voter: 1, target: 0 }, players, 'en')).toBe('Beto votes for Ana')
     expect(describeEntry({ night: 1, kind: 'vote', voter: 1 }, players, 'es')).toBe('Beto retira su voto')
+  })
+})
+
+describe('the table keeps its shape across a restart', () => {
+  const order = ['Ana', 'Beto', 'Caro', 'Dani']
+  // Phones rejoin in whatever order they reconnect, which is not the order
+  // the table is actually sitting in.
+  const rejoin = (arrivals: readonly string[]): string[] => {
+    let names: string[] = []
+    for (const name of arrivals) {
+      const at = seatFor(names, order, name)
+      names = [...names.slice(0, at), name, ...names.slice(at)]
+    }
+    return names
+  }
+
+  it('puts everyone back where they sat, whatever order they reconnect in', () => {
+    expect(rejoin(['Caro', 'Ana', 'Dani', 'Beto'])).toEqual(order)
+    expect(rejoin(['Dani', 'Caro', 'Beto', 'Ana'])).toEqual(order)
+    expect(rejoin(order)).toEqual(order)
+  })
+
+  it('keeps the circle unbroken when somebody does not come back', () => {
+    // Beto has gone home. Everyone else is still sitting where they were.
+    expect(rejoin(['Dani', 'Ana', 'Caro'])).toEqual(['Ana', 'Caro', 'Dani'])
+  })
+
+  it('seats somebody new at the end, in the order they arrived', () => {
+    expect(rejoin(['Caro', 'Zeke', 'Ana', 'Yola'])).toEqual(['Ana', 'Caro', 'Zeke', 'Yola'])
+  })
+
+  it('is the plain arrival order when the table has never played', () => {
+    expect(seatFor(['Ana'], [], 'Beto')).toBe(1)
+    expect(seatFor([], [], 'Ana')).toBe(0)
+  })
+
+  it('matches a name the way the rest of the table does, case and spacing aside', () => {
+    expect(seatFor(['Caro'], order, ' ana ')).toBe(0)
   })
 })
