@@ -6,6 +6,7 @@ import type { SeatNight, SeatProjection } from '../../room/projections'
 import { esc } from '../dom'
 import { sigilMarkup } from '../sigils'
 import { circleMarkup, type Perspective } from './circle'
+import { holdMarkup } from './reveal'
 
 /**
  * A player's phone, as markup: what one seat is shown from its own sealed
@@ -57,6 +58,31 @@ const tableSeat = (s: SeatProjection['players'][number]): Player => ({
 })
 
 /**
+ * The same seat, once the game is over: `p.cast` is the whole table's role
+ * and trade, public now (`TvCast`, built only once `over` is true). Before
+ * that this must never be called -- there is no cast to read yet.
+ */
+const castSeat = (p: SeatProjection, s: SeatProjection['players'][number]): Player => {
+  const c = p.cast.find((x) => x.id === s.id)
+  return {
+    id: s.id,
+    name: s.name,
+    roleId: c?.roleId ?? 'PLAIN',
+    alive: s.alive,
+    protectedTonight: false,
+    protectedLastNight: false,
+    wolfAttacksSurvivable: 0,
+    loverOf: null,
+    silencedOnDay: null,
+    extraVotesOnDay: null,
+    sect: null,
+    fatherOf: null,
+    hasQuestion: false,
+    trade: c?.trade ?? null,
+  }
+}
+
+/**
  * What the phone holds between taps and has not yet handed the narrator:
  * the seats picked at this step, and whether an action has gone out. The
  * projection is the truth; these only let the screen answer a tap at once.
@@ -80,12 +106,21 @@ export const stepKeyOf = (p: SeatProjection): string =>
  * the round trip is dropped for it. The pair's, the potion's and the
  * split's picks are the phone's alone until they are sent, so those survive
  * a repaint and go only with the step.
+ *
+ * An action already sent (`picks.sent`) survives a repaint of this same
+ * step: only a new step (accepted) or this seat no longer acting really
+ * answers it. A stray republish for some unrelated reason -- a teammate's
+ * own mark, a socket reconnecting -- is not the narrator's answer, and
+ * dropping the pick on one of those is what left a phone that lost the
+ * network for a few seconds looking exactly as frozen once it reconnected
+ * (night-01).
  */
 export const settlePicks = (p: SeatProjection, picks: SeatPicks, previousKey: string): SeatPicks => {
   const n = p.tonight
+  const sameStep = n !== null && n.acting && stepKeyOf(p) === previousKey
   const playerStep = n !== null && n.step !== null && ROLES[n.step].target.kind === 'player'
-  const keep = n !== null && n.acting && !playerStep && stepKeyOf(p) === previousKey
-  return { picked: keep ? picks.picked : [], sent: false }
+  const keep = sameStep && !playerStep
+  return { picked: keep ? picks.picked : [], sent: picks.sent && sameStep }
 }
 
 /**
@@ -195,6 +230,45 @@ const wakingMarkup = (locale: Locale, head: string): string => {
     </section>`
 }
 
+/**
+ * Game over, on this seat's own phone (over-03). A phone used to show one
+ * left-aligned line under the centred header and nothing else: no result,
+ * no role, no table, no way to hold the card up. This is the same shape as
+ * the day and night screens -- a result line where the step card would be,
+ * the whole cast (public now: `p.cast`) as the ring with the dead struck,
+ * and the hold bar back, so a player can still show their card across the
+ * table. An early ending the narrator called has no winner and no side of
+ * its own, so it says only that the game ended.
+ */
+const overMarkup = (p: SeatProjection, locale: Locale, head: string): string => {
+  const t = strings(locale)
+  const side = renderWinner(p.winner, locale)
+  const result = p.won === null ? (side ?? t.ui.over.title) : p.won ? t.ui.seat.youWon : t.ui.seat.youLost
+  const sub = p.won !== null && side !== null ? `<p class="subtitle">${esc(side)}</p>` : ''
+  const mine =
+    p.roleId !== null
+      ? `<div class="card card--role mine__step" data-accent="system">
+          <span class="card__sigil">${sigilMarkup(p.roleId)}</span>
+          <h2 class="card__title">${esc(t.roles[p.roleId].card)}</h2>
+          ${p.trade !== null ? `<p class="reveal__trade">${esc(t.trades[p.trade] ?? '')}</p>` : ''}
+        </div>`
+      : ''
+  const table =
+    p.cast.length > 0
+      ? circleMarkup(p.players.map((x) => castSeat(p, x)), locale, { showRoles: true, revealTeams: true, self: [p.seat] })
+      : ''
+  return `
+    <section class="screen mine mine--table" data-over>
+      ${head}
+      <p class="winner"${p.won === false ? ' data-lost' : ''}>${esc(result)}</p>
+      ${sub}
+      ${mine}
+      ${table}
+      <div class="reveal__slot mine__card" data-card></div>
+      ${holdMarkup(t.ui.reveal, false)}
+    </section>`
+}
+
 export const seatMarkup = (
   p: SeatProjection,
   locale: Locale,
@@ -209,10 +283,7 @@ export const seatMarkup = (
       <h1 class="title title--sm">${esc(p.name)}</h1>
     </header>`
 
-  if (p.over) {
-    const line = renderWinner(p.winner, p.locale) ?? strings(p.locale).ui.over.title
-    return `<section class="screen mine">${head}<p class="winner">${esc(line)}</p></section>`
-  }
+  if (p.over) return overMarkup(p, locale, head)
 
   // The table is still filling up: the roster, not a sentence about cards.
   if (p.phase === 'setup' && p.roleId === null && p.roster.length > 0) {
@@ -234,8 +305,8 @@ export const seatMarkup = (
         <div class="reveal__slot" data-card></div>
         <div class="reveal__idle" data-idle><p class="reveal__hint">${esc(t.ui.reveal.shieldScreen)}</p></div>
       </div>
-      ${holdMarkup(locale)}`
-    : `<p class="subtitle">${esc(s.waitingForDeal)}</p>`
+      ${holdMarkup(t.ui.reveal, false)}`
+    : `<p class="subtitle mine__waitline">${esc(s.waitingForDeal)}</p>`
 
   if (p.phase === 'day' && p.roleId !== null) {
     return dayMarkup(p, locale, head)
@@ -315,18 +386,8 @@ const dayMarkup = (p: SeatProjection, locale: Locale, head: string): string => {
       ${note}
       ${table}
       <div class="reveal__slot mine__card" data-card></div>
-      ${holdMarkup(locale)}
+      ${holdMarkup(t.ui.reveal, false)}
     </section>`
-}
-
-/** The hold that shows the card: the same gesture as the pass-around, the same slot beside it. */
-const holdMarkup = (locale: Locale): string => {
-  const t = strings(locale)
-  return `
-      <button class="reveal__hold" type="button" data-hold style="--hold-ms: 700ms">
-        <span class="reveal__fill" aria-hidden="true"></span>
-        <span class="reveal__hold-label" data-hold-label>${esc(t.ui.reveal.holdToReveal)}</span>
-      </button>`
 }
 
 /** The ring as every phone shows it between steps: names, the dead, my own chair, nothing else. */
@@ -482,7 +543,9 @@ const nightMarkup = (
     actions = `<div class="actions">${skip(t.ui.night.noOne)}</div>`
   } else if (kind === 'twoPlayers') {
     hint = t.ui.night.pickTwo
-    table = picker(n.eligible)
+    // Two chosen closes the rest: a third tap could only ever pile up
+    // silently otherwise, since nothing capped it (night-03).
+    table = picker(chosen.length >= 2 ? chosen : n.eligible)
     actions = `<div class="actions actions--row">
         ${skip(t.ui.night.noOne)}
         ${btn('data-act="pair"', t.ui.common.confirm, 'btn--primary', chosen.length === 2)}
@@ -524,7 +587,7 @@ const nightMarkup = (
       ${table}
       ${actions}
       <div class="reveal__slot mine__card" data-card></div>
-      ${holdMarkup(locale)}
+      ${holdMarkup(t.ui.reveal, false)}
     </section>`
 }
 

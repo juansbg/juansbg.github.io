@@ -527,6 +527,9 @@ export interface Strings {
       yourTurn: (name: string) => string
       proceed: string
       closeEyes: (name: string) => string
+      /** The game-over screen on a player's own phone (over-03): this seat's own result. */
+      youWon: string
+      youLost: string
     }
     /** The TV page, before and between projections. */
     tv: {

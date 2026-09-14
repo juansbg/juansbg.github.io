@@ -253,14 +253,28 @@ describe("a player's phone at night", () => {
     expect(html).not.toContain('data-act=')
   })
 
-  it("settles the picks on the narrator's answer: a mark is dropped for the projection's, a pair waits for its step", () => {
+  it("settles the picks on the narrator's answer: a mark is dropped for the projection's, a pair waits for its step, and a sent action survives an unrelated repaint of the same step (night-01)", () => {
     const detective = seat(2, 'INSPECT', { acting: true, eligible: [0, 1, 3, 4] })
     const key = stepKeyOf(detective)
-    // A player step: the narrator's mark is the truth, the local pick goes.
-    expect(settlePicks(detective, picks([3], true), key)).toEqual({ picked: [], sent: false })
+    // A player step, not yet sent: the narrator's mark is the truth, the local pick goes.
+    expect(settlePicks(detective, picks([3], false), key)).toEqual({ picked: [], sent: false })
+    // Sent, same step, still acting: this is not an answer yet — a teammate's
+    // own news, a stray republish, a socket that only just reconnected — so
+    // the phone keeps showing "sent" rather than looking as if the tap never
+    // landed (night-01). The mark itself still comes from the projection.
+    expect(settlePicks(detective, picks([3], true), key)).toEqual({ picked: [], sent: true })
+    // The step actually moved on: the round trip is over, whatever was sent.
+    expect(settlePicks(detective, picks([3], true), 'night 1:GUARD')).toEqual({ picked: [], sent: false })
+    // No longer acting at all: also over.
+    expect(
+      settlePicks({ ...detective, tonight: { ...detective.tonight!, acting: false } }, picks([3], true), key),
+    ).toEqual({ picked: [], sent: false })
+
     // A pair, same step, repainted for any reason: the picks stay until sent.
     const pair = seat(1, 'PAIR', { step: 'PAIR', acting: true, eligible: [0, 2, 3] })
     expect(settlePicks(pair, picks([0]), stepKeyOf(pair))).toEqual({ picked: [0], sent: false })
+    // Sent, same step: still waits for its own step to answer, same as a mark.
+    expect(settlePicks(pair, picks([0, 3], true), stepKeyOf(pair))).toEqual({ picked: [0, 3], sent: true })
     // The step moved on, or the phone is no longer acting: clean.
     expect(settlePicks(pair, picks([0]), key)).toEqual({ picked: [], sent: false })
     expect(settlePicks({ ...pair, tonight: { ...pair.tonight!, acting: false } }, picks([0]), stepKeyOf(pair))).toEqual({ picked: [], sent: false })
@@ -395,6 +409,46 @@ describe('the gate around the chooser', () => {
     const common = seatMarkup(p, 'en')
     expect(common).not.toContain('data-looked')
     expect(common).not.toContain(t.roles.CONVERT.name)
+  })
+})
+
+describe("game over, on this seat's own phone", () => {
+  it('shows the result, this seat\'s own role and trade, the whole cast, and the hold back (over-03)', () => {
+    const t = strings('en')
+    const cast = [
+      { id: 0, roleId: 'KILLER' as const, trade: null, team: 'crew' as const },
+      { id: 1, roleId: 'PLAIN' as const, trade: 2, team: 'town' as const },
+      { id: 2, roleId: 'INSPECT' as const, trade: null, team: 'town' as const },
+      { id: 3, roleId: 'PLAIN' as const, trade: 0, team: 'town' as const },
+      { id: 4, roleId: 'GUARD' as const, trade: null, team: 'town' as const },
+      { id: 5, roleId: 'PLAIN' as const, trade: 1, team: 'town' as const },
+    ]
+    const p = seat(1, 'PLAIN', {}, { over: true, won: true, winner: 'town', cast, trade: 2 })
+    const html = seatMarkup(p, 'en')
+    // The result is this seat's own, not just the side's.
+    expect(html).toContain(t.ui.seat.youWon)
+    expect(html).not.toContain('data-lost')
+    // This seat's own role and trade, under it.
+    expect(html).toContain(t.roles.PLAIN.card)
+    expect(html).toContain(t.trades[2]!)
+    // The whole cast is public now, dead struck, self marked, and the hold is back.
+    // (GUARD's ring tile, "Bodyguard": KILLER's own `.card` keeps its article,
+    // "The Family", but the ring strips it same as every other role's name.)
+    expect(html).toContain(t.roles.GUARD.card)
+    expect(html).toContain('data-dead')
+    expect(html.split('data-self').length - 1).toBe(1)
+    expect(html).toContain('data-hold')
+
+    // A loss carries the same result line, marked, never in red text.
+    const lost = seatMarkup({ ...p, won: false, winner: 'crew' }, 'en')
+    expect(lost).toContain(t.ui.seat.youLost)
+    expect(lost).toContain('data-lost')
+
+    // An early ending has no winner and no side of its own to report.
+    const early = seatMarkup({ ...p, won: null, winner: null, cast: [] }, 'en')
+    expect(early).toContain(t.ui.over.title)
+    expect(early).not.toContain(t.ui.seat.youWon)
+    expect(early).not.toContain(t.ui.seat.youLost)
   })
 })
 

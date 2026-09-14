@@ -791,6 +791,8 @@ export const es: Strings = {
       yourTurn: (name) => `${name}, te toca`,
       proceed: 'Continuar',
       closeEyes: (name) => `Cierra los ojos, ${name}`,
+      youWon: 'Ganaste',
+      youLost: 'Perdiste',
     },
     tv: {
       title: APP_NAME,

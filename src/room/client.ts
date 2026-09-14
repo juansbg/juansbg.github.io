@@ -434,6 +434,8 @@ export class PlayerLink {
   private ws: WebSocket | null = null
   private attempt = 0
   private ping: number | null = null
+  /** The last time anything at all arrived on this socket, pings included. */
+  private lastSeen = 0
 
   constructor(
     private readonly relay: string,
@@ -444,10 +446,21 @@ export class PlayerLink {
     this.connect()
   }
 
+  /**
+   * A message straight through. A send on a socket the network has already
+   * broken can throw synchronously -- `readyState` still reads OPEN a tick
+   * behind reality -- so this is caught: a tap's handler must finish and
+   * repaint the phone's own optimistic state regardless, or a network blip
+   * mid-tap aborts the handler before it ever redraws (night-01).
+   */
   send(message: ToNarrator): boolean {
     if (this.ws === null || this.ws.readyState !== WebSocket.OPEN) return false
-    this.ws.send(JSON.stringify(message))
-    return true
+    try {
+      this.ws.send(JSON.stringify(message))
+      return true
+    } catch {
+      return false
+    }
   }
 
   private connect(): void {
@@ -456,10 +469,28 @@ export class PlayerLink {
     this.ws = ws
     ws.onopen = () => {
       this.attempt = 0
-      this.ping = window.setInterval(() => ws.send('ping'), 25_000)
+      this.lastSeen = Date.now()
+      // A ping every few seconds, and -- since a real WiFi drop does not
+      // always fire a close event of its own, unlike the harness's offline
+      // emulation -- a socket that has heard nothing back in a while (no
+      // pong, no projection) is closed itself, so the normal reconnect path
+      // and "Reconnecting..." take over instead of the phone sitting on a
+      // dead connection looking merely frozen (night-01).
+      this.ping = window.setInterval(() => {
+        if (Date.now() - this.lastSeen > 15_000) {
+          ws.close()
+          return
+        }
+        try {
+          ws.send('ping')
+        } catch {
+          // The close this provokes, if any, is answer enough.
+        }
+      }, 5_000)
       this.handlers.onStatus('open')
     }
     ws.onmessage = (event) => {
+      this.lastSeen = Date.now()
       if (typeof event.data !== 'string' || event.data === 'pong') return
       try {
         const parsed = JSON.parse(event.data) as { kind?: unknown; pub?: unknown; payload?: unknown; here?: unknown }

@@ -4038,7 +4038,17 @@ html[data-dawn] body {
   position: absolute;
   inset: 0;
   z-index: 2;
+  display: grid;
+  place-content: center;
   background: var(--bg);
+}
+
+/* Belt and braces: even centred, a card is still a grid whose rows default
+   to stretching to fill it; without an outer height to fill this rarely
+   fires, but a stray tall row must never blow the chip up into a box again
+   (reveal-01). */
+.mine__card .reveal__team {
+  align-self: start;
 }
 
 .mine--table .reveal__hold {

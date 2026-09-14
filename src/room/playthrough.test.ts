@@ -211,21 +211,29 @@ const checkSeats = (state: GameState, locale: Locale): void => {
     // A phone that sees the Family is the Family's: the faction's name (the
     // killers' card is named for it) may be on it, as on the held card.
     if ((p.tonight?.view.crew.length ?? 0) > 0) spoken.add(t.roles.KILLER.card)
+    // Once the game is over every seat's own phone shows the whole cast
+    // (over-03), the same public fact the TV's own ring already shows once
+    // `over` -- so the role and trade checks below allow exactly the ids
+    // and trades `p.cast` carries, and only then. Guarded by `p.over`, not
+    // loosened any further.
+    const castRoles = p.over ? new Set(p.cast.map((c) => t.roles[c.roleId].card)) : new Set<string>()
+    const castTrades = p.over ? new Set(p.cast.map((c) => c.trade).filter((x): x is number => x !== null)) : new Set<number>()
     // Nobody else's role or trade, unless it happens to be the same as mine.
     for (const other of state.players) {
       if (other.id === me.id) continue
       const otherRole = t.roles[other.roleId].card
-      if (other.roleId !== me.roleId && !winnerLine.includes(otherRole) && !spoken.has(otherRole)) {
+      if (other.roleId !== me.roleId && !winnerLine.includes(otherRole) && !spoken.has(otherRole) && !castRoles.has(otherRole)) {
         forbid(html, otherRole, `'s phone names 's role`)
       }
-      if (other.trade !== null && other.trade !== me.trade) {
+      if (other.trade !== null && other.trade !== me.trade && !castTrades.has(other.trade)) {
         // As a word: the Apothecary's "Curar" is not the priest ("Cura").
         forbidWord(html, t.trades[other.trade] ?? '', `${me.name}'s phone names ${other.name}'s trade`)
       }
     }
     // The screen itself never shows my role either; only the held card does —
-    // unless it is the step being read, which every phone shows alike.
-    if (!winnerLine.includes(t.roles[me.roleId].card) && !spoken.has(t.roles[me.roleId].card)) {
+    // unless it is the step being read (every phone shows alike) or the game
+    // is over (every phone shows the whole cast, mine included).
+    if (!p.over && !winnerLine.includes(t.roles[me.roleId].card) && !spoken.has(t.roles[me.roleId].card)) {
       expect(html, `'s role is on screen without a hold`).not.toContain(t.roles[me.roleId].card)
     }
     const card = roleCardMarkup(seatPlayer(p), locale)
