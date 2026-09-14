@@ -596,6 +596,14 @@ export interface Strings {
       noRoom: string
       waiting: string
       reconnecting: string
+      /**
+       * The first connection, which is not a RE-connection.
+       *
+       * A television switched on at the start of an evening led with
+       * "Reconnecting..." on a socket that had never once been connected,
+       * which reads as a fault before anything has happened.
+       */
+      connecting: string
       /** The screen opened the room itself and no narrator has claimed it yet (docs/BIG-SCREEN.md §11). */
       forNarrator: string
       enterCode: string

@@ -67,6 +67,27 @@ let status: LinkStatus = 'connecting'
 let relayDown = false
 /** Whether a narrator's phone is on the room right now; the relay says so. */
 let narratorHere = false
+/**
+ * When a projection last arrived, and whether this screen has ever been
+ * connected at all.
+ *
+ * The relay's `narrator` message is the truth about presence, but it does not
+ * always arrive in order: a Durable Object that has gone to sleep delivers a
+ * dead socket's `here: false` whenever the room next wakes for some other
+ * reason, which can be long after the current narrator's `here: true`.
+ * Measured twice during entirely ordinary play -- over the dawn reading and
+ * over a half-counted ballot -- both on frames whose projection had just
+ * arrived from the very narrator the room was being told had gone.
+ *
+ * A projection can only have been published by a narrator's phone, so its
+ * arrival is first-hand proof of presence and outranks a `here: false` that
+ * is older than it.
+ */
+let lastProjection = 0
+/** A first connection is not a re-connection, and must not say it is. */
+let everOpen = false
+/** How recent a projection has to be to contradict a `here: false`. */
+const PRESENCE_MS = 6_000
 /** Whether one ever has been: a room waiting to be started reads differently. */
 let narratorEver = false
 /**
@@ -128,6 +149,9 @@ const render = (): void => {
   const t = strings(locale).ui.tv
   document.documentElement.lang = locale
   document.documentElement.dataset['phase'] = projection?.phase ?? 'setup'
+  // A television switched on cold has never been connected to anything, so
+  // "Reconnecting..." is the first word it shows and reads as a fault.
+  const trying = everOpen ? t.reconnecting : t.connecting
 
   let body: string
   if (relay === '' || (!own && status === 'gone')) {
@@ -137,11 +161,11 @@ const render = (): void => {
     body = `
       <section class="screen screen--center">
         <p class="label">${esc(t.title)}</p>
-        <p class="subtitle">${esc(relayDown ? t.relayDown : t.reconnecting)}</p>
+        <p class="subtitle">${esc(relayDown ? t.relayDown : trying)}</p>
       </section>`
   } else if (projection === null) {
     // No narrator on the room yet: the same lobby the claim will fill.
-    const note = status === 'open' ? undefined : status === 'connecting' ? t.reconnecting : relayDown ? t.relayDown : t.reconnecting
+    const note = status === 'open' ? undefined : status === 'connecting' ? trying : relayDown ? t.relayDown : trying
     body = lobbyMarkup(
       { code: room.code, join: seatUrl(room, location.origin), roster: null, ...(note === undefined ? {} : { note }) },
       false,
@@ -167,9 +191,9 @@ const render = (): void => {
     status === 'ended'
       ? t.ended
       : waiting && longWait
-        ? `${relayDown ? t.relayDown : t.reconnecting} ${t.stillTrying}`
+        ? `${relayDown ? t.relayDown : trying} ${t.stillTrying}`
         : projection !== null && status !== 'open'
-          ? t.reconnecting
+          ? trying
           : projection !== null && !narratorHere
             ? narratorEver
               ? t.narratorGone
@@ -206,10 +230,15 @@ const connect = (r: OpenRoom): void => {
     r.code,
     (next) => {
       projection = next
+      // First-hand: only a narrator's phone publishes one.
+      lastProjection = Date.now()
+      narratorHere = true
+      narratorEver = true
       render()
     },
     (next) => {
       status = next
+      if (next === 'open') everOpen = true
       // The narrator closed the room: a screen that opened its own asks for
       // another so the next game can start; one that joined says the evening
       // is over rather than hunting for a room that has gone.
@@ -237,6 +266,9 @@ const connect = (r: OpenRoom): void => {
       render()
     },
     (here) => {
+      // A `here: false` the room has just disproved by publishing is a late
+      // message about a socket that is already gone, not news about this one.
+      if (!here && Date.now() - lastProjection < PRESENCE_MS) return
       narratorHere = here
       if (here) narratorEver = true
       render()

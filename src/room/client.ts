@@ -240,6 +240,37 @@ const wsUrl = (relay: string): string => relay.replace(/^http/, 'ws')
 /** How long paints are collected before one message goes out. */
 const FRAME_MS = 16
 
+/**
+ * Give up on a socket the watchdog has stopped believing in.
+ *
+ * `close()` is not a disconnection: it opens a close handshake and waits for
+ * the peer's own close frame. A peer that has gone silent -- which is the
+ * only case a watchdog exists for -- never sends one, and the kernel holds
+ * the TCP connection open, so the socket sits in CLOSING and `onclose` never
+ * fires. Measured against a frozen relay: every watchdog tripped to the
+ * second (the phone's at 15s, the screen's and the narrator's at 40s), every
+ * socket was still CLOSING a minute later, and because the reconnect and
+ * "Reconnecting..." both hang off `onclose`, all three screens stayed
+ * byte-identical to before the cut. The watchdog was closing a door nobody
+ * heard shut.
+ *
+ * So the trip has to BE the disconnection: take the handlers off first, then
+ * run whatever `onclose` would have run. The `close()` here is only tidying
+ * up a socket nobody is listening to any more, and may take as long as it
+ * likes about it.
+ */
+function abandon(ws: WebSocket): void {
+  ws.onopen = null
+  ws.onmessage = null
+  ws.onclose = null
+  ws.onerror = null
+  try {
+    ws.close()
+  } catch {
+    // Going already. The handlers are off either way, which is the point.
+  }
+}
+
 export class NarratorLink {
   /** The last time anything arrived on this socket, pings included. */
   private lastSeen = 0
@@ -369,7 +400,13 @@ export class NarratorLink {
     // thing it heard while the game goes on in the narrator's hand.
     this.ping = window.setInterval(() => {
       if (Date.now() - this.lastSeen > 40_000) {
-        this.ws?.close()
+        const dead = this.ws
+        this.stopPing()
+        if (dead !== null) {
+          this.ws = null
+          abandon(dead)
+        }
+        this.retry()
         return
       }
       try {
@@ -420,7 +457,8 @@ export class ScreenLink {
       // has heard nothing back closes itself, and the reconnect takes over.
       this.ping = window.setInterval(() => {
         if (Date.now() - this.lastSeen > 40_000) {
-          ws.close()
+          abandon(ws)
+          this.dropped()
           return
         }
         try {
@@ -454,11 +492,18 @@ export class ScreenLink {
         this.onStatus('ended')
         return
       }
-      this.onStatus('closed')
-      this.attempt += 1
-      setTimeout(() => this.connect(), Math.min(30_000, 500 * 2 ** Math.min(this.attempt, 6)))
+      this.dropped()
     }
     ws.onerror = () => ws.close()
+  }
+
+  /** A plain disconnection: say so, then try again on the backoff. */
+  private dropped(): void {
+    if (this.ping !== null) window.clearInterval(this.ping)
+    this.ping = null
+    this.onStatus('closed')
+    this.attempt += 1
+    setTimeout(() => this.connect(), Math.min(30_000, 500 * 2 ** Math.min(this.attempt, 6)))
   }
 }
 
@@ -531,7 +576,9 @@ export class PlayerLink {
       // dead connection looking merely frozen (night-01).
       this.ping = window.setInterval(() => {
         if (Date.now() - this.lastSeen > 15_000) {
-          ws.close()
+          if (this.ws === ws) this.ws = null
+          abandon(ws)
+          this.dropped()
           return
         }
         try {
@@ -571,9 +618,21 @@ export class PlayerLink {
       this.handlers.onStatus('closed')
       // Replaced by this phone's own newer socket: that one carries on.
       if (event.code === 4000) return
-      this.attempt += 1
-      setTimeout(() => this.connect(), Math.min(30_000, 500 * 2 ** Math.min(this.attempt, 6)))
+      this.again()
     }
     ws.onerror = () => ws.close()
+  }
+
+  /** A plain disconnection: say so, then try again on the backoff. */
+  private dropped(): void {
+    if (this.ping !== null) window.clearInterval(this.ping)
+    this.ping = null
+    this.handlers.onStatus('closed')
+    this.again()
+  }
+
+  private again(): void {
+    this.attempt += 1
+    setTimeout(() => this.connect(), Math.min(30_000, 500 * 2 ** Math.min(this.attempt, 6)))
   }
 }
