@@ -47,6 +47,8 @@ class SilentSocket {
   static readonly CLOSING = 2
   static readonly CLOSED = 3
   static made: SilentSocket[] = []
+  /** Completes the TCP handshake and then answers nothing, as a frozen peer does. */
+  static stuck = false
 
   readyState = SilentSocket.OPEN
   closed = false
@@ -57,6 +59,10 @@ class SilentSocket {
 
   constructor(readonly url: string) {
     SilentSocket.made.push(this)
+    if (SilentSocket.stuck) {
+      this.readyState = SilentSocket.CONNECTING
+      return
+    }
     // The open lands on the next tick, as a real one does.
     queueMicrotask(() => this.onopen?.())
   }
@@ -77,6 +83,7 @@ describe('a socket that goes silent', () => {
 
   beforeEach(() => {
     SilentSocket.made = []
+    SilentSocket.stuck = false
     vi.useFakeTimers()
     ;(globalThis as { WebSocket: unknown }).WebSocket = SilentSocket
   })
@@ -107,6 +114,33 @@ describe('a socket that goes silent', () => {
     await vi.advanceTimersByTimeAsync(2_000)
     expect(SilentSocket.made.length).toBeGreaterThan(1)
     expect(seen.filter((s) => s === 'connecting')).toHaveLength(2)
+  })
+
+  it('gives up on a connection that never opens, and keeps trying', async () => {
+    // The same silence one readyState earlier: a peer whose kernel is still
+    // up completes the TCP handshake and never answers the upgrade, so the
+    // socket neither opens nor errors. Every retry hangs off the close event,
+    // so without this the first reconnect after a drop was also the last —
+    // honest about being disconnected, and then disconnected all evening.
+    const seen: string[] = []
+    SilentSocket.stuck = true
+    new PlayerLink('https://relay.example', 'AB2CD', 'cid-1', {
+      onStatus: (s) => seen.push(s),
+      onHello: () => {},
+      onSealed: () => {},
+    })
+    await vi.advanceTimersByTimeAsync(0)
+    expect(seen).toEqual(['connecting'])
+    expect(SilentSocket.made).toHaveLength(1)
+
+    // Still nothing at nineteen seconds: a slow handshake is not a dead one.
+    await vi.advanceTimersByTimeAsync(19_000)
+    expect(SilentSocket.made).toHaveLength(1)
+
+    // Past the limit it is abandoned, and another attempt follows.
+    await vi.advanceTimersByTimeAsync(4_000)
+    expect(SilentSocket.made[0]?.closed).toBe(true)
+    expect(SilentSocket.made.length).toBeGreaterThan(1)
   })
 
   it('never hears from the abandoned socket again, whatever it does later', async () => {

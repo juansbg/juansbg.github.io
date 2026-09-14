@@ -259,6 +259,20 @@ const FRAME_MS = 16
  * up a socket nobody is listening to any more, and may take as long as it
  * likes about it.
  */
+/**
+ * How long an attempt may sit in CONNECTING before it is given up on.
+ *
+ * The same silence, one readyState earlier. A peer whose kernel is still up
+ * completes the TCP handshake and then never answers the upgrade, so the new
+ * socket neither opens nor errors -- and since every retry hangs off the
+ * close event, the first reconnect after a drop was also the last. The room
+ * said "Reconnecting..." honestly and then stayed that way for the rest of
+ * the evening, even once the relay came back. Long enough not to punish a
+ * slow handshake on a bad connection; short enough that a television left on
+ * a shelf recovers by itself.
+ */
+const OPENING_MS = 20_000
+
 function abandon(ws: WebSocket): void {
   ws.onopen = null
   ws.onmessage = null
@@ -346,7 +360,14 @@ export class NarratorLink {
       `${wsUrl(relay)}/rooms/${code}/ws?as=narrator&secret=${encodeURIComponent(secret)}`,
     )
     this.ws = ws
+    const opening = window.setTimeout(() => {
+      if (ws.readyState !== WebSocket.CONNECTING) return
+      if (this.ws === ws) this.ws = null
+      abandon(ws)
+      this.retry()
+    }, OPENING_MS)
     ws.onopen = () => {
+      window.clearTimeout(opening)
       this.attempt = 0
       this.handlers.onStatus?.('open')
       // A fresh socket has no idea what the room last saw: send the latest.
@@ -365,6 +386,7 @@ export class NarratorLink {
       }
     }
     ws.onclose = (event) => {
+      window.clearTimeout(opening)
       this.stopPing()
       if (this.ws === ws) this.ws = null
       // Another phone claimed the room with the key. This one is not coming
@@ -447,7 +469,13 @@ export class ScreenLink {
   private connect(): void {
     this.onStatus('connecting')
     const ws = new WebSocket(`${wsUrl(this.relay)}/rooms/${this.code}/ws?as=tv`)
+    const opening = window.setTimeout(() => {
+      if (ws.readyState !== WebSocket.CONNECTING) return
+      abandon(ws)
+      this.dropped()
+    }, OPENING_MS)
     ws.onopen = () => {
+      window.clearTimeout(opening)
       this.attempt = 0
       this.lastSeen = Date.now()
       this.onStatus('open')
@@ -480,6 +508,7 @@ export class ScreenLink {
       }
     }
     ws.onclose = (event) => {
+      window.clearTimeout(opening)
       if (this.ping !== null) window.clearInterval(this.ping)
       this.ping = null
       // The room is gone: a screen that opened it asks for a fresh one, a screen that joined it says so.
@@ -565,7 +594,14 @@ export class PlayerLink {
     this.handlers.onStatus('connecting')
     const ws = new WebSocket(`${wsUrl(this.relay)}/rooms/${this.code}/ws?as=player&cid=${this.cid}`)
     this.ws = ws
+    const opening = window.setTimeout(() => {
+      if (ws.readyState !== WebSocket.CONNECTING) return
+      if (this.ws === ws) this.ws = null
+      abandon(ws)
+      this.dropped()
+    }, OPENING_MS)
     ws.onopen = () => {
+      window.clearTimeout(opening)
       this.attempt = 0
       this.lastSeen = Date.now()
       // A ping every few seconds, and -- since a real WiFi drop does not
@@ -602,6 +638,7 @@ export class PlayerLink {
       }
     }
     ws.onclose = (event) => {
+      window.clearTimeout(opening)
       if (this.ping !== null) window.clearInterval(this.ping)
       this.ping = null
       if (this.ws === ws) this.ws = null
