@@ -119,19 +119,33 @@ const slidesOf = (outcomes: readonly Outcome[], state: GameState, locale: Locale
     .filter((s): s is Slide => s !== null)
 }
 
-/** The slides for the night just ended; a single quiet slide if nothing was public. */
+/** Nobody died: the first thing the town wants to know, whatever else happened. */
+const quietSlide = (locale: Locale): Slide => ({
+  lethal: false,
+  name: null,
+  line: strings(locale).phase.quietNight,
+  mark: '☀',
+  accent: 'system',
+  kind: 'quiet',
+})
+
+/**
+ * The slides for the night just ended, opening on the fact the table is
+ * actually waiting for.
+ *
+ * This used to show the quiet slide only when there was nothing else at all —
+ * so a night where nobody died but the paper dropped a breadcrumb read out the
+ * rumour and never said that everyone was still alive. The one thing the room
+ * most wants confirmed was the one thing the screen never said, while a
+ * breadcrumb nobody asked for got a full slide to itself.
+ *
+ * So the absence of a death leads, and whatever else happened follows it. A
+ * night with a death does not need telling: the deaths are the reading.
+ */
 export const dawnSlides = (state: GameState, locale: Locale): Slide[] => {
   const slides = slidesOf(tonight(state).night, state, locale)
-
-  if (slides.length > 0) return slides
-  return [{
-    lethal: false,
-    name: null,
-    line: strings(locale).phase.quietNight,
-    mark: '☀',
-    accent: 'system',
-    kind: 'quiet',
-  }]
+  if (slides.some((s) => s.kind === 'death')) return slides
+  return [quietSlide(locale), ...slides]
 }
 
 /**

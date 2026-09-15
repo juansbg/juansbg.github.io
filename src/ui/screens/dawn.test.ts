@@ -252,3 +252,35 @@ describe('the slide a game ends on', () => {
     }
   })
 })
+
+describe('a night nobody died in', () => {
+  /** Nothing public except the paper's breadcrumb: the Bodyguard blocked the hit. */
+  const rumourOnly = (): GameState => {
+    let state = quietGame(cast(['KILLER', 'INSPECT', 'GUARD'], ['Ana', 'Beto', 'Caro']))
+    state = startNight(state)
+    state = recordAction(state, { kind: 'target', roleId: 'GUARD', actor: 2, target: 1 })
+    state = recordAction(state, { kind: 'target', roleId: 'KILLER', actor: 0, target: 1 })
+    state = endNight(state)
+    // `quietGame`'s seed never rolls a clue, which is what makes it usable for
+    // exact-report tests — so the breadcrumb is put there by hand.
+    const clue: Outcome = { type: 'clue', night: state.night, trade: 0, clue: { kind: 'doors', doors: 2 }, public: true }
+    return { ...state, log: [...state.log, clue] }
+  }
+
+  it('says nobody died first, even when the paper has a rumour to tell', () => {
+    // The quiet slide used to appear only when there was nothing else at all,
+    // so a breadcrumb suppressed the one fact the table is waiting for: the
+    // room heard a rumour it never asked for and was never told everyone lived.
+    const slides = dawnSlides(rumourOnly(), 'en')
+    expect(slides[0]?.kind).toBe('quiet')
+    expect(slides[0]?.line).toBe(strings('en').phase.quietNight)
+    // …and the rumour is still read, after it.
+    expect(slides.some((s) => s.kind === 'clue')).toBe(true)
+    expect(slides.length).toBeGreaterThan(1)
+  })
+
+  it('does not say it on a night somebody died', () => {
+    const slides = dawnSlides(bloodyNight(), 'en')
+    expect(slides.some((s) => s.kind === 'quiet')).toBe(false)
+  })
+})
