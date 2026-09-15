@@ -1664,8 +1664,23 @@ function bind(): void {
   })
 
   on(root, '[data-remove-name]', 'click', (_e, el) => {
-    names = names.filter((_, i) => i !== Number(el.dataset.removeName))
+    const at = Number(el.dataset.removeName)
+    if (!Number.isInteger(at) || at < 0 || at >= names.length) return
+    names = names.filter((_, i) => i !== at)
     saveRoster(names)
+    // A seat is a position in this list, so taking a name out of the middle
+    // moves everybody below it up one — exactly the mirror of the shuffle
+    // `claimSeat` already does when a name goes in. Without this the phones
+    // kept their old numbers against the new list and the deal handed two
+    // players each other's cards, silently, with the roster still looking
+    // right. The guest whose own name went is not shifted but unseated: they
+    // have no seat rather than a different one, and their phone's next hello
+    // claims by name or is refused at the door like anybody else.
+    for (const guest of guests.values()) {
+      if (guest.seat === null) continue
+      if (guest.seat === at) guest.seat = null
+      else if (guest.seat > at) guest.seat = (guest.seat - 1) as PlayerId
+    }
     setState({}, false)
   })
 
