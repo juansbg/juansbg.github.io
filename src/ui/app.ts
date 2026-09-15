@@ -635,7 +635,9 @@ let menuOpen = false
  * flashes a white system dialog, which in a dark room is a torch in the
  * face; this is the same question asked on our own sheet.
  */
-type Pending = 'restart' | 'newTable' | 'clearNames' | 'finish' | 'clearStats' | 'nextNight' | 'roomNames' | 'roomInPlay'
+type Pending = 'restart' | 'newTable' | 'clearNames' | 'finish' | 'clearStats' | 'nextNight' | 'roomNames' | 'roomInPlay' | 'rewind'
+/** The entry a rewind would return to, held while the narrator is asked. */
+let rewindTo: number | null = null
 let confirming: Pending | null = null
 /**
  * The road into a room, held while the narrator is asked about the names.
@@ -1288,6 +1290,16 @@ function render(entering = false): void {
         action: roomRoad?.kind === 'join' ? t.ui.setup.screenJoin : t.ui.room.openHere,
       },
       roomInPlay: { question: t.ui.setup.roomInPlay, action: t.ui.setup.screenJoin },
+      rewind: {
+        // `revertTo` keeps `past.slice(0, index)`, so everything from `index`
+        // onwards goes, plus the state the narrator is standing in. That is
+        // `past.length - index`, and the off-by-one matters: the first version
+        // of this said "0 moves" while discarding one.
+        question: t.ui.timeline.revertConfirm(
+          rewindTo === null ? 0 : Math.max(state.session.past.length - rewindTo, 1),
+        ),
+        action: t.ui.timeline.revertHere,
+      },
     }[pending]
     return `
       <div class="sheet" data-sheet>
@@ -1532,6 +1544,11 @@ function bind(): void {
       const road = roomRoad
       roomRoad = null
       if (road) joinTheRoom(road.a, road.b, true)
+    }
+    else if (pending === 'rewind') {
+      const index = rewindTo
+      rewindTo = null
+      if (index !== null) rewind(index)
     }
     else if (pending === 'nextNight') nextNight()
     else if (pending === 'clearStats') {
@@ -2267,17 +2284,25 @@ function bind(): void {
   })
 
   on(root, '[data-revert]', 'click', (_e, el) => {
-    const index = Number(el.dataset.revert)
+    // The sheet first: this is the only wipe in the app that used to happen
+    // on the tap, and it is reached from the bar's one permanent button.
+    rewindTo = Number(el.dataset.revert)
+    confirming = 'rewind'
+    buzz()
+    setState({}, false)
+  })
+
+  /** The rewind itself, once the narrator has said yes. */
+  function rewind(index: number): void {
     showingLog = false
     inspecting = null
     showingPlayer = false
     stopPeeking()
     picked = []
     const session = revertTo(state.session, index)
-    buzz()
     leaveDay()
     setState({ session, ...screenFor(session) })
-  })
+  }
 
   on(root, '[data-skip]', 'click', () => {
     const roleId = currentStep(game)

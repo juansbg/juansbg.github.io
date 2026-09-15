@@ -854,6 +854,10 @@ export const es: Strings = {
       title: 'Todo lo que ha pasado',
       open: 'Cronología',
       revertHere: 'Volver aquí',
+      revertConfirm: (moves) =>
+        moves === 1
+          ? '¿Volver aquí? Se descarta la última jugada.'
+          : `¿Volver aquí? Se descartan las ${moves} jugadas posteriores.`,
       nightStart: (n) => `Noche ${n}`,
       nightEnd: (n) => `Amanece tras la noche ${n}`,
       lynch: (name) => `El pueblo ejecuta a ${name}`,

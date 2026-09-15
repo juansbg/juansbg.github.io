@@ -670,6 +670,8 @@ export interface Strings {
       title: string
       open: string
       revertHere: string
+      /** Asked before a rewind, which is the one wipe that had no question. */
+      revertConfirm: (moves: number) => string
       nightStart: (n: number) => string
       nightEnd: (n: number) => string
       lynch: (name: string) => string

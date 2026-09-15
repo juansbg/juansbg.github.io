@@ -849,6 +849,10 @@ export const en: Strings = {
       title: 'Everything that happened',
       open: 'Timeline',
       revertHere: 'Rewind to here',
+      revertConfirm: (moves) =>
+        moves === 1
+          ? 'Rewind to here? The last move is thrown away.'
+          : `Rewind to here? The ${moves} moves after this one are thrown away.`,
       nightStart: (n) => `Night ${n}`,
       nightEnd: (n) => `Morning after night ${n}`,
       lynch: (name) => `The town executes ${name}`,
