@@ -58,3 +58,31 @@ export const tell = (sockets: Iterable<Sendable>, text: string): number => {
   for (const ws of sockets) if (say(ws, text)) heard += 1
   return heard
 }
+
+/**
+ * Close a whole set of sockets, and never let a dead one take the rest with it.
+ *
+ * The same shape as `tell`, for the operations that end sockets rather than
+ * speak to them: a room expiring, a narrator closing the evening, a phone or a
+ * screen being replaced by its own newer socket. These were the last callers
+ * still looping by hand.
+ *
+ * Stated plainly, because the commit that routes them through here is
+ * consistency and not a bug fix: **nobody has shown that closing an already
+ * closed socket throws here.** It is guarded because every other multi-socket
+ * operation in the relay is, and because the cost of being wrong about it is a
+ * room that half-ends — some screens told the evening is over and the rest
+ * left watching a table that will never move again.
+ */
+export const shut = (sockets: Iterable<Sendable>, code: number, reason: string): number => {
+  let closed = 0
+  for (const ws of sockets) {
+    try {
+      ws.close(code, reason)
+      closed += 1
+    } catch {
+      // Already gone, which is the outcome this was asking for.
+    }
+  }
+  return closed
+}

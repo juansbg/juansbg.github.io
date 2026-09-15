@@ -20,7 +20,7 @@
  */
 
 import { DurableObject } from 'cloudflare:workers'
-import { say, tell } from './fanout'
+import { say, shut, tell } from './fanout'
 
 /** The rate-limiting binding; the types package has no name for it yet. */
 interface RateLimiter {
@@ -284,7 +284,7 @@ export class Room extends DurableObject<Env> {
   async claim(secretHash: string): Promise<boolean> {
     if ((await this.ctx.storage.get<boolean>('open')) !== true) return false
     await this.ctx.storage.put('secretHash', secretHash)
-    for (const old of this.ctx.getWebSockets('narrator')) old.close(4000, 'replaced')
+    shut(this.ctx.getWebSockets('narrator'), 4000, 'replaced')
     await this.touch()
     return true
   }
@@ -306,7 +306,7 @@ export class Room extends DurableObject<Env> {
         return new Response('wrong secret', { status: 403 })
       }
       // One narrator. A newer phone (a reload, a second device) replaces the old.
-      for (const old of this.ctx.getWebSockets('narrator')) old.close(4000, 'replaced')
+      shut(this.ctx.getWebSockets('narrator'), 4000, 'replaced')
       tags = ['narrator']
       // A screen waiting on an empty room learns at once that somebody is running it.
       this.tellRoom({ kind: 'narrator', here: true })
@@ -317,7 +317,7 @@ export class Room extends DurableObject<Env> {
       const cid = url.searchParams.get('cid') ?? ''
       if (!CID.test(cid)) return new Response('cid', { status: 400 })
       // The same phone again (a reload) replaces its older socket.
-      for (const old of this.ctx.getWebSockets(`cid:${cid}`)) old.close(4000, 'replaced')
+      shut(this.ctx.getWebSockets(`cid:${cid}`), 4000, 'replaced')
       tags = ['player', `cid:${cid}`]
     } else {
       return new Response('as', { status: 400 })
@@ -465,7 +465,7 @@ export class Room extends DurableObject<Env> {
 
   /** The alarm: the room is gone, sockets and all. */
   override async alarm(): Promise<void> {
-    for (const ws of this.ctx.getWebSockets()) ws.close(GONE, 'no such room')
+    shut(this.ctx.getWebSockets(), GONE, 'no such room')
     await this.ctx.storage.deleteAll()
   }
 
@@ -475,7 +475,21 @@ export class Room extends DurableObject<Env> {
    * hunting for a room that never existed.
    */
   private async end(): Promise<void> {
-    for (const ws of this.ctx.getWebSockets()) ws.close(ENDED, 'closed')
+    // Say it before closing anything. A screen learns the evening is over from
+    // its socket's close code — and a close takes ten seconds to finalise here
+    // (measured: CLOSING at 26ms, the close event at 10009ms, three runs, four
+    // milliseconds apart, so a timeout rather than load). Ten seconds of a
+    // live-looking table after the narrator has ended the game is the same
+    // failure as a screen that goes on showing a frozen room: honest
+    // eventually, wrong right now, in front of everybody.
+    //
+    // Whether that ten seconds is workerd's or Cloudflare's I cannot tell from
+    // here. This costs one frame and does not depend on knowing.
+    tell(
+      [...this.ctx.getWebSockets('tv'), ...this.ctx.getWebSockets('player')],
+      JSON.stringify({ kind: 'ended' }),
+    )
+    shut(this.ctx.getWebSockets(), ENDED, 'closed')
     await this.ctx.storage.deleteAll()
     await this.ctx.storage.deleteAlarm()
   }
@@ -522,7 +536,16 @@ export class Room extends DurableObject<Env> {
     if (tell(narrators, text) === 0) void this.hold(text)
   }
 
-  /** Keeps what was said for the narrator who is about to arrive. */
+  /**
+   * Keeps what was said for the narrator who is about to arrive.
+   *
+   * This reads as a lost-update race — get, push, put, with callers invoking
+   * it unawaited — and it is not one. Durable Objects gate storage against
+   * exactly this. Measured rather than assumed: five phones acting
+   * simultaneously with no narrator attached, then a narrator connects, and
+   * all five arrive; same result one at a time. Do not "fix" it into a
+   * serialised queue on the strength of how it reads.
+   */
   private async hold(text: string): Promise<void> {
     const waiting = (await this.ctx.storage.get<string[]>('waiting')) ?? []
     waiting.push(text)

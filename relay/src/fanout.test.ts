@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { say, tell, type Sendable } from './fanout'
+import { say, shut, tell, type Sendable } from './fanout'
 
 /** A socket that is already gone: `send` throws, the way the runtime's does. */
 const dead = (log: string[] = []): Sendable & { closed: boolean } => ({
@@ -69,5 +69,30 @@ describe('telling the whole room', () => {
 
   it('counts an empty room as nobody, not as an error', () => {
     expect(tell([], 'x')).toBe(0)
+  })
+})
+
+describe('closing a whole set of sockets', () => {
+  it('closes the ones after a socket that refuses to close', () => {
+    // Same shape as the send loop, for the operations that END sockets: a room
+    // expiring, the narrator closing the evening. A half-ended room tells some
+    // screens the evening is over and leaves the rest on a table that will
+    // never move again.
+    const awkward: Sendable = { send: () => {}, close() { throw new Error('gone') } }
+    const shutCodes: number[] = []
+    const live = (): Sendable => ({ send: () => {}, close: (c) => void shutCodes.push(c ?? 0) })
+    expect(shut([awkward, live(), live()], 4001, 'closed')).toBe(2)
+    expect(shutCodes).toEqual([4001, 4001])
+  })
+
+  it('carries the code and reason to each socket', () => {
+    const seen: Array<[number | undefined, string | undefined]> = []
+    const s: Sendable = { send: () => {}, close: (c, r) => void seen.push([c, r]) }
+    shut([s], 4004, 'no such room')
+    expect(seen).toEqual([[4004, 'no such room']])
+  })
+
+  it('counts an empty room as nothing closed, not as an error', () => {
+    expect(shut([], 4001, 'closed')).toBe(0)
   })
 })
