@@ -6,6 +6,7 @@ import type { SeatNight, SeatProjection } from '../../room/projections'
 import { esc } from '../dom'
 import { sigilMarkup } from '../sigils'
 import { circleMarkup, type Perspective } from './circle'
+import { deathLines } from './dawn'
 import { holdMarkup } from './reveal'
 
 /**
@@ -216,15 +217,44 @@ export const nextGone = (gone: SeatGone | null, was: SeatWas | null, p: SeatProj
 }
 
 /**
+ * The very sentence the room was read about this seat's death.
+ *
+ * A death is typed `public: true`, so the public-only log a dead seat carries
+ * holds every death in the game, in order — which means `deathLines()` run
+ * here hands out exactly the lines it handed out on the narrator's device.
+ * The alternative was to carry the rendered sentence on the projection, and
+ * that would have been a second source of truth for something the type
+ * already guarantees is derivable.
+ *
+ * Null for a living seat, which carries no log, and null for a death the bank
+ * has no line for.
+ */
+export const goneLineFor = (p: SeatProjection, locale: Locale): string | null => {
+  const t = strings(locale)
+  const bank = t.ui.dawn.death
+  const mine = p.log.find((o) => o.type === 'death' && o.target === p.seat)
+  if (mine === undefined || mine.type !== 'death') return null
+  const lines = deathLines(p.log, (cause) => bank[cause].length)
+  const index = lines.get(mine)
+  if (index === undefined) return null
+  return bank[mine.cause][index]?.(p.name) ?? null
+}
+
+/**
  * The death screen: the hour, this seat's own name struck through, the news
  * in one line, and one button. No role — the card stays behind the hold, the
  * way it does on every other screen, because this phone is still in a lit
  * room full of people.
+ *
+ * The line is the one the town was read aloud about them. Before, every death
+ * in every game read the same two sentences here, while the room got a
+ * sentence written for the cause.
  */
 const goneMarkup = (p: SeatProjection, locale: Locale, head: string, gone: SeatGone): string => {
   const t = strings(locale)
   const s = t.ui.seat
   const when = gone.night === null ? t.ui.table.day(gone.day) : t.ui.timeline.nightEnd(gone.night)
+  const line = goneLineFor(p, locale)
   return `
     <section class="screen mine mine--table mine--gone" data-gone>
       ${head}
@@ -232,6 +262,7 @@ const goneMarkup = (p: SeatProjection, locale: Locale, head: string, gone: SeatG
         <p class="night__counter">${esc(when)}</p>
         <h2 class="card__title mine__struck">${esc(p.name)}</h2>
         <p class="card__situation">${esc(s.goneTitle)}</p>
+        ${line === null ? '' : `<p class="card__body mine__elegy" data-elegy>${esc(line)}</p>`}
       </div>
       <p class="mine__state">${esc(s.goneLine)}</p>
       <button class="reveal__hold mine__gate" type="button" data-mourn>

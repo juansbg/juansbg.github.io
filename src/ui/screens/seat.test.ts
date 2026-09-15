@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { codeMarkup, nextGate, nextGone, seatAction, seatMarkup, settlePicks, stepKeyOf, type SeatGate, type SeatPicks } from './seat'
+import { codeMarkup, goneLineFor, nextGate, nextGone, seatAction, seatMarkup, settlePicks, stepKeyOf, type SeatGate, type SeatPicks } from './seat'
+import { deathLines } from './dawn'
 import { LOCALES, strings } from '../../i18n'
 import { ROLE_IDS, type RoleId } from '../../engine/roles'
 import type { PlayerId } from '../../engine/types'
@@ -619,5 +620,50 @@ describe('a seat that is out', () => {
       )
       expect(html).toContain(strings(locale).ui.seat.readPaper)
     }
+  })
+})
+
+describe('the line the room was read about this seat', () => {
+  // The town hears a sentence written for the cause; the phone it happened to
+  // read the same two generic lines, every death, every game, in both
+  // languages. A death is typed `public: true`, so the public-only log a dead
+  // seat carries holds every death in the game — which is what makes the line
+  // derivable on the phone rather than something to carry twice.
+  const death = (target: PlayerId, night: number, cause: 'killers' | 'lynch' = 'killers') =>
+    ({ type: 'death', night, target, cause, public: true }) as const
+
+  const dead = (id: PlayerId, log: readonly ReturnType<typeof death>[]): SeatProjection =>
+    seat(id, 'PLAIN', {}, { alive: false, phase: 'day', day: 2, night: 1, tonight: null, log: [...log] })
+
+  it('gives a dead seat the very line that death was given at dawn', () => {
+    for (const locale of LOCALES) {
+      const t = strings(locale)
+      const log = [death(0, 1), death(3, 2)]
+      const lines = deathLines(log, (cause) => t.ui.dawn.death[cause].length)
+      for (const id of [0, 3] as PlayerId[]) {
+        const own = log.find((o) => o.target === id)!
+        const expected = t.ui.dawn.death[own.cause][lines.get(own)!]!(NAMES[id]!)
+        expect(goneLineFor(dead(id, log), locale)).toBe(expected)
+      }
+    }
+  })
+
+  it('never reads two deaths the same sentence', () => {
+    const log = [death(0, 1), death(1, 1), death(2, 2), death(3, 2)]
+    const said = ([0, 1, 2, 3] as PlayerId[]).map((id) => goneLineFor(dead(id, log), 'en'))
+    expect(said.every((line) => line !== null)).toBe(true)
+    expect(new Set(said).size).toBe(said.length)
+  })
+
+  it('has nothing to say for a seat that is still alive', () => {
+    // A living seat carries no log at all, which is the room's rule, not this
+    // screen's — so there is nothing here to derive and nothing to leak.
+    const living = seat(1, 'PLAIN', {}, { alive: true })
+    expect(living.log).toEqual([])
+    expect(goneLineFor(living, 'en')).toBeNull()
+  })
+
+  it('says nothing rather than something wrong when the death is not in the log', () => {
+    expect(goneLineFor(dead(4, [death(0, 1)]), 'en')).toBeNull()
   })
 })
