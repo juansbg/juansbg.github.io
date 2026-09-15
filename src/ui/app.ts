@@ -434,11 +434,14 @@ function connectRoom(): void {
   link = new NarratorLink(room, {
     onStatus: (status) => {
       roomStatus = status
+      // Every fresh socket says hello, so a player who connected first can key up.
+      // Above the paint guard on purpose: this is the protocol, not the screen,
+      // and a phone that never hears hello cannot derive the key to be sealed
+      // to. The guard is for repainting, so it must not quietly swallow this.
+      if (status === 'open' && narratorKeys !== null) link?.send({ kind: 'hello', pub: narratorKeys.pub })
       // A status can arrive before the first paint (a phone booting into a
       // saved room), and there is nothing to repaint yet if it does.
       if (!painted) return
-      // Every fresh socket says hello, so a player who connected first can key up.
-      if (status === 'open' && narratorKeys !== null) link?.send({ kind: 'hello', pub: narratorKeys.pub })
       // Always, now that the bar carries the room's health as a mark on ⋯.
       // This used to repaint only while the room's sheet was open, which left
       // the one status that changes what this phone *is* — replaced, another

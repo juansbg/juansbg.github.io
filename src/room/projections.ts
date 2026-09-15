@@ -271,6 +271,34 @@ export interface SeatProjection {
   /** Who was who, once the game is over and never before. */
   cast: TvCast[]
   /**
+   * The morning's paper, for a seat that is out of the game.
+   *
+   * A dead player had one button and half an hour, while the edition they
+   * would most want to read was on the TV, on the narrator's phone and in
+   * every living player's argument. These are the same facts `tableMarkup`
+   * builds the room's copy from — the public outcomes and the dead the paper
+   * has named — so the phone renders the very same edition through
+   * `editionOf()` rather than a second telling of it.
+   *
+   * **The living do not get this, and that is a decision rather than an
+   * oversight.** The day is an argument the narrator performs; handing every
+   * player a readable copy of the morning would change how it is played, and
+   * that is the user's call, not a polish pass's. The dead are the clean
+   * case: they have nothing to do, and nothing here is anything they may not
+   * already know.
+   *
+   * Empty while the seat is alive, so nothing is sealed to a phone that
+   * should not have it, and the payload stays small for everyone still in.
+   */
+  log: Outcome[]
+  /**
+   * The dead the paper has named for what they were, on the same day-late
+   * rule as the room's (`revealedDead`). This is the one way a role becomes
+   * public, and the seat leak test allows exactly these ids and no others —
+   * the same sentence the TV's own check carries.
+   */
+  revealed: { id: PlayerId; roleId: RoleId; trade: number | null }[]
+  /**
    * The table as it is filling up, during setup only: the same names the TV's
    * lobby shows, each marked when a phone holds it. A phone that has just taken
    * a seat watches the others arrive instead of being told, untruthfully, that
@@ -420,6 +448,14 @@ export const seatProjection = (
     over,
     won: won === null ? null : wonBy(me, won),
     cast: over ? castOf(state) : [],
+    // Only a seat that is out, and only once there is a morning to read.
+    ...(() => {
+      const reading = !me.alive && state.day > 0
+      return {
+        log: reading ? state.log.filter((o) => o.public) : [],
+        revealed: reading ? revealedDead(state).map((p) => ({ id: p.id, roleId: p.roleId, trade: p.trade })) : [],
+      }
+    })(),
     roster: state.phase === 'setup' ? (context.roster ?? []) : [],
     reading: context.reading ?? null,
     players: state.players.map((p) => ({
@@ -457,6 +493,8 @@ export const waitingSeat = (
   voted: 0,
   tally: [],
   count: null,
+  log: [],
+  revealed: [],
   winner: null,
   over: false,
   won: null,

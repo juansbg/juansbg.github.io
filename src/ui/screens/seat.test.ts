@@ -50,6 +50,8 @@ const seat = (id: PlayerId, roleId: RoleId, tonight: Partial<SeatNight>, extra: 
   eligible: [],
   voted: 0,
   tally: [],
+  log: [],
+  revealed: [],
   count: null,
   winner: null,
   ...extra,
@@ -591,3 +593,31 @@ describe('the reading a phone is held out of', () => {
   })
 })
 
+
+describe('a seat that is out', () => {
+  const dead = (extra: Partial<SeatProjection> = {}): SeatProjection =>
+    seat(0, 'PLAIN', {}, { alive: false, phase: 'day', day: 1, tonight: null, ...extra })
+
+  it('offers the morning only when the projection actually carries one', () => {
+    // The living are never sent the day's outcomes, so the way in cannot
+    // appear on their phone even by mistake.
+    expect(seatMarkup(dead(), 'en', { picked: [], sent: false }, null, null)).not.toContain('data-paper-open')
+    const withPaper = dead({
+      log: [{ type: 'death', night: 1, target: 1, cause: 'killers', public: true }],
+    })
+    expect(seatMarkup(withPaper, 'en', { picked: [], sent: false }, null, null)).toContain('data-paper-open')
+  })
+
+  it('names the way in, in both languages', () => {
+    for (const locale of LOCALES) {
+      const html = seatMarkup(
+        dead({ log: [{ type: 'death', night: 1, target: 1, cause: 'killers', public: true }] }),
+        locale,
+        { picked: [], sent: false },
+        null,
+        null,
+      )
+      expect(html).toContain(strings(locale).ui.seat.readPaper)
+    }
+  })
+})

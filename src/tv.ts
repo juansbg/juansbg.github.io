@@ -57,7 +57,10 @@ const saveScreen = (room: OpenRoom | null): void => {
 
 const fragment = parseFragment(location.hash)
 /** With a room in the address this is somebody else's room; without, the screen's own. */
-const own = fragment.room === null
+// Whether this screen opened its own room. A screen that joined one by
+// address becomes its own when that room dies, because there is no other way
+// off a dead end on a television: nobody can edit a URL with a remote.
+let own = fragment.room === null
 const relay = own ? loadRelay() : fragment.relay
 
 let room: OpenRoom | null = own ? loadScreen() : { code: fragment.room ?? '', relay }
@@ -88,6 +91,24 @@ let lastProjection = 0
 let everOpen = false
 /** How recent a projection has to be to contradict a `here: false`. */
 const PRESENCE_MS = 6_000
+/**
+ * A `here: false` that was set aside, waiting to see whether it was stale.
+ *
+ * Dropping a contradicted frame outright was wrong, and wrong in the common
+ * direction rather than the rare one. `render()` publishes on every paint, so
+ * the narrator's last publish is nearly always seconds old — and the relay
+ * only sends `narrator` when it changes, so nothing ever arrives to correct
+ * the record. Anyone joining, or the narrator touching anything, and then the
+ * phone going a moment later, meant the room was never told at all. Measured:
+ * the note stayed empty thirty-five seconds after the narrator's page closed,
+ * while the same departure nine seconds after a paint was announced in two.
+ *
+ * So a contradicted frame is kept rather than discarded, and applied once the
+ * window has passed with nothing newer to disprove it. A real departure is
+ * delayed by at most `PRESENCE_MS`; a stale one is still never shown, because
+ * a newer projection clears what is waiting.
+ */
+let pendingGone: number | null = null
 /** Whether one ever has been: a room waiting to be started reads differently. */
 let narratorEver = false
 /**
@@ -99,6 +120,27 @@ let waitingSince: number | null = null
 /** How long a wait has to run before the screen mentions it. */
 const LONG_WAIT_MS = 9_000
 let waitTimer: number | null = null
+/**
+ * The screen's own link, and whether it has heard anything lately.
+ *
+ * A real severance — a relay that accepts the connection and then answers
+ * nothing — was silent on the big screen for forty to forty-five seconds,
+ * because the only thing that could start the wait clock was the socket
+ * finally admitting it was dead. Forty seconds is the right patience for
+ * deciding to reconnect and far too much for a room staring at a table that
+ * stopped being true. The clock starts when the answers stop instead: the
+ * relay pongs every ping, hibernating or not, so silence is the connection
+ * and not the narrator's pace.
+ */
+let link: ScreenLink | null = null
+let quiet = false
+/**
+ * Why the room this screen was on ended, while it stands on a fresh one.
+ * `ended` is the narrator closing it; `gone` is a code that is not a room.
+ */
+let roomClosed: 'ended' | 'gone' | null = null
+/** Two missed pongs. The ping goes out every twelve seconds. */
+const QUIET_MS = 20_000
 const fallback: Locale = detectLocale(navigator.languages ?? [navigator.language])
 
 /**
@@ -164,8 +206,20 @@ const render = (): void => {
         <p class="subtitle">${esc(relayDown ? t.relayDown : trying)}</p>
       </section>`
   } else if (projection === null) {
-    // No narrator on the room yet: the same lobby the claim will fill.
-    const note = status === 'open' ? undefined : status === 'connecting' ? trying : relayDown ? t.relayDown : trying
+    // No narrator on the room yet: the same lobby the claim will fill. A
+    // screen that has just lost its room says so here, on the fresh one,
+    // rather than letting the code change under the room with no explanation.
+    const note = roomClosed !== null
+      ? roomClosed === 'ended'
+        ? t.ended
+        : t.roomGone
+      : status === 'open'
+        ? undefined
+        : status === 'connecting'
+          ? trying
+          : relayDown
+            ? t.relayDown
+            : trying
     body = lobbyMarkup(
       { code: room.code, join: seatUrl(room, location.origin), roster: null, ...(note === undefined ? {} : { note }) },
       false,
@@ -180,25 +234,38 @@ const render = (): void => {
   // quiet. The table stays up behind it — nothing here is an error.
   // Is anything wrong at all? A room that is waiting starts a clock, so the
   // line can grow a second sentence once the wait stops being ordinary.
-  const waiting = status !== 'open' && status !== 'ended'
+  const waiting = (status !== 'open' && status !== 'ended') || quiet
   if (waiting && waitingSince === null) waitingSince = Date.now()
   if (!waiting) waitingSince = null
   const longWait = waitingSince !== null && Date.now() - waitingSince > LONG_WAIT_MS
   if (waitTimer !== null) window.clearTimeout(waitTimer)
   waitTimer = waiting && !longWait ? window.setTimeout(render, LONG_WAIT_MS + 200) : null
 
-  const note =
-    status === 'ended'
-      ? t.ended
-      : waiting && longWait
-        ? `${relayDown ? t.relayDown : trying} ${t.stillTrying}`
-        : projection !== null && status !== 'open'
-          ? trying
-          : projection !== null && !narratorHere
-            ? narratorEver
-              ? t.narratorGone
-              : t.narratorYet
-            : ''
+  // Whatever the body is already saying, the corner does not repeat. The
+  // relay-down screen printed the same sentence twice, once centred and once
+  // in the corner, because this was built without looking at what body chose.
+  // Whatever the body is already saying, the corner does not repeat. The
+  // relay-down screen printed the same sentence twice, once centred and once
+  // in the corner, because this was written without looking at what the body
+  // had chosen.
+  const bodySpeaks = relay === '' || room === null
+  const noteFor = (): string => {
+    if (bodySpeaks) return ''
+    if (status === 'ended') return t.ended
+    // A wait that has stopped being ordinary earns a second sentence. Which
+    // first sentence it is depends on what is actually wrong: the relay never
+    // answered, the socket is gone, or it is still open and simply silent.
+    if (waiting && longWait) {
+      const why = relayDown ? t.relayDown : status === 'open' ? t.quiet : trying
+      return `${why} ${t.stillTrying}`
+    }
+    if (projection !== null && status !== 'open') return trying
+    // Heard nothing lately. Not a reconnection — nothing has given up yet.
+    if (quiet) return t.quiet
+    if (projection !== null && !narratorHere) return narratorEver ? t.narratorGone : t.narratorYet
+    return ''
+  }
+  const note = noteFor()
 
   const scene = sceneKey()
   const entering = scene !== lastScene
@@ -224,14 +291,55 @@ const withClock = (p: TvProjection): TvProjection => {
 
 // ---- The room ---------------------------------------------------------------
 
+/**
+ * Hold a `here: false` for a moment, then believe it.
+ *
+ * Re-armed rather than stacked: a burst of them is still one answer, and the
+ * last one decides when it lands.
+ */
+const holdGone = (wait: number): void => {
+  if (pendingGone !== null) window.clearTimeout(pendingGone)
+  pendingGone = window.setTimeout(() => {
+    pendingGone = null
+    // A projection that arrived while this was waiting has already disproved
+    // it, and cleared it on the way past; reaching here means nothing did.
+    narratorHere = false
+    render()
+  }, wait)
+}
+
+/** A projection proves the narrator is there, so nothing is waiting any more. */
+const clearGone = (): void => {
+  if (pendingGone !== null) window.clearTimeout(pendingGone)
+  pendingGone = null
+}
+
+/**
+ * Forget the room this screen was on and ask for another.
+ *
+ * The lobby it lands on carries one line saying the old room closed, so the
+ * room is told what happened rather than watching a code change by itself.
+ */
+const closeAndReopen = (why: 'ended' | 'gone'): void => {
+  own = true
+  room = null
+  projection = null
+  roomClosed = why
+  saveScreen(null)
+  render()
+  void open(0)
+}
+
 const connect = (r: OpenRoom): void => {
-  new ScreenLink(
+  link = new ScreenLink(
     r.relay,
     r.code,
     (next) => {
       projection = next
       // First-hand: only a narrator's phone publishes one.
       lastProjection = Date.now()
+      roomClosed = null
+      clearGone()
       narratorHere = true
       narratorEver = true
       render()
@@ -244,33 +352,43 @@ const connect = (r: OpenRoom): void => {
       // is over rather than hunting for a room that has gone.
       if (next === 'ended') {
         narratorHere = false
-        if (own) {
-          room = null
-          projection = null
-          saveScreen(null)
-          render()
-          void open(0)
-          return
-        }
+        clearGone()
+        // The evening on that room is over, whoever opened it. A screen that
+        // had joined by address used to keep showing the whole live lobby —
+        // code, QR and all — with a hairline in the corner as the only word
+        // to the contrary, and nothing it could ever do about it.
+        closeAndReopen('ended')
+        return
       }
-      // The room is gone (never claimed in time, or the relay forgot it):
-      // a screen that opened it just opens another; a second screen says so.
-      if (next === 'gone' && own) {
-        room = null
-        projection = null
-        saveScreen(null)
-        render()
-        void open(0)
+      // The room is gone: never claimed in time, or the relay forgot it. A
+      // second screen used to say "no room at this address" and then, ten
+      // seconds later, offer "Reconnecting… Still trying. Check the wifi" on
+      // top of it — two contradictory sentences and no road out of either.
+      if (next === 'gone') {
+        clearGone()
+        closeAndReopen('gone')
         return
       }
       render()
     },
     (here) => {
-      // A `here: false` the room has just disproved by publishing is a late
-      // message about a socket that is already gone, not news about this one.
-      if (!here && Date.now() - lastProjection < PRESENCE_MS) return
-      narratorHere = here
-      if (here) narratorEver = true
+      if (here) {
+        clearGone()
+        narratorHere = true
+        narratorEver = true
+        render()
+        return
+      }
+      // A `here: false` the room has just disproved by publishing may be a
+      // late message about a socket that is already gone — or it may be the
+      // narrator leaving a moment after their last paint, which is the
+      // ordinary way an evening ends. Waiting is the only way to tell.
+      const since = Date.now() - lastProjection
+      if (since < PRESENCE_MS) {
+        holdGone(PRESENCE_MS - since)
+        return
+      }
+      narratorHere = false
       render()
     },
   )
@@ -314,6 +432,15 @@ const keepAwake = (): void => {
 document.addEventListener('visibilitychange', () => {
   if (!document.hidden) keepAwake()
 })
+
+// Has the connection gone quiet? The room should not have to wait for the
+// socket to admit it is dead before the screen stops pretending.
+window.setInterval(() => {
+  const gone = link !== null && link.silentFor() > QUIET_MS
+  if (gone === quiet) return
+  quiet = gone
+  render()
+}, 2_000)
 
 // Repaint the digits while a clock runs; nothing else on the screen moves.
 window.setInterval(() => {
