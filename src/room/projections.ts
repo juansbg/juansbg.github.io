@@ -155,6 +155,17 @@ export interface TvContext {
   /** The narrator's screen is the ending: a win, or the game ended early from the menu. */
   over?: boolean
   reading?: TvReading | null
+  /**
+   * The narrator is holding a card up to one player, so the room waits.
+   *
+   * The action is recorded through `mutate` before the card goes up — it has
+   * to be, or it would stay out of history until the card came down and undo
+   * would not cover it — so the engine is already a step ahead of the room.
+   * Every phone was announcing the next role while the Detective was still
+   * reading his own. True for his look and for "show a role again" from the
+   * menu, which is the same situation: a card up in a lit room.
+   */
+  holding?: boolean
   timer?: TvTimer | null
   paper?: number | null
   /**
@@ -188,6 +199,19 @@ const ballot = (
   const c = countUp(state, context.shown)
   return { tally: c.tally, leader: c.leader, voted, count: { shown: c.shown, total: c.total, last: c.last } }
 }
+
+/**
+ * The state as the room should see it while a card is up.
+ *
+ * Everything the night is built from reads `stepIndex` — which step it is, who
+ * acts at it, who they may pick, the perspective, the counter — so holding the
+ * index one back holds all of them together, in step with each other, rather
+ * than patching each one and hoping they agree.
+ */
+const asShown = (state: GameState, context: { holding?: boolean }): GameState =>
+  context.holding === true && state.phase === 'night' && state.stepIndex > 0
+    ? { ...state, stepIndex: state.stepIndex - 1 }
+    : state
 
 /** Over when a side has won, or when the narrator says so (an early ending has no winner). */
 const isOver = (state: GameState, context: { over?: boolean }): boolean =>
@@ -232,7 +256,10 @@ export const tvProjection = (
         // is out of range for anything that renders it as "n of m" — it
         // surfaced on a phone as "5 of 4". The room is told the truth
         // instead: every step is behind it.
-        { index: Math.min(state.stepIndex, state.schedule.length - 1), of: state.schedule.length }
+        {
+          index: Math.min(asShown(state, context).stepIndex, state.schedule.length - 1),
+          of: state.schedule.length,
+        }
       : null,
   ...ballot(state, context),
   winner: winner(state),
@@ -427,6 +454,17 @@ export const seatProjection = (
     over?: boolean
     roster?: { name: string; joined: boolean }[]
     reading?: Reading | null
+  /**
+   * The narrator is holding a card up to one player, so the room waits.
+   *
+   * The action is recorded through `mutate` before the card goes up — it has
+   * to be, or it would stay out of history until the card came down and undo
+   * would not cover it — so the engine is already a step ahead of the room.
+   * Every phone was announcing the next role while the Detective was still
+   * reading his own. True for his look and for "show a role again" from the
+   * menu, which is the same situation: a card up in a lit room.
+   */
+  holding?: boolean
   },
 ): SeatProjection | null => {
   const me = state.players.find((p) => p.id === seat)
@@ -476,7 +514,8 @@ export const seatProjection = (
       silenced: p.silencedOnDay === state.day,
     })),
     // A game the narrator has ended has no night left to play on a phone.
-    tonight: context.dealt && context.over !== true ? seatNight(state, me, context.picked ?? []) : null,
+    tonight:
+      context.dealt && context.over !== true ? seatNight(asShown(state, context), me, context.picked ?? []) : null,
   }
 }
 

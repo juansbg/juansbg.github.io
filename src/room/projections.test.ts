@@ -12,7 +12,7 @@ import {
   startNight,
   type PlayerSetup,
 } from '../engine/state'
-import type { GameState } from '../engine/types'
+import type { GameState, Player } from '../engine/types'
 import { dawnSlides } from '../ui/screens/dawn'
 import { legalTargets } from '../engine/targets'
 import type { SeatNight } from './projections'
@@ -417,5 +417,43 @@ describe('a seat’s night', () => {
     s = endNight(s)
     expect(seatProjection(s, 5, 'en', { dealt: true })!.tonight).toBeNull()
     expect(waitingSeat(3, 'Dani', 'es').tonight).toBeNull()
+  })
+})
+
+describe('a card held up to one player', () => {
+  const nightAt = (stepIndex: number): GameState => {
+    const base = createGame(cast(['INSPECT', 'KILLER', 'GUARD', 'PLAIN', 'PLAIN']))
+    const started = startNight(base)
+    return { ...started, stepIndex }
+  }
+
+  it('holds the room on the step the card belongs to, not the one after', () => {
+    // The action is recorded before the card goes up, so the engine is already
+    // a step ahead; without this every phone announced the next role while the
+    // Detective was still reading his own.
+    const state = nightAt(1)
+    const moved = tvProjection(state, 'en', {})
+    const held = tvProjection(state, 'en', { holding: true })
+    expect(moved.nightStep?.index).toBe(1)
+    expect(held.nightStep?.index).toBe(0)
+    // The denominator is the night's, not the moment's: it must not move.
+    expect(held.nightStep?.of).toBe(moved.nightStep?.of)
+  })
+
+  it('holds every phone on the same step, not just the counter', () => {
+    const state = nightAt(1)
+    const me = state.players[0] as Player
+    const moved = seatProjection(state, me.id, 'en', { dealt: true })
+    const held = seatProjection(state, me.id, 'en', { dealt: true, holding: true })
+    expect(held?.tonight?.step).toBe(state.schedule[0])
+    expect(moved?.tonight?.step).toBe(state.schedule[1])
+    expect(held?.tonight?.step).not.toBe(moved?.tonight?.step)
+  })
+
+  it('does nothing at the first step of a night, and nothing by day', () => {
+    // Nothing to hold back to, and no step to hold.
+    expect(tvProjection(nightAt(0), 'en', { holding: true }).nightStep?.index).toBe(0)
+    const day = { ...nightAt(1), phase: 'day' as const }
+    expect(tvProjection(day, 'en', { holding: true }).nightStep).toBeNull()
   })
 })
