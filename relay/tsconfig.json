@@ -19,5 +19,7 @@
     "skipLibCheck": true,
     "noEmit": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  // The tests are typechecked by the root config, which has vitest's types.
+  "exclude": ["src/**/*.test.ts"]
 }

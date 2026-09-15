@@ -56,6 +56,9 @@ export default defineConfig({
     // The engine is pure and has no DOM, so the default node environment is
     // correct. UI tests added later should opt in per-file.
     environment: 'node',
-    include: ['src/**/*.test.ts'],
+    // The relay had no unit tests at all, which is how an unguarded `send()`
+    // in a `for` loop reached an evening. Its pure parts are testable without
+    // a Workers runtime, so they are tested with everything else.
+    include: ['src/**/*.test.ts', 'relay/src/**/*.test.ts'],
   },
 })
