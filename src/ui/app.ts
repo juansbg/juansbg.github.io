@@ -531,6 +531,14 @@ function seatNow(guest: Guest): SeatProjection | Refused {
       roster: lobbyRoster(),
       // While the narrator reads, the phones wait with the room.
       reading: dawn === null ? null : dawnKind,
+      // And while the narrator is holding a card up to somebody, the room
+      // waits too. The action is recorded through `mutate` before the card
+      // goes up — it has to be, or it would stay out of history until the
+      // card came down and undo would not cover it — so the step has already
+      // advanced and every phone would otherwise announce the next role while
+      // the Detective is still reading his own. `inspecting` covers the ⋯
+      // "show a role again" flow as well, which is the same situation.
+      holding: inspecting !== null,
       picked,
       sealed: shown === null,
       ...(shown === null ? {} : { shown }),
@@ -569,6 +577,8 @@ function projectionNow(): TvProjection {
   return tvProjection(state.session.current, state.locale, {
     over: state.screen === 'over',
     reading: dawn !== null ? { kind: dawnKind, index: dawn, slides: currentSlides() } : null,
+    // A card held up to one player stops the room moving on; see seatNow.
+    holding: inspecting !== null,
     timer: state.screen === 'day' ? { ...viewOf(timer, Date.now()), endsAt: timer.endsAt } : null,
     sealed: shown === null,
     ...(shown === null ? {} : { shown }),
