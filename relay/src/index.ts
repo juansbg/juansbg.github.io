@@ -299,6 +299,9 @@ export class Room extends DurableObject<Env> {
 
     const as = url.searchParams.get('as')
     let tags: string[]
+    // A screen is told who is already here the moment it arrives, not only
+    // when the next person joins.
+    let guests = false
     if (as === 'narrator') {
       const secretHash = await this.ctx.storage.get<string>('secretHash')
       const secret = url.searchParams.get('secret') ?? ''
@@ -313,6 +316,7 @@ export class Room extends DurableObject<Env> {
     } else if (as === 'tv') {
       tags = ['tv']
       this.tellTvs(1)
+      guests = true
     } else if (as === 'player') {
       const cid = url.searchParams.get('cid') ?? ''
       if (!CID.test(cid)) return new Response('cid', { status: 400 })
@@ -336,6 +340,8 @@ export class Room extends DurableObject<Env> {
     }
 
     // Whatever was last published for this screen, so it is current at once.
+    if (guests) say(server, JSON.stringify({ kind: 'guests', names: await this.guestNames() }))
+
     if (as === 'tv') {
       const last = await this.ctx.storage.get<string>('last:tv')
       if (last !== undefined) say(server, last)
@@ -408,6 +414,10 @@ export class Room extends DurableObject<Env> {
         const join: Join = { cid, name: msg.name.trim(), pub: msg.pub }
         await this.ctx.storage.put(`join:${cid}`, join)
         this.tellNarrator({ kind: 'join', ...join })
+        // And the screens, so somebody who scans before any narrator has
+        // claimed the room is not invisible on the one thing they are all
+        // looking at. Names only: they are already on the lobby by design.
+        await this.tellGuests()
       } else if (msg.kind === 'vote') {
         if (msg.target !== null && seatOf(msg.target) === null) return
         this.tellNarrator({ kind: 'vote', cid, target: msg.target })
@@ -507,6 +517,16 @@ export class Room extends DurableObject<Env> {
   }
 
   /** The joins of the phones on the room now: what each last said its name was. */
+  /** Who has taken a seat, by name. The screens' lobby shows exactly this. */
+  private async guestNames(): Promise<string[]> {
+    return (await this.joins()).map((j) => j.name)
+  }
+
+  /** The screens learn the table is filling up, whether or not a narrator is on it yet. */
+  private async tellGuests(): Promise<void> {
+    tell(this.ctx.getWebSockets('tv'), JSON.stringify({ kind: 'guests', names: await this.guestNames() }))
+  }
+
   private async joins(): Promise<Join[]> {
     const cids = this.cids()
     if (cids.length === 0) return []

@@ -247,6 +247,15 @@ export interface Lobby {
    * has opened it by itself and the column carries the narrator's line instead.
    */
   roster: { name: string; joined: boolean }[] | null
+  /**
+   * Who has taken a seat while the room is still unclaimed, by name.
+   *
+   * Only meaningful when `roster` is null: before a narrator claims the room
+   * there is no projection to build a roster from, so a player who scanned the
+   * QR and sat down had nothing on the screen to tell them it had worked. Names
+   * only, which the lobby shows in any case.
+   */
+  waiting?: readonly string[]
   /** One quiet line under the narrator's: the relay's state, when it is not simply open. */
   note?: string
   /**
@@ -308,6 +317,20 @@ export const lobbyMarkup = (lobby: Lobby, controls: boolean, locale: Locale): st
       ? `<div class="lobby__narrator">
            <p class="label">${esc(t.ui.tv.forNarrator)}</p>
            <p class="lobby__ask">${esc(t.ui.tv.enterCode)}</p>
+           ${
+             // Whoever has already sat down. The narrator's line is still the
+             // point of this column, so the names sit under it rather than
+             // taking it over — but somebody who scans first should see
+             // themselves on the screen instead of wondering.
+             (lobby.waiting ?? []).length === 0
+               ? ''
+               : // Not "2 of 2": nobody has said how many are coming yet, and a
+                 // total the narrator has not set reads as a full table.
+                 `<p class="label lobby__here">${esc(t.ui.room.players((lobby.waiting ?? []).length))}</p>
+                  <ul class="lobby__names lobby__names--waiting">${(lobby.waiting ?? [])
+                    .map((n) => `<li class="lobby__name" data-joined><span>${esc(n)}</span></li>`)
+                    .join('')}</ul>`
+           }
            ${lobby.note === undefined ? '' : `<p class="lobby__note">${esc(lobby.note)}</p>`}
          </div>`
       : `<div class="lobby__roster">
