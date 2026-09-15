@@ -3050,8 +3050,14 @@ html[data-dawn] body {
 .seat__cast {
   --badge: clamp(1.125rem, calc(var(--seat) * 0.4), 1.5rem);
   position: absolute;
-  right: calc(var(--seat) * -0.15);
-  bottom: calc(var(--seat) * -0.15);
+  /* Inside its own corner, not hung off it. Hanging the badge outside the
+     tile was fine everywhere except the size that matters: the ring's algebra
+     solves the worst-case chord exactly, so at eight seats four neighbour
+     pairs touch corner to corner with nothing between them, and the badge
+     landed on the next seat — covering its number, and on one run appearing
+     to give two votes to a struck-out player. */
+  right: 1px;
+  bottom: 1px;
   display: grid;
   place-content: center;
   min-width: var(--badge);
@@ -3952,8 +3958,18 @@ html[data-dawn] body {
   font-size: var(--text-xs);
 }
 
+/* On a phone the news gets a row of its own rather than being written over
+   the button. Fixed to the bottom-right corner, it landed inside PROCEED —
+   measured at 815-832 against a button of 780-828, its full stop touching the
+   border — on the very screen that tells a player they are dead. `#app` is
+   already a grid of content over a second auto row, so going static puts the
+   line in that row and shortens the screen above it instead. */
 .stage--seat ~ .tv__status {
-  font-size: clamp(var(--text-xs), 1.9vmin, 2.25rem);
+  position: static;
+  padding: var(--space-2) var(--space-4) max(var(--space-2), env(safe-area-inset-bottom));
+  border-top: 1px solid var(--hairline);
+  font-size: var(--text-xs);
+  text-align: center;
 }
 
 .stage--tv ~ .tv__status {
