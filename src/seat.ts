@@ -106,6 +106,15 @@ let joined = false
  */
 type Refusal = 'notOnList' | 'nameTaken' | 'tableFull'
 let refused: Refusal | null = null
+/**
+ * The room's own language, learned from a refusal.
+ *
+ * A refused phone has no seat and so no projection to read a locale from, and
+ * it was falling back to the handset's own languages — so a Spanish table
+ * turned somebody away in English. The narrator's language is the room's, and
+ * the relay now sends it with the refusal.
+ */
+let roomLocale: Locale | null = null
 let projection: SeatProjection | null = null
 let link: PlayerLink | null = null
 let releaseHold: (() => void) | null = null
@@ -165,7 +174,10 @@ let scene = ''
 // ---- Rendering ---------------------------------------------------------------
 
 const render = (): void => {
-  const locale = projection?.locale ?? fallback
+  // The room's language wins over the handset's: a seat's own projection
+  // first, then whatever the door said, and only then the browser's guess —
+  // which is right only before any room has answered.
+  const locale = projection?.locale ?? roomLocale ?? fallback
   const t = strings(locale)
   const s = t.ui.seat
   document.documentElement.lang = locale
@@ -319,9 +331,10 @@ const applySealed = async (payload: string): Promise<void> => {
   }
   const text = await unseal(shared, payload)
   if (text === null) return
-  const parsed = JSON.parse(text) as SeatProjection | { kind: 'refused'; reason?: Refusal }
+  const parsed = JSON.parse(text) as SeatProjection | { kind: 'refused'; reason?: Refusal; locale?: Locale }
   if (parsed.kind === 'refused') {
     refused = parsed.reason ?? 'notOnList'
+    if (parsed.locale !== undefined) roomLocale = parsed.locale
     joined = true
   } else if (parsed.kind === 'seat') {
     projection = parsed
@@ -458,7 +471,10 @@ const bind = (): void => {
   // so the tap arrives at the table around them; nothing moves, and the
   // phone's own state says so rather than swallowing the finger (phone-07).
   on(root, '[data-tap="off"] .table', 'pointerdown', () => {
-    const line = root.querySelector('.mine__state')
+    // The dead have `.mine__state`; a living seat with nothing to do at this
+    // step has `.mine__note` instead, and used to get no answer at all — no
+    // nudge and not even a buzz, because the handler gave up before it.
+    const line = root.querySelector('.mine__state') ?? root.querySelector('.mine__note')
     if (line === null || line.hasAttribute('data-nudge')) return
     buzz()
     line.setAttribute('data-nudge', '')

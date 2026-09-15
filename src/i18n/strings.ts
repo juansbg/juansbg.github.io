@@ -142,6 +142,8 @@ export interface Strings {
       incomplete: string
       duplicateRoleHint: string
       dealRandom: string
+      /** The same control once every seat already holds a card. */
+      dealAgain: string
       complexity: string
       simple: string
       standard: string
@@ -264,6 +266,8 @@ export interface Strings {
       /** A vial already used, appended to its button. */
       spent: string
       bothSpent: string
+      /** Her step on a night the table is not losing anybody. */
+      nobodyDoomed: string
       /** Turns the phone to the player at this step. */
       showPlayer: string
       /** The narrator's peek at roles and colours on a night step, and its undo. */

@@ -226,7 +226,11 @@ export const nightMarkup = (
          ${esc(used ? `${label} · ${t.ui.night.spent}` : label)}
        </button>`
     const bothSpent = state.healUsed && state.poisonUsed
+    // Her prompt tells the narrator to say who is about to die. On a quiet
+    // night that is an instruction to say something untrue, and the only sign
+    // was a greyed-out Heal — so the card says it instead.
     if (bothSpent) situation = t.ui.night.bothSpent
+    else if (doomed.length === 0) situation = t.ui.night.nobodyDoomed
     chooser = table({ pickAttr: 'target', eligible, selected: picked })
     // The vials live in the card, under the prompt: a second full-width row
     // over the button used to take the room the circle needed on a phone.

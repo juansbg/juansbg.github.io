@@ -337,7 +337,7 @@ export const rosterMarkup = (
       <div class="actions">
         <button class="btn ${assigned ? 'btn--ghost' : 'btn--primary'}" type="button"
                 data-deal-random ${named ? '' : 'disabled'}>
-          ${esc(t.ui.setup.dealRandom)}
+          ${esc(assigned ? t.ui.setup.dealAgain : t.ui.setup.dealRandom)}
         </button>
         <button class="btn btn--primary" type="button" data-deal ${ready ? '' : 'disabled'}>
           ${esc(ready ? t.ui.setup.start : t.ui.setup.incomplete)}

@@ -4642,7 +4642,8 @@ html[data-dawn] body {
 /* The refused tap's one cheap acknowledgement (phone-07): the ring is not a
    ballot, nothing moves, and the state line answers instead of the finger
    being swallowed. `data-nudge` is set for 700ms by `src/seat.ts`. */
-.mine__state[data-nudge] {
+.mine__state[data-nudge],
+.mine__note[data-nudge] {
   animation: nudge var(--dur-base) var(--ease-out) 2;
 }
 
