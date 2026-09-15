@@ -516,6 +516,12 @@ export class ScreenLink {
       try {
         const parsed = JSON.parse(event.data) as { kind?: unknown; here?: unknown }
         if (parsed.kind === 'tv') this.onProjection(parsed as TvProjection)
+        // The relay says the evening is over before it closes the sockets. A
+        // close takes ten seconds to finalise here, and a screen that learns
+        // this only from its close code shows a live-looking table for all ten
+        // of them. The close still arrives and still carries ENDED; this just
+        // means the room does not have to wait for it.
+        else if (parsed.kind === 'ended') this.onStatus('ended')
         else if (parsed.kind === 'narrator' && typeof parsed.here === 'boolean') this.onNarrator(parsed.here)
       } catch {
         // Not ours.
@@ -646,6 +652,9 @@ export class PlayerLink {
         const parsed = JSON.parse(event.data) as { kind?: unknown; pub?: unknown; payload?: unknown; here?: unknown }
         if (parsed.kind === 'hello' && typeof parsed.pub === 'string') this.handlers.onHello(parsed.pub)
         else if (parsed.kind === 'player' && typeof parsed.payload === 'string') this.handlers.onSealed(parsed.payload)
+        // As above: the phone is told rather than left to infer it from a
+        // close that takes ten seconds to land.
+        else if (parsed.kind === 'ended') this.handlers.onStatus('ended')
         else if (parsed.kind === 'narrator' && typeof parsed.here === 'boolean') this.handlers.onNarrator?.(parsed.here)
       } catch {
         // Not ours.
