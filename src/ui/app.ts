@@ -495,6 +495,13 @@ function screenJoin(): ScreenJoin | null {
   }
 }
 
+/** A phone turned away at the door: why, and in the language of the room. */
+export interface Refused {
+  kind: 'refused'
+  reason: Notice['reason']
+  locale: Locale
+}
+
 /**
  * What one guest should see now, or a refusal if they have no seat.
  *
@@ -504,9 +511,14 @@ function screenJoin(): ScreenJoin | null {
  * another phone" even in principle, and said the one thing for both. It is
  * the same three cases the narrator's timeline names.
  */
-function seatNow(guest: Guest): SeatProjection | { kind: 'refused'; reason: Notice['reason'] } {
-  const no = (): { kind: 'refused'; reason: Notice['reason'] } =>
-    ({ kind: 'refused', reason: refusal(guest.name) })
+function seatNow(guest: Guest): SeatProjection | Refused {
+  // The room's language travels with the refusal, because there is no seat
+  // and so no projection to carry it — and a phone with nothing else to go on
+  // falls back to whatever language its owner's browser is set to. The door
+  // is the one screen a stranger meets before the game has told them
+  // anything, and it was answering a Spanish table in English because one
+  // guest's handset happened to be.
+  const no = (): Refused => ({ kind: 'refused', reason: refusal(guest.name), locale: state.locale })
   if (guest.seat === null) return no()
   const game = state.session.current
   if (state.screen === 'setup' && game.players.length === 0) {
