@@ -462,6 +462,13 @@ export class ScreenLink {
     private readonly onStatus: (status: LinkStatus) => void = () => {},
     /** Whether a narrator is running the game right now; the relay says so. */
     private readonly onNarrator: (here: boolean) => void = () => {},
+    /**
+     * Who has taken a seat, by name, whether or not a narrator is on the room.
+     * Before a claim there is no projection, so this is the only way a screen
+     * knows anybody has arrived — and somebody who scans first and waits was
+     * invisible on the one screen the whole room is watching.
+     */
+    private readonly onGuests: (names: string[]) => void = () => {},
   ) {
     this.connect()
   }
@@ -514,7 +521,7 @@ export class ScreenLink {
       this.lastSeen = Date.now()
       if (typeof event.data !== 'string' || event.data === 'pong') return
       try {
-        const parsed = JSON.parse(event.data) as { kind?: unknown; here?: unknown }
+        const parsed = JSON.parse(event.data) as { kind?: unknown; here?: unknown; names?: unknown }
         if (parsed.kind === 'tv') this.onProjection(parsed as TvProjection)
         // The relay says the evening is over before it closes the sockets. A
         // close takes ten seconds to finalise here, and a screen that learns
@@ -522,7 +529,9 @@ export class ScreenLink {
         // of them. The close still arrives and still carries ENDED; this just
         // means the room does not have to wait for it.
         else if (parsed.kind === 'ended') this.onStatus('ended')
-        else if (parsed.kind === 'narrator' && typeof parsed.here === 'boolean') this.onNarrator(parsed.here)
+        else if (parsed.kind === 'guests' && Array.isArray(parsed.names)) {
+          this.onGuests(parsed.names.filter((n): n is string => typeof n === 'string'))
+        } else if (parsed.kind === 'narrator' && typeof parsed.here === 'boolean') this.onNarrator(parsed.here)
       } catch {
         // Not ours.
       }

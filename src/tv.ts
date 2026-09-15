@@ -138,6 +138,15 @@ let quiet = false
  * Why the room this screen was on ended, while it stands on a fresh one.
  * `ended` is the narrator closing it; `gone` is a code that is not a room.
  */
+/**
+ * Who has taken a seat, before any narrator has claimed the room.
+ *
+ * There is no projection until a claim, so this is the only thing a screen
+ * knows about the table filling up — and somebody who scanned the QR and sat
+ * down was invisible on the one screen the whole room is looking at, with no
+ * way to tell whether it had worked.
+ */
+let guests: string[] = []
 let roomClosed: 'ended' | 'gone' | null = null
 /** Two missed pongs. The ping goes out every twelve seconds. */
 const QUIET_MS = 20_000
@@ -221,7 +230,13 @@ const render = (): void => {
             ? t.relayDown
             : trying
     body = lobbyMarkup(
-      { code: room.code, join: seatUrl(room, location.origin), roster: null, ...(note === undefined ? {} : { note }) },
+      {
+        code: room.code,
+        join: seatUrl(room, location.origin),
+        roster: null,
+        waiting: guests,
+        ...(note === undefined ? {} : { note }),
+      },
       false,
       locale,
     )
@@ -324,6 +339,7 @@ const closeAndReopen = (why: 'ended' | 'gone'): void => {
   own = true
   room = null
   projection = null
+  guests = []
   roomClosed = why
   saveScreen(null)
   render()
@@ -389,6 +405,10 @@ const connect = (r: OpenRoom): void => {
         return
       }
       narratorHere = false
+      render()
+    },
+    (names) => {
+      guests = names
       render()
     },
   )
