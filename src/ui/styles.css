@@ -3952,9 +3952,20 @@ html[data-dawn] body {
   font-size: var(--text-xs);
 }
 
-.stage--tv ~ .tv__status,
 .stage--seat ~ .tv__status {
   font-size: clamp(var(--text-xs), 1.9vmin, 2.25rem);
+}
+
+.stage--tv ~ .tv__status {
+  right: 0;
+  bottom: 0;
+  left: 0;
+  padding: max(var(--space-3), 2vmin) max(var(--space-3), 2.5vw);
+  color: var(--fg-2);
+  font-size: clamp(1rem, 3vmin, 2.5rem);
+  text-align: center;
+  background: var(--bg);
+  border-top: 1px solid var(--hairline);
 }
 
 /* A TV has no hands: the clock is a display there. */
@@ -4028,10 +4039,10 @@ html[data-dawn] body {
    is dropped here and kept where the gaps are generous (the phone). */
 .stage--tv .seat__votes,
 .stage--tv .seat__cast {
-  --badge: clamp(1.5rem, calc(var(--seat) * 0.3), 3rem);
+  --badge: clamp(1.5rem, calc(var(--seat) * 0.34), 3.5rem);
   right: 0;
   bottom: 0;
-  font-size: clamp(0.875rem, calc(var(--badge) * 0.55), 1.75rem);
+  font-size: clamp(1rem, calc(var(--badge) * 0.68), 2.25rem);
 }
 
 /* A hand going up used to just appear — the ballot's own figure in the
@@ -4889,6 +4900,20 @@ html[data-dawn] body {
   width: min(58vmin, 40rem);
 }
 
+/* The way in for a camera that will not scan. Mono, because it is something
+   to be copied character by character, and set to be read from the back of
+   the room like the code above it. */
+.lobby__address {
+  margin: 0;
+  color: var(--fg-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+
+.stage--tv .lobby__address {
+  font-size: clamp(1rem, 2.6vmin, 2.25rem);
+}
+
 .stage--tv .lobby__name {
   font-size: clamp(1.25rem, 3.2vmin, 3rem);
 }
@@ -4927,7 +4952,13 @@ html[data-dawn] body {
 
 .stage--tv .screen--lobby:not([data-unclaimed]) .lobby__names {
   grid-template-columns: minmax(0, 1fr);
-  grid-auto-rows: minmax(0, 1fr);
+  /* `1fr` alone divides the whole frame between however many rows there are,
+     which is right for a full table and absurd for one: the first person to
+     scan got a 900x945 box with their name floating in the middle of it, on
+     the frame the room stares at for the most social minute of the evening.
+     The cap is a row's own business; the list then sits as a block. */
+  grid-auto-rows: minmax(0, min(1fr, 6.5rem));
+  align-content: center;
   min-height: 0;
 }
 

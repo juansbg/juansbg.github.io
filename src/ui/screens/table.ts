@@ -5,7 +5,7 @@ import type { TvCast, TvProjection, TvSeat } from '../../room/projections'
 import { esc } from '../dom'
 import { qrSvg } from '../../room/qr'
 import { circleMarkup } from './circle'
-import { dailyMarkup, editionOf } from './paper'
+import { dailyMarkup, editionOf, paperFrom, paperPage } from './paper'
 import { MIN_PLAYERS } from './setup'
 import { timerMarkup } from './timer'
 
@@ -72,6 +72,35 @@ export const tableMarkup = (p: TvProjection, controls = true): string => {
   if (p.paper !== null) {
     const e = editionOf({ day: p.paper, players: p.players, log: p.log, revealed: p.revealed }, p.locale)
     return dailyMarkup(e, p.locale, false)
+  }
+
+  // And the last one the same way. It is the whole evening as a front page and
+  // it used to reach nobody but the narrator holding it, while the room looked
+  // at something else — so the one object of this game anybody would keep was
+  // shown to one person. Nothing on it is new to the room: every death was
+  // read out at dawn, the cast is what the ring reveals once the game is over,
+  // and the record is the public log.
+  if (p.finalPaper && over) {
+    const paper = paperFrom(
+        {
+          night: p.night,
+          players: p.players.map((s) => ({
+            id: s.id,
+            name: s.name,
+            alive: s.alive,
+            roleId: castMap.get(s.id)?.roleId ?? 'PLAIN',
+          })),
+          log: p.log,
+          winner: p.winner,
+        },
+        p.locale,
+      )
+    // The room's copy stops at who was who. The night-by-night record runs the
+    // page past 1080 and a television cannot scroll, so it was simply cut off
+    // mid-heading; and of the three sections it is the one the room least
+    // needs, having sat through every line of it. It stays on the narrator's
+    // page and in the image they share.
+    return paperPage({ ...paper, record: [] }, p.locale)
   }
 
   return `
@@ -228,6 +257,14 @@ export interface Lobby {
   dealt?: boolean
 }
 
+/**
+ * The join address as a person would type it: the QR's own target, without
+ * its protocol or its fragment. A camera that will not scan is the only way
+ * into this game that does not exist otherwise.
+ */
+export const addressOf = (join: string | null): string | null =>
+  join === null ? null : (join.split('#')[0] ?? '').replace(/^https?:\/\//, '').replace(/\/+$/, '') || null
+
 /** The code inside a join address, so the projection need not carry it twice. */
 export const codeOf = (join: string | null): string | null =>
   join === null ? null : new URLSearchParams(join.split('#')[1] ?? '').get('room')
@@ -246,6 +283,7 @@ export const lobbyMarkup = (lobby: Lobby, controls: boolean, locale: Locale): st
   const joined = roster.filter((r) => r.joined).length
   const enough = roster.length >= MIN_PLAYERS
   const dealing = lobby.dealt === true
+  const address = addressOf(lobby.join)
   // Everyone at the table already holds a phone — a fresh lobby that just
   // filled, or a rematch where every phone reconnected under its old name in
   // the seconds after "Play again". Either way the QR has done its job: the
@@ -299,10 +337,22 @@ export const lobbyMarkup = (lobby: Lobby, controls: boolean, locale: Locale): st
             ? `<h1 class="title lobby__dealt">${esc(t.ui.reveal.dealt)}</h1>`
             : `<p class="label">${esc(t.ui.table.scanToJoin)}</p>
                ${lobby.code === null ? '' : `<p class="title lobby__room">${esc(lobby.code)}</p>`}
-               ${lobby.join === null ? '' : `<div class="room__qr lobby__qr" aria-hidden="true">${qrSvg(lobby.join)}</div>`}`
+               ${lobby.join === null ? '' : `<div class="room__qr lobby__qr" aria-hidden="true">${qrSvg(lobby.join)}</div>`}
+               ${address === null ? '' : `<p class="lobby__address">${esc(t.ui.tv.orType(address))}</p>`}`
         }
       </div>
       ${column}
+      ${
+        // The way back, which the table view has had all along and the lobby
+        // had not: a narrator who taps "Show the table" during setup to put
+        // the code up was left with the lobby's own button as the only
+        // control on the screen — and that button *proceeds*, and is disabled
+        // below four names. Under four, the screen had no working control at
+        // all and the phone was stuck.
+        controls
+          ? `<button class="icon-btn tableview__close" type="button" data-table-close aria-label="${esc(t.ui.common.back)}" title="${esc(t.ui.common.back)}">✕</button>`
+          : ''
+      }
     </section>
   `
 }

@@ -1,5 +1,5 @@
 import { ROLES, type RoleId } from '../../engine/roles'
-import { revealedDead, winner } from '../../engine/state'
+import { revealedDead, winner, type Winner } from '../../engine/state'
 import type { DeathCause, GameState, Outcome, Player, PlayerId } from '../../engine/types'
 import { outcomeAccent, renderOutcome, renderWinner, strings, type Locale } from '../../i18n'
 import { accentOf, outcomeAccentOf, type Accent } from '../accent'
@@ -406,12 +406,38 @@ export interface Paper {
   record: { title: string; lines: string[] }[]
 }
 
-export const paperOf = (state: GameState, locale: Locale): Paper => {
+/**
+ * Everything the final edition is built from, shaped so a projection can carry
+ * it (the same trick `EditionSource` plays for the morning). Every field is
+ * public by the time this page exists: the deaths are the ones the town was
+ * read at dawn, the cast is what the ring reveals beside it once the game is
+ * over, and the record is the public log.
+ */
+export interface PaperSource {
+  night: number
+  players: readonly { id: PlayerId; name: string; alive: boolean; roleId: RoleId }[]
+  /** Public outcomes; anything else in here is ignored. */
+  log: readonly Outcome[]
+  winner: Winner
+}
+
+export const paperOf = (state: GameState, locale: Locale): Paper =>
+  paperFrom(
+    {
+      night: state.night,
+      players: state.players.map((p) => ({ id: p.id, name: p.name, alive: p.alive, roleId: p.roleId })),
+      log: state.log,
+      winner: winner(state),
+    },
+    locale,
+  )
+
+export const paperFrom = (state: PaperSource, locale: Locale): Paper => {
   const t = strings(locale)
   const bank = t.ui.dawn.death
   const lines = deathLines(state.log, (cause) => bank[cause].length)
   const headlines = deathLines(state.log, (cause) => t.ui.paper.headline[cause].length)
-  const isCrew = (roleId: Player['roleId']): boolean => ROLES[roleId].team === 'crew'
+  const isCrew = (roleId: RoleId): boolean => ROLES[roleId].team === 'crew'
 
   const stories: Story[] = state.log
     .filter((o): o is Death => o.type === 'death' && o.public)
@@ -451,7 +477,7 @@ export const paperOf = (state: GameState, locale: Locale): Paper => {
     // Nobody won: the narrator ended it early. The page used to fall back to
     // "Game over", which is also the screen's own title, so the same two
     // words sat above and below the masthead saying nothing.
-    banner: renderWinner(winner(state), locale) ?? t.ui.over.endedOn(state.night),
+    banner: renderWinner(state.winner, locale) ?? t.ui.over.endedOn(state.night),
     stories,
     cast,
     record,
@@ -459,9 +485,11 @@ export const paperOf = (state: GameState, locale: Locale): Paper => {
 }
 
 /** The front page as it appears on the game-over screen: the same paper, final edition. */
-export const paperMarkup = (state: GameState, locale: Locale): string => {
+export const paperMarkup = (state: GameState, locale: Locale): string => paperPage(paperOf(state, locale), locale)
+
+/** The same page, from a paper that has already been built (the room's own). */
+export const paperPage = (paper: Paper, locale: Locale): string => {
   const t = strings(locale)
-  const paper = paperOf(state, locale)
   const [lead = null, ...rest] = paper.stories.map((s): Article => {
     const cause: Outcome = { type: 'death', night: s.night, target: -1, cause: s.cause, public: true }
     return {

@@ -98,6 +98,13 @@ const castSeat = (p: SeatProjection, s: SeatProjection['players'][number]): Play
 export interface SeatPicks {
   picked: readonly PlayerId[]
   sent: boolean
+  /**
+   * The action went out and nothing came back, so it did not arrive. The
+   * narrator republishes on every paint, which makes a projection the phone's
+   * only receipt — and a socket being OPEN is not one, since the frame can
+   * still be lost after it.
+   */
+  unsent?: boolean
 }
 
 const NO_PICKS: SeatPicks = { picked: [], sent: false }
@@ -379,15 +386,24 @@ export const seatMarkup = (
       <h1 class="title title--sm">${esc(p.name)}</h1>
     </header>`
 
+  // The narrator is reading to the room, and the room hears it from them.
+  //
+  // This is checked BEFORE the ending on purpose. Every mid-game reading held
+  // the phones on the listening page and the final one did not, so the moment
+  // the last Family member was hanged all six phones showed the result and the
+  // whole board of roles while the narrator was still on the first of two
+  // slides. Everybody looks down the instant something happens, so the one
+  // beat the evening is built towards was being delivered to people who
+  // already knew the answer. The result lands when the narrator closes the
+  // reading, which is the same rule every other morning already follows.
+  if (p.reading !== null) return wakingMarkup(p, locale, head)
+
   if (p.over) return overMarkup(p, locale, head)
 
   // The table is still filling up: the roster, not a sentence about cards.
   if (p.phase === 'setup' && p.roleId === null && p.roster.length > 0) {
     return lobbySeatMarkup(p, locale, head)
   }
-
-  // The narrator is reading the night to the room; the phone hears it first.
-  if (p.reading !== null) return wakingMarkup(p, locale, head)
 
   // This seat has just died and has not tapped past the news yet.
   if (gone !== null) return goneMarkup(p, locale, head, gone)
@@ -696,6 +712,8 @@ const nightMarkup = (
     ? ''
     : picks.sent
       ? `<p class="mine__note">${esc(s.sent)}</p>`
+      : picks.unsent === true
+        ? `<p class="mine__note" data-unsent>${esc(s.notSent)}</p>`
       : hint
         ? `<p class="label mine__hint">${esc(hint)}</p>`
         : acting

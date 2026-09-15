@@ -110,6 +110,30 @@ let link: PlayerLink | null = null
 let releaseHold: (() => void) | null = null
 /** The seats picked at this step and whether an action is on its way; see SeatPicks. */
 let picks: SeatPicks = { picked: [], sent: false }
+/**
+ * An action went out and nothing has come back.
+ *
+ * The narrator republishes on every paint, so a projection is the phone's
+ * receipt: if one does not arrive, the tap did not land. A socket that is OPEN
+ * is not proof — the frame can still be lost — so the claim has a deadline
+ * rather than a state.
+ */
+const ACK_MS = 3_000
+let ackTimer: number | null = null
+
+const awaitAck = (): void => {
+  if (ackTimer !== null) clearTimeout(ackTimer)
+  ackTimer = window.setTimeout(() => {
+    ackTimer = null
+    picks = { picked: picks.picked, sent: false, unsent: true }
+    render()
+  }, ACK_MS)
+}
+
+const gotAck = (): void => {
+  if (ackTimer !== null) clearTimeout(ackTimer)
+  ackTimer = null
+}
 /** Which night and step the picks belong to: a new step starts clean. */
 let stepKey = ''
 /** The gate around the chooser: "your turn", the chooser, "close your eyes"; see SeatGate. */
@@ -284,6 +308,7 @@ const applySealed = async (payload: string): Promise<void> => {
     joined = true
     refused = null
     remember(nameKey, parsed.name)
+    gotAck()
     picks = settlePicks(parsed, picks, stepKey)
     stepKey = stepKeyOf(parsed)
     gate = nextGate(gate, parsed)
@@ -460,8 +485,15 @@ const bind = (): void => {
     )
     if (action === null) return
     buzz()
-    link.send({ kind: 'act', action })
+    // The socket's own answer, rather than hope: a frame it would not take is
+    // a frame the narrator never sees.
+    if (!link.send({ kind: 'act', action })) {
+      picks = { picked: picks.picked, sent: false, unsent: true }
+      render()
+      return
+    }
     picks = { picked: picks.picked, sent: true }
+    awaitAck()
     render()
   })
 }
