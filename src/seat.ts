@@ -21,6 +21,7 @@ import type { PlayerId } from './engine/types'
 import { ROLES } from './engine/roles'
 import { fitTables } from './ui/screens/circle'
 import { bindHold, roleCardMarkup } from './ui/screens/reveal'
+import { dailyMarkup, editionOf } from './ui/screens/paper'
 import {
   CODE_SHAPE,
   codeMarkup,
@@ -110,6 +111,16 @@ let link: PlayerLink | null = null
 let releaseHold: (() => void) | null = null
 /** The seats picked at this step and whether an action is on its way; see SeatPicks. */
 let picks: SeatPicks = { picked: [], sent: false }
+/**
+ * The morning's paper, open on this phone.
+ *
+ * Only a seat that is out is ever sent the day's public outcomes, so this can
+ * only ever be true on a phone that has nothing else to do. It closes itself
+ * if the projection stops carrying one — a new game, or a rewind that puts
+ * this player back in the game — rather than stranding the phone on a page
+ * with nothing behind it.
+ */
+let paperOpen = false
 /**
  * An action went out and nothing has come back.
  *
@@ -215,7 +226,16 @@ const render = (): void => {
       </section>`
   } else if (projection === null) {
     body = center(`<p class="label">${esc(s.title)}</p><h1 class="title title--sm">${esc(s.joined(name))}</h1><p class="subtitle">${esc(s.waiting)}</p>`)
+  } else if (paperOpen && projection.log.length > 0) {
+    // The same edition the room is reading, from the same facts and the same
+    // function: `editionOf` is what the big screen and the narrator's phone
+    // both build theirs with, so there is one morning and not three.
+    body = dailyMarkup(
+      editionOf({ day: projection.day, players: projection.players, log: projection.log, revealed: projection.revealed }, locale),
+      locale,
+    )
   } else {
+    if (paperOpen) paperOpen = false
     body = seatMarkup(projection, locale, picks, gate, gone)
   }
 
@@ -418,6 +438,16 @@ const bind = (): void => {
   })
 
   // The news of one's own death, taken in and tapped past.
+  on(root, '[data-paper-open]', 'click', () => {
+    paperOpen = true
+    render()
+  })
+
+  on(root, '[data-paper-close]', 'click', () => {
+    paperOpen = false
+    render()
+  })
+
   on(root, '[data-mourn]', 'click', () => {
     buzz()
     gone = null

@@ -429,7 +429,7 @@ export const seatMarkup = (
 
   let day = ''
   if (!p.alive) {
-    day = `<p class="mine__note">${esc(s.out)}</p>`
+    day = `<p class="mine__note">${esc(s.out)}</p>${paperButton(p, locale)}`
   } else if (p.phase === 'night') {
     day = `<p class="mine__note">${esc(t.phase.nightFalls)}</p>`
   }
@@ -499,6 +499,7 @@ const dayMarkup = (p: SeatProjection, locale: Locale, head: string): string => {
     <section class="screen mine mine--table" data-day ${complete ? 'data-counted' : ''} ${quiet ? 'data-quiet' : ''} ${tap(p.canVote)}>
       ${head}
       ${state === '' ? '' : `<p class="mine__state">${esc(state)}</p>`}
+      ${paperButton(p, locale)}
       <div class="card card--role mine__step" data-accent="system">
         <p class="night__counter">${esc(t.ui.table.day(p.day))}</p>
         <h2 class="card__title">${esc(title)}</h2>
@@ -510,6 +511,18 @@ const dayMarkup = (p: SeatProjection, locale: Locale, head: string): string => {
       ${holdMarkup(t.ui.reveal, false, s.hidden)}
     </section>`
 }
+
+/**
+ * The way to the morning, for a seat that is out.
+ *
+ * Only ever rendered when the projection actually carries the day's public
+ * outcomes, which `seatProjection` sends to the dead alone — so this cannot
+ * appear on a living player's phone even if it were called there.
+ */
+export const paperButton = (p: SeatProjection, locale: Locale): string =>
+  p.log.length === 0
+    ? ''
+    : `<button class="btn btn--ghost mine__paper" type="button" data-paper-open>${esc(strings(locale).ui.seat.readPaper)}</button>`
 
 /** The ring as every phone shows it between steps: names, the dead, my own chair, nothing else. */
 const plainView = (p: SeatProjection): Perspective => ({ self: [p.seat], crew: [], doomed: [], marked: [] })

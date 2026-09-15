@@ -136,11 +136,35 @@ const checkSeatNight = (state: GameState, me: Player, p: SeatProjection): void =
   }
   // Once the game is over the cast is public, on every phone alike.
   if (p.over) for (const c of p.cast) allowed.add(c.roleId)
+  // A seat that is out of the game gets the morning's paper, and the paper
+  // names the dead for what they were. That is the day-late reveal, the one
+  // way a role becomes public, and it is exactly the sentence the room's own
+  // check carries. Added on purpose and no wider: only ids the engine has
+  // already revealed, and only on a phone whose seat is dead.
+  // The card the Chameleon took, which the table hears leave the centre and
+  // never who took it. Already allowed on the TV for exactly this reason, and
+  // read off the phone's own log rather than the game's, so the phone can
+  // never be allowed a card its paper does not actually mention.
+  for (const o of p.log) if (o.type === 'cardTaken') allowed.add(o.role)
+  for (const r of p.revealed) {
+    expect(p.alive, `${me.name} is alive and holds a revealed role`).toBe(false)
+    expect(
+      state.players.find((o) => o.id === r.id)?.alive,
+      `${me.name}'s paper names a living player`,
+    ).toBe(false)
+    allowed.add(r.roleId)
+  }
   for (const id of ROLE_IDS) {
     if (!allowed.has(id)) expect(json, `${me.name}'s phone carries role ${id}`).not.toContain(`"${id}"`)
   }
   expect(json).not.toContain('voter')
-  expect(json).not.toContain('"public"')
+  // A phone used to carry no outcomes at all, so the absence of the word was
+  // proof enough. It carries the morning's public ones now, for a seat that is
+  // out, which makes that proxy useless — so assert the thing it stood for
+  // instead, which is stronger: every outcome on a phone is a public one, and
+  // a living seat still carries none.
+  for (const o of p.log) expect(o.public, `${me.name}'s phone carries a secret outcome`).toBe(true)
+  if (me.alive) expect(p.log, `${me.name} is alive and holds the paper`).toEqual([])
   expect(p.players.map((s) => s.id)).toEqual(state.players.map((s) => s.id))
 
   if (state.phase !== 'night') {

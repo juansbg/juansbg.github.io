@@ -809,6 +809,7 @@ export const es: Strings = {
       silenced: 'Te han quemado la casa. Hoy ni hablas ni votas; mañana vuelves.',
       voted: 'Tu voto está echado. Esperando a los demás.',
       out: 'Estás fuera. Mira cómo acaba.',
+      readPaper: 'Lee el periódico de esta mañana',
       idleNight: 'En esta no te toca. Ojos cerrados.',
       goneTitle: 'Estás fuera de la partida',
       goneLine: 'La mesa sigue sin ti. Quédate en tu sitio y mira cómo acaba.',

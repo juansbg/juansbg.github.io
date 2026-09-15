@@ -581,6 +581,14 @@ export interface Strings {
       voted: string
       out: string
       /**
+       * The way to the morning's paper, on a phone whose seat is out.
+       *
+       * The dead had one button and half an hour, while the edition they would
+       * most want to read was on the TV, on the narrator's phone and in every
+       * living player's argument.
+       */
+      readPaper: string
+      /**
        * Nothing for this seat at this step. A living citizen's note slot was
        * empty at every step of every night, and a first-timer reads an empty
        * phone as a broken one.

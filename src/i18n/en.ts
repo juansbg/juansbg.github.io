@@ -804,6 +804,7 @@ export const en: Strings = {
       silenced: 'Burned out. No speaking and no vote today — you are back tomorrow.',
       voted: 'Your vote is in. Waiting for the others.',
       out: 'You are out. Watch how it ends.',
+      readPaper: 'Read this morning’s paper',
       idleNight: 'Nothing for you at this one. Eyes closed.',
       goneTitle: 'You are out of the game',
       goneLine: 'The table plays on without you. Stay in your seat and watch how it ends.',
