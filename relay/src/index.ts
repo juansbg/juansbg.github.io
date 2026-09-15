@@ -20,6 +20,7 @@
  */
 
 import { DurableObject } from 'cloudflare:workers'
+import { say, tell } from './fanout'
 
 /** The rate-limiting binding; the types package has no name for it yet. */
 interface RateLimiter {
@@ -331,27 +332,27 @@ export class Room extends DurableObject<Env> {
     // silently on a table that will not move.
     if (as !== 'narrator') {
       const here = this.ctx.getWebSockets('narrator').length > 0
-      server.send(JSON.stringify({ kind: 'narrator', here }))
+      say(server, JSON.stringify({ kind: 'narrator', here }))
     }
 
     // Whatever was last published for this screen, so it is current at once.
     if (as === 'tv') {
       const last = await this.ctx.storage.get<string>('last:tv')
-      if (last !== undefined) server.send(last)
+      if (last !== undefined) say(server, last)
     } else if (as === 'player') {
       const hello = await this.ctx.storage.get<string>('last:hello')
-      if (hello !== undefined) server.send(hello)
+      if (hello !== undefined) say(server, hello)
       const last = await this.ctx.storage.get<string>(`last:player:${url.searchParams.get('cid')}`)
-      if (last !== undefined) server.send(last)
+      if (last !== undefined) say(server, last)
     } else {
       // The narrator learns who is in the room already, joins included, so a
       // phone that scanned before the narrator arrived is not lost.
-      server.send(JSON.stringify({ kind: 'present', players: await this.joins(), tvs: this.ctx.getWebSockets('tv').length }))
+      say(server, JSON.stringify({ kind: 'present', players: await this.joins(), tvs: this.ctx.getWebSockets('tv').length }))
       // …and anything the phones said while no narrator was listening.
       const waiting = await this.ctx.storage.get<string[]>('waiting')
       if (waiting !== undefined) {
         await this.ctx.storage.delete('waiting')
-        for (const text of waiting) server.send(text)
+        for (const text of waiting) say(server, text)
       }
     }
 
@@ -383,15 +384,15 @@ export class Room extends DurableObject<Env> {
       const msg = parsed as Published
       if (msg.kind === 'tv') {
         await this.ctx.storage.put('last:tv', message)
-        for (const tv of this.ctx.getWebSockets('tv')) tv.send(message)
+        tell(this.ctx.getWebSockets('tv'), message)
       } else if (msg.kind === 'hello') {
         if (typeof msg.pub !== 'string' || msg.pub.length > MAX_KEY) return
         await this.ctx.storage.put('last:hello', message)
-        for (const p of this.ctx.getWebSockets('player')) p.send(message)
+        tell(this.ctx.getWebSockets('player'), message)
       } else if (msg.kind === 'player') {
         if (typeof msg.cid !== 'string' || !CID.test(msg.cid) || typeof msg.payload !== 'string') return
         await this.ctx.storage.put(`last:player:${msg.cid}`, message)
-        for (const p of this.ctx.getWebSockets(`cid:${msg.cid}`)) p.send(message)
+        tell(this.ctx.getWebSockets(`cid:${msg.cid}`), message)
       } else if (msg.kind === 'end') {
         await this.end()
         return
@@ -513,11 +514,12 @@ export class Room extends DurableObject<Env> {
   private tellNarrator(message: unknown): void {
     const text = JSON.stringify(message)
     const narrators = this.ctx.getWebSockets('narrator')
-    if (narrators.length === 0) {
-      void this.hold(text)
-      return
-    }
-    for (const n of narrators) n.send(text)
+    // Held when nobody actually heard it, not merely when the list is empty.
+    // A socket in that list can already be closing — a narrator's phone that
+    // has just died is exactly when a phone's vote most needs keeping — and
+    // the old check looked at how many sockets existed rather than how many
+    // took the message.
+    if (tell(narrators, text) === 0) void this.hold(text)
   }
 
   /** Keeps what was said for the narrator who is about to arrive. */
@@ -530,7 +532,7 @@ export class Room extends DurableObject<Env> {
   /** Everyone watching: the screens and the phones, never the narrator. */
   private tellRoom(message: unknown): void {
     const text = JSON.stringify(message)
-    for (const ws of [...this.ctx.getWebSockets('tv'), ...this.ctx.getWebSockets('player')]) ws.send(text)
+    tell([...this.ctx.getWebSockets('tv'), ...this.ctx.getWebSockets('player')], text)
   }
 
   /** The narrator sees how many screens are on the room; `delta` counts the one joining or leaving. */
