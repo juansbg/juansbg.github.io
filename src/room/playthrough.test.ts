@@ -59,7 +59,15 @@ const checkTv = (state: GameState, locale: Locale, sealed: boolean): void => {
   // Two ways a role id may reach the room: the paper named a dead player, or the Chameleon
   // took that card from the centre and the table heard which (a card nobody living holds).
   // A third way, on purpose: once the game is over the whole cast is public.
-  expect(p.over).toBe(winner(state) !== null)
+  // Not simply "the engine can name a winner". While the Gunman still has his
+  // shot the narrator is mid-question and that answer can kill the last of a
+  // side, so the room is not told — it was being handed the winner and every
+  // role on the table while the question was still being asked. This assertion
+  // previously read `winner(state) !== null`, which stated the leak as a rule.
+  expect(p.over).toBe(state.awaitingHunterShot === null && winner(state) !== null)
+  // And the pending shot must actually withhold the cast, not merely be
+  // permitted to: the rule above is only worth having if this holds too.
+  if (state.awaitingHunterShot !== null) expect(p.cast).toEqual([])
   if (!p.over) expect(p.cast).toEqual([])
   else expect(p.cast.map((c) => c.roleId)).toEqual(state.players.map((x) => x.roleId))
   const allowed = new Set([

@@ -191,7 +191,17 @@ const ballot = (
 
 /** Over when a side has won, or when the narrator says so (an early ending has no winner). */
 const isOver = (state: GameState, context: { over?: boolean }): boolean =>
-  winner(state) !== null || context.over === true
+  // An early ending is the narrator's own decision and is over the moment they
+  // say so. A natural win is not over while the Gunman still has his shot:
+  // `winner()` reads the table as it stands, and the table is not settled —
+  // the narrator is still asking him who he takes with him, and that answer
+  // can kill the last of a side and change the result.
+  //
+  // Until it resolves the room was being handed the winner AND the whole cast,
+  // every role on the table, while the narrator was mid-question. It is the
+  // same shape as the phones pre-empting the dawn: the game had computed an
+  // answer, and the answer reached the room before the moment did.
+  context.over === true || (state.awaitingHunterShot === null && winner(state) !== null)
 
 export const tvProjection = (
   state: GameState,

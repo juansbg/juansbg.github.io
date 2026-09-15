@@ -2936,6 +2936,39 @@ html[data-dawn] body {
   font-size: clamp(1.5rem, 3.2vmin, 3rem);
 }
 
+/* "Who was who" is the moment the evening exists for, and on a 1080p screen
+   it was the smallest thing on it: the names at `--text-display-min` and the
+   roles at `--text-sm`, because every other part of the paper got a TV size
+   and this section never did. Twenty-pixel names, sixteen-pixel roles, on the
+   two lines the whole room is leaning in to read.
+   The size is half the problem. At a full table the same block then ran off
+   the bottom of the frame and the last entries were simply gone, because a
+   TV cannot scroll and nobody can reach it. So it lays out in as many
+   columns as the frame will take, which keeps a full cast on one screen at
+   the size the room can actually read it. */
+.stage--tv .paper__cast {
+  grid-template-columns: repeat(auto-fill, minmax(min(20rem, 100%), 1fr));
+  gap: var(--space-2) var(--space-5);
+}
+
+.stage--tv .paper__who {
+  font-size: clamp(1.5rem, 3.4vmin, 3rem);
+}
+
+.stage--tv .paper__role {
+  font-size: clamp(1.1rem, 2.4vmin, 2rem);
+}
+
+.stage--tv .paper__casting {
+  min-height: 0;
+}
+
+.stage--tv .paper__casting[data-crew]::before,
+.stage--tv .paper__casting:not([data-crew])::before {
+  width: clamp(0.6rem, 1.4vmin, 1.2rem);
+  height: clamp(0.6rem, 1.4vmin, 1.2rem);
+}
+
 .stage--tv .paper__mark {
   width: 2.5rem;
   height: 2.5rem;
@@ -4232,6 +4265,31 @@ html[data-dawn] body {
   height: 60%;
 }
 
+/* The slide the room has waited the whole evening for, and the one slide the
+   TV scale never got a rule of its own. The phone hides the winner's empty
+   mark and sets the line as a hero stamp; on a wall it inherited neither, so
+   it came out as a blank nine-vmin box over `.dawn__name--line`'s ordinary
+   size — 49px of body copy at 1080p, under a heading made of nothing.
+   Here it is what it is on the phone, at the size the room reads. */
+.stage--tv .tableview__card[data-kind='winner'] .dawn__mark {
+  display: none;
+}
+
+.stage--tv .tableview__card[data-kind='winner'] .dawn__name--line {
+  max-width: 92vw;
+  font-family: var(--font-display);
+  font-size: clamp(4rem, 14vmin, 14rem);
+  font-weight: 400;
+  letter-spacing: var(--track-display);
+  line-height: 0.9;
+  text-transform: uppercase;
+  text-wrap: balance;
+}
+
+.stage--tv .tableview__card[data-kind='winner'][data-accent='crew'] .dawn__name--line {
+  color: var(--vendetta);
+}
+
 /* The count the town arrived at is the sentence before a name is read out, and
    it was set like a quiet night's rumour: the same body line, between two
    full-bleed name stamps. It is the moment the room leans in, so it carries
@@ -4262,6 +4320,70 @@ html[data-dawn] body {
   display: flex;
   flex-direction: column;
   justify-content: safe center;
+}
+
+/* The final edition is the one paper that does not fit. A morning edition is
+   a couple of deaths and a colour piece; the last one carries every death of
+   the evening AND "who was who", and stacked in one column at a full table it
+   ran to 1360px on a 1080px frame — the news alone reached 1127, and the cast,
+   which the room is actually waiting for, began at 1151. Entirely below the
+   fold, on a screen nobody can scroll.
+   So the last page is composed for the frame rather than poured down it: the
+   masthead and the banner across the top, the evening's news down the left,
+   and who was who beside it where the room can read it. */
+.stage--tv .paper:has(.paper__section) {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+  grid-template-rows: auto auto auto minmax(0, 1fr);
+  align-content: start;
+  column-gap: var(--space-5);
+  height: 100%;
+  min-height: 0;
+}
+
+.stage--tv .paper:has(.paper__section) > .paper__masthead {
+  grid-column: 1 / -1;
+  grid-row: 1;
+}
+
+.stage--tv .paper:has(.paper__section) > .paper__banner {
+  grid-column: 1 / -1;
+  grid-row: 2;
+}
+
+.stage--tv .paper:has(.paper__section) > .paper__lead {
+  grid-column: 1;
+  grid-row: 3;
+}
+
+/* The news takes what is left of its own column and stops there. At the end of
+   an evening the deaths have all been read aloud twice already; the cast has
+   not been read at all. */
+.stage--tv .paper:has(.paper__section) > .paper__columns {
+  grid-column: 1;
+  grid-row: 4;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.stage--tv .paper:has(.paper__section) > .paper__section {
+  grid-column: 2;
+  grid-row: 3 / -1;
+  min-height: 0;
+  align-self: start;
+}
+
+/* Two columns of news in half the width, not three. */
+.stage--tv .paper:has(.paper__section) .paper__columns {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+/* The cast fills its own column, going two-up when the table is big enough to
+   need it — one column is right for five players and three rows too tall for
+   twelve, and the whole point of moving it here was that none of it is cut. */
+.stage--tv .paper:has(.paper__section) .paper__cast {
+  grid-template-columns: repeat(auto-fill, minmax(min(16rem, 100%), 1fr));
+  gap: var(--space-1) var(--space-4);
 }
 
 /* `.paper__columns` on a TV asked for three CSS columns, but the box it is
