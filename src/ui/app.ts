@@ -1860,22 +1860,13 @@ function bind(): void {
     setState({ screen: state.revealReturnTo })
   })
 
-  if (state.screen === 'reveal') {
-    // No re-render inside the gesture: unmounting the held button would fire
-    // pointercancel on touch and read as an instant release. The card is
-    // written into a slot beside the live button instead.
-    releaseHandler = bindHold(root, {
-      onReveal: showRole,
-      onHide: () => {
-        hideRole()
-        // This seat has looked now, so Done takes the Ledger and the hold
-        // settles back. Safe to repaint here: the finger is already up, and
-        // it is only unmounting the button mid-gesture that reads as a
-        // release. No entrance — the scene has not changed, only its weight.
-        setState({}, false)
-      },
-    })
-  } else if (asking !== null) {
+  // `asking` first, and it must stay first: the question round is entered
+  // from the reveal, so `screen` is still 'reveal' throughout it. The markup
+  // above picks the question card before everything else; when this chain was
+  // in the opposite order the phone rendered the question card and bound the
+  // pass-around's gesture to it, so press-and-hold did nothing whatsoever on
+  // the app's one safety net for a confused player.
+  if (asking !== null) {
     // The question card is the same gesture: it is a role, in the clear, on a
     // phone that is about to change hands.
     const id = asking
@@ -1889,6 +1880,21 @@ function bind(): void {
         document.body.classList.add('is-revealing')
       },
       onHide: hideRole,
+    })
+  } else if (state.screen === 'reveal') {
+    // No re-render inside the gesture: unmounting the held button would fire
+    // pointercancel on touch and read as an instant release. The card is
+    // written into a slot beside the live button instead.
+    releaseHandler = bindHold(root, {
+      onReveal: showRole,
+      onHide: () => {
+        hideRole()
+        // This seat has looked now, so Done takes the Ledger and the hold
+        // settles back. Safe to repaint here: the finger is already up, and
+        // it is only unmounting the button mid-gesture that reads as a
+        // release. No entrance — the scene has not changed, only its weight.
+        setState({}, false)
+      },
     })
   }
 

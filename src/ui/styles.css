@@ -3364,6 +3364,28 @@ html[data-dawn] body {
   font-size: clamp(2rem, 11vw, 4rem);
 }
 
+/* The question card is the one bright surface — `.reveal__card` is Ledger
+   paper — and every class on it was written for the Detective's inspect
+   screen, which is dark. So the role name was Ledger on Ledger at 1.0:1, the
+   name and the side were Ash on Ledger, and the sigil was Neon on Ledger,
+   which DESIGN.md names as the one thing Neon must never be: it is the glyph
+   ink for dark grounds and Midnight on paper. This is the same card the
+   pass-around shows, so it takes the same ink. */
+.inspect__card .inspect__role,
+.inspect__card .inspect__brief,
+.inspect__card .inspect__sigil,
+.inspect__card .inspect__team {
+  color: var(--on-paper);
+}
+
+/* The name and the fuller answer step back from the role, the way the
+   pass-around's card already does it — `--on-paper-muted` is the token that
+   exists for exactly this, rather than a mix invented here. */
+.inspect__card .inspect__who,
+.inspect__card .inspect__detail {
+  color: var(--on-paper-muted);
+}
+
 .inspect__scroll {
   display: grid;
   gap: var(--space-3);
