@@ -39,7 +39,6 @@ export interface RevealProps {
   phase: RevealPhase
   locale: Locale
   mode: 'onboarding' | 'single'
-  canGoBack: boolean
   /**
    * Whether this seat has already held its card. Until it has, Done is a
    * ghost: on the confirm screen the brightest control used to be "Done —
@@ -61,15 +60,21 @@ export const revealMarkup = (props: RevealProps): string => {
       : ''
 
   if (phase === 'handoff') {
-    // Onboarding can step back through the table; single mode came from a
-    // screen and must be able to go back to it, since picking the wrong name
-    // otherwise left the narrator confirming an identity to escape.
+    // Single mode came from a screen and must be able to go back to it, since
+    // picking the wrong name otherwise left the narrator confirming an
+    // identity to escape.
+    //
+    // The pass-around has no such way back, on purpose. This screen is the one
+    // in a player's hands at the moment the phone changes hands, so a Back
+    // button here was a one-tap route to the previous player's handoff, their
+    // "Are you Ana?", and their card — silent, and indistinguishable from an
+    // ordinary handoff to a narrator glancing over. A narrator who mis-taps
+    // recovers from the ⋯ menu afterwards, which a player cannot reach because
+    // the pass-around renders no bar at all.
     const away =
       props.mode === 'single'
         ? `<button class="btn btn--ghost" type="button" data-reveal-cancel>${esc(t.ui.common.cancel)}</button>`
-        : props.canGoBack
-          ? `<button class="btn btn--ghost" type="button" data-reveal-back>${esc(t.ui.common.back)}</button>`
-          : ''
+        : ''
 
     return `
       <section class="reveal reveal--handoff" data-phase="handoff" data-dir="${props.dir}">

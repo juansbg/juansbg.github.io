@@ -31,7 +31,6 @@ const markup = (phase: RevealPhase, roleId: RoleId = 'KILLER') =>
     phase,
     locale: 'en',
     mode: 'onboarding',
-    canGoBack: false,
       seen: false,
       dir: 'next' as const,
   })
@@ -50,7 +49,6 @@ describe('the reveal never leaks a role early', () => {
           phase: 'handoff',
           locale,
           mode: 'onboarding',
-          canGoBack: false,
       seen: false,
       dir: 'next' as const,
         })
@@ -103,7 +101,7 @@ describe('the revealed card', () => {
     expect(roleCardMarkup(player('INSPECT'), locale)).not.toContain('reveal__trade')
     for (const phase of ['handoff', 'confirm'] as const) {
       const before = revealMarkup({
-        player: citizen, position: 1, total: 3, phase, locale, mode: 'onboarding', canGoBack: false,
+        player: citizen, position: 1, total: 3, phase, locale, mode: 'onboarding',
       seen: false,
       dir: 'next' as const,
       })
@@ -140,7 +138,6 @@ describe('the revealed card', () => {
       phase: 'handoff',
       locale: 'en',
       mode: 'onboarding',
-      canGoBack: false,
       seen: false,
       dir: 'next' as const,
     })

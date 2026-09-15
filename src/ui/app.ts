@@ -956,7 +956,6 @@ function render(entering = false): void {
           phase: revealPhase,
           locale: state.locale,
           mode: state.revealMode,
-          canGoBack: state.revealMode === 'onboarding' && state.revealIndex > 0,
           seen: held.has(player.id),
           dir: revealDir,
         })
@@ -1392,7 +1391,10 @@ function render(entering = false): void {
       // menu read like a working room and the truth waited behind a tap.
       row('data-room', t.ui.menu.bigScreen, roomStatus === 'replaced' ? t.ui.room.handedOver : room?.code ?? ''),
       inPlay || room !== null ? row('data-show-table', t.ui.menu.table) : '',
-      state.screen === 'day' ? row('data-show-role', t.ui.reveal.showAgain) : '',
+      // Any screen in play, not just the day: this is the narrator's only way
+      // back to a card once the pass-around has no Back button of its own, and
+      // the pass-around lands on the night.
+      inPlay ? row('data-show-role', t.ui.reveal.showAgain) : '',
       row('data-mute', t.ui.menu.sound, sound.muted() ? t.ui.menu.off : t.ui.menu.on),
       row('data-stats', t.ui.stats.open),
       installPrompt ? row('data-install', t.ui.menu.install) : '',
@@ -1834,13 +1836,6 @@ function bind(): void {
       ...s,
       players: s.players.map((p) => (p.id === id ? { ...p, hasQuestion: !p.hasQuestion } : p)),
     }))
-  })
-
-  on(root, '[data-reveal-back]', 'click', () => {
-    if (state.revealIndex === 0) return
-    revealPhase = 'handoff'
-    revealDir = 'back'
-    setState({ revealIndex: state.revealIndex - 1 })
   })
 
   // Single mode came from a screen; the wrong name picked must not cost two
@@ -2587,7 +2582,10 @@ function bind(): void {
     // role is anywhere near the screen.
     revealPhase = 'handoff'
     buzz()
-    setState({ screen: 'reveal', revealIndex: 0, revealMode: 'single', revealReturnTo: 'day' })
+    // Back to wherever it was opened from, now that it can be opened from
+    // more than the day.
+    const from = state.screen
+    setState({ screen: 'reveal', revealIndex: 0, revealMode: 'single', revealReturnTo: from })
   })
 
   // The front page as an image, through the share sheet where there is
