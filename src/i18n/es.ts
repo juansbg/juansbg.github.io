@@ -70,6 +70,7 @@ export const es: Strings = {
   phase: {
     nightFalls: 'El pueblo duerme',
     nightFallsBody: 'Que todos cierren los ojos.',
+    nightOver: 'Todos duermen. No queda nada que preguntar esta noche.',
     townWakes: 'El pueblo despierta',
     townWakesBody: 'El pueblo discute lo ocurrido esta noche.',
     quietNight: 'La noche ha pasado sin novedad.',
@@ -245,6 +246,7 @@ export const es: Strings = {
       askShot: 'Pregúntale en voz alta a quién se lleva.',
       pickTwo: 'Elige a dos',
       endNight: 'Terminar la noche',
+      beginNight: 'Empezar la noche',
       wakeGroup: 'Que despierten juntos.',
       asCircle: 'Ver en círculo',
       asList: 'Ver en lista',

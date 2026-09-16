@@ -70,6 +70,7 @@ export const en: Strings = {
   phase: {
     nightFalls: 'The town sleeps',
     nightFallsBody: 'Everyone close your eyes.',
+    nightOver: 'Everyone is asleep. Nothing left to ask tonight.',
     townWakes: 'The town wakes',
     townWakesBody: 'The town talks over what happened in the night.',
     quietNight: 'The night passed without incident.',
@@ -240,6 +241,7 @@ export const en: Strings = {
       askShot: 'Ask them, out loud, who they take with them.',
       pickTwo: 'Choose two',
       endNight: 'End the night',
+      beginNight: 'Begin the night',
       wakeGroup: 'Wake them together.',
       asCircle: 'Show the circle',
       asList: 'Show a list',

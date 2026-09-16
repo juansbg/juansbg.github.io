@@ -139,6 +139,15 @@ let showingLog = false
  */
 let tableView = false
 /**
+ * The night has just been entered and nobody has been woken yet.
+ *
+ * Local, never persisted, and set only by the two roads INTO a night — the
+ * first night from the deal, and nightfall from the day — so an undo back to
+ * the first step does not replay the line and a rewind lands on the step
+ * itself. Both are the safe side: the narrator has already said it out loud.
+ */
+let nightOpening = false
+/**
  * The room on the relay, when one is open: a TV joins it with the code and
  * receives the same projection the table view renders, after every paint.
  * The room survives a reload (`omerta:room`); the socket does not, so the
@@ -972,7 +981,9 @@ function render(entering = false): void {
       : revealDoneMarkup()
   } else if (state.screen === 'night') {
     const subject = game.players.find((p) => p.id === inspecting)
-    body = subject
+    body = nightOpening
+      ? nightOpenMarkup()
+      : subject
       ? inspectionMarkup(subject, state.locale)
       : isNightComplete(game)
         ? nightDoneMarkup()
@@ -1124,11 +1135,35 @@ function render(entering = false): void {
     `
   }
 
-  function nightDoneMarkup(): string {
+  /**
+   * Nightfall: the line the narrator says before anybody is woken.
+   *
+   * It used to be printed at the END of the night, on `nightDoneMarkup`, so
+   * the narrator was handed the opening line four steps after it was any use —
+   * and nightfall itself had no screen at all, on the phone, the television or
+   * a player's handset.
+   *
+   * A screen rather than a line above the first step, which is where this
+   * started: at 375x667 the ring falls back to scrolling rows at nine players
+   * and an eight-player table draws a tile of exactly 3.5rem, the floor
+   * `fitTables` will not go under. A line above it would have given eight
+   * players rows on the first step and a circle on the second.
+   */
+  function nightOpenMarkup(): string {
     return `
       <section class="screen screen--center">
         <h1 class="title">${esc(t.phase.nightFalls)}</h1>
         <p class="subtitle">${esc(t.phase.nightFallsBody)}</p>
+        <button class="btn btn--primary" type="button" data-night-open>${esc(t.ui.night.beginNight)}</button>
+      </section>
+    `
+  }
+
+  function nightDoneMarkup(): string {
+    return `
+      <section class="screen screen--center">
+        <h1 class="title">${esc(t.phase.nightFalls)}</h1>
+        <p class="subtitle">${esc(t.phase.nightOver)}</p>
         <button class="btn btn--primary" type="button" data-resolve>${esc(t.ui.night.endNight)}</button>
       </section>
     `
@@ -1904,6 +1939,7 @@ function bind(): void {
 
   const beginFirstNight = (): void => {
     askIntro = false
+    nightOpening = true
     setState({
       session: advance(state.session, startNight, { night: 1, kind: 'nightStart' }),
       screen: 'night',
@@ -2083,6 +2119,13 @@ function bind(): void {
   on(root, '[data-show-table]', 'click', () => {
     menuOpen = false
     tableView = true
+    setState({})
+  })
+
+  // The night proper: the town is asleep, wake the first role.
+  on(root, '[data-night-open]', 'click', () => {
+    nightOpening = false
+    buzz()
     setState({})
   })
 
@@ -2520,6 +2563,7 @@ function bind(): void {
 
   function nextNight(): void {
     leaveDay()
+    nightOpening = true
     mutate(startNight, { night: state.session.current.night + 1, kind: 'nightStart' })
     setState({ screen: 'night' })
   }
