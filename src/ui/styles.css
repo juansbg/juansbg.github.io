@@ -5142,14 +5142,6 @@ html[data-dawn] body {
   font-size: clamp(2.5rem, 6vmin, 6rem);
 }
 
-.stage--tv .screen--lobby[data-settled] .lobby__room {
-  font-size: clamp(1.25rem, 3vmin, 2.5rem);
-}
-
-.stage--tv .screen--lobby[data-settled] .lobby__qr svg {
-  width: min(14vmin, 9rem);
-}
-
 .stage--tv .lobby__room {
   font-size: clamp(4rem, 18vmin, 14rem);
 }
@@ -5273,6 +5265,11 @@ html[data-dawn] body {
   width: min(30vmin, 20rem);
 }
 
+/* The settled lobby: every name holds a phone, so nobody has left to read
+   the code and the roster is what the room is watching. The code stays
+   legible and stops shouting. These two were each declared twice at the top
+   level with no media query between them — 3vmin and 14vmin never applied,
+   and a sweep that measured this screen read the survivors. */
 .stage--tv .screen--lobby[data-settled] .lobby__room {
   font-size: clamp(2rem, 7vmin, 6rem);
 }
