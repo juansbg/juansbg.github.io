@@ -51,6 +51,7 @@ const seat = (id: PlayerId, roleId: RoleId, tonight: Partial<SeatNight>, extra: 
   eligible: [],
   voted: 0,
   tally: [],
+  leader: null,
   log: [],
   revealed: [],
   count: null,

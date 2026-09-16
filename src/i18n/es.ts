@@ -431,6 +431,13 @@ export const es: Strings = {
         `Última edición · Noche ${nights} · ${players} jugadores`,
       editionShort: (nights) => `Última edición · Noche ${nights}`,
       whoWasWho: 'Quién era quién',
+      allWell: [
+        'Todos se despertaron',
+        'Una noche sin nada dentro',
+        'Sin noticias, y esa es la noticia',
+        'La calle durmió de un tirón',
+        'No falta nadie',
+      ],
       drawing: 'Dibujando…',
       share: 'Compartir',
       cannotShare: 'Este navegador no puede dibujar la página. Una captura de pantalla sirve.',

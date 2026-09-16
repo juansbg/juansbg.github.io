@@ -457,3 +457,37 @@ describe('a card held up to one player', () => {
     expect(tvProjection(day, 'en', { holding: true }).nightStep).toBeNull()
   })
 })
+
+describe('the seat is given the leader rather than working it out', () => {
+  it('hands a phone the same answer the room is given, from the same place', () => {
+    // One fact, one rule. The phone used to derive this from `tally` with a
+    // hand-rolled max and tie-break, which was already a *different* rule from
+    // the engine's — it did not test that the top seat has any votes, and
+    // required the count to be complete where the engine does not.
+    let state = startNight(createGame(cast(['KILLER', 'INSPECT', 'GUARD', 'PLAIN'])))
+    state = endNight(state)
+    state = castVote(state, 1, 0)
+    state = castVote(state, 2, 0)
+    const room = tvProjection(state, 'en', {})
+    const seat = seatProjection(state, 1, 'en', { dealt: true })
+    expect(room.leader).not.toBeNull()
+    expect(seat?.leader).toBe(room.leader)
+  })
+
+  it('is null for both on a tie, rather than one of them picking', () => {
+    let state = startNight(createGame(cast(['KILLER', 'INSPECT', 'GUARD', 'PLAIN'])))
+    state = endNight(state)
+    state = castVote(state, 1, 0)
+    state = castVote(state, 0, 1)
+    expect(tvProjection(state, 'en', {}).leader).toBeNull()
+    expect(seatProjection(state, 1, 'en', { dealt: true })?.leader).toBeNull()
+  })
+
+  it('stays sealed on a phone while the ballot is sealed', () => {
+    let state = startNight(createGame(cast(['KILLER', 'INSPECT', 'GUARD', 'PLAIN'])))
+    state = endNight(state)
+    state = castVote(state, 1, 0)
+    state = castVote(state, 2, 0)
+    expect(seatProjection(state, 1, 'en', { dealt: true, sealed: true })?.leader).toBeNull()
+  })
+})

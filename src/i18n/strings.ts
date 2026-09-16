@@ -401,6 +401,15 @@ export interface Strings {
       /** The same line with the player count dropped, for a narrow phone. */
       editionShort: (nights: number) => string
       whoWasWho: string
+      /**
+       * The front page of a morning nobody died on.
+       *
+       * Without it the lead article on a quiet day was whichever colour piece
+       * came up — a council notice about a bridge toll across the top of the
+       * page, while the one thing the town wanted confirmed appeared nowhere
+       * on it. The dawn reading says this; the paper did not.
+       */
+      allWell: string[]
       /** The share button while the page is being drawn. */
       drawing: string
       share: string

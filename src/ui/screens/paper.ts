@@ -228,6 +228,29 @@ export const editionOf = (src: EditionSource, locale: Locale): Edition => {
     if (article) articles.push(article)
   }
 
+  // A morning with no news at all leads on the fact that there is none, and
+  // not on a council notice about a bridge toll. The dawn reading already
+  // opens this way; the page did not, so the front of a quiet edition was
+  // whichever colour piece came up and the one thing the town wanted confirmed
+  // appeared nowhere on it. The dek is the very line the town was read at
+  // dawn, so the page and the reading agree.
+  //
+  // `newsOn` and not "no death article": a day that names a dead player in an
+  // investigation has news, and leading it with "everybody woke up" would push
+  // the page's actual story off the top.
+  if (!newsOn(log, src.day)) {
+    articles.unshift({
+      kind: 'event',
+      eyebrow: null,
+      headline: p.allWell[(src.day - 1) % p.allWell.length] ?? p.allWell[0] ?? '',
+      dek: t.phase.quietNight,
+      note: null,
+      mark: null,
+      accent: null,
+      subject: null,
+    })
+  }
+
   // Colour: the n-th piece of the game, counting what earlier days used.
   let before = 0
   for (let d = 1; d < src.day; d++) before += colourWanted(log, d)

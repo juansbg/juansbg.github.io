@@ -299,6 +299,18 @@ export interface SeatProjection {
   /** How many have voted today, and the count as the room sees it (sealed: empty, null). */
   voted: number
   tally: { target: PlayerId; votes: number }[]
+  /**
+   * Who the town points at, or null on a tie or before the count is in.
+   *
+   * The same answer the room's screen is given, from the same place. The phone
+   * used to work it out for itself from `tally` — one fact with the rule
+   * written down twice, and the two copies were already *different* rules that
+   * agreed only because of how their contexts happen to be set: the engine
+   * returns null when the top seat has no votes, the phone's version did not
+   * test that but required the count to be complete. The next person to touch
+   * tie-breaking, or the Raven's extra vote, would have found one of them.
+   */
+  leader: PlayerId | null
   count: TvCount | null
   winner: Winner
   /** The game is over (a win, or ended early); the phone leaves the night or the ballot on it. */
@@ -490,7 +502,7 @@ export const seatProjection = (
       : [],
     ...(() => {
       const b = ballot(state, context)
-      return { voted: b.voted, tally: b.tally, count: b.count }
+      return { voted: b.voted, tally: b.tally, count: b.count, leader: b.leader }
     })(),
     winner: won,
     over,
@@ -542,6 +554,7 @@ export const waitingSeat = (
   voted: 0,
   tally: [],
   count: null,
+  leader: null,
   log: [],
   revealed: [],
   winner: null,

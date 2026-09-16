@@ -217,9 +217,15 @@ describe('the daily edition', () => {
     for (let day = 1; day <= 12; day++) {
       const e = edition({ ...state, day }, day, 'en')
       expect(kinds(e).length).toBeGreaterThan(0)
-      expect(kinds(e).every((k) => k === 'colour')).toBe(true)
-      for (const a of [e.lead, ...e.rest]) {
-        if (!a) continue
+      // A morning with no news leads on that, and the colour fills the page
+      // under it — it used to lead on a council notice, so the one thing the
+      // town wanted confirmed was nowhere on its own front page.
+      expect(e.lead?.headline).toBe(strings('en').ui.paper.allWell[(day - 1) % 5])
+      expect(e.lead?.dek).toBe(strings('en').phase.quietNight)
+      expect(kinds(e).slice(1).every((k) => k === 'colour')).toBe(true)
+      // The colour still never repeats inside one game; the lede has a bank of
+      // its own and cycles with the day rather than sharing that promise.
+      for (const a of e.rest) {
         expect(seen.has(a.headline), a.headline).toBe(false)
         seen.add(a.headline)
       }
