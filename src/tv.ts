@@ -153,6 +153,16 @@ let roomClosed: 'ended' | 'gone' | null = null
 /** Two missed pongs. The ping goes out every twelve seconds. */
 const QUIET_MS = 20_000
 const fallback: Locale = detectLocale(navigator.languages ?? [navigator.language])
+/**
+ * The language the room has been speaking, kept past the projection that
+ * carried it.
+ *
+ * Everything the TV says comes from the narrator's locale, and the ending —
+ * the one screen the whole room reads together — arrives with the projection
+ * already dropped. So an evening run in Spanish said goodbye in whatever
+ * language the television's browser happens to be set to.
+ */
+let spoken: Locale | null = null
 
 /**
  * The scene on screen right now, coarse enough to ignore a tally tick or a
@@ -198,7 +208,7 @@ const voteKey = (): string | null => {
 let lastVoteKey: string | null = null
 
 const render = (): void => {
-  const locale = projection?.locale ?? fallback
+  const locale = projection?.locale ?? spoken ?? fallback
   const t = strings(locale).ui.tv
   document.documentElement.lang = locale
   document.documentElement.dataset['phase'] = projection?.phase ?? 'setup'
@@ -362,6 +372,7 @@ const connect = (r: OpenRoom): void => {
     r.code,
     (next) => {
       projection = next
+      spoken = next.locale
       // First-hand: only a narrator's phone publishes one.
       lastProjection = Date.now()
       roomClosed = null
