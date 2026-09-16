@@ -301,6 +301,47 @@ describe('the final edition on the big screen', () => {
   })
 })
 
+describe('the way back off the table view', () => {
+  // Showing the table at game over left the narrator's phone with no control
+  // at all — measured on a real game: zero buttons a finger could land on. The
+  // ✕ is placed in `.screen--table`'s grid and both paper branches return
+  // their own page above it, while the bar is deliberately not rendered
+  // because the room is looking at this screen. The only way out was a reload.
+  //
+  // So the test is over EVERY branch the function can return rather than over
+  // the two that were broken: this is the shape that survives a fifth page
+  // being added, and the property is the one that matters — on the narrator's
+  // own device there is always exactly one way out, and on a television there
+  // is none, because a screen in the room must not show a control nobody can
+  // press.
+  const over = (): GameState => {
+    let state = startNight(createGame(cast(['KILLER', 'GUARD', 'PLAIN', 'PLAIN', 'PLAIN'])))
+    state = recordAction(state, { roleId: 'KILLER', kind: 'target', actor: 0, target: 2 })
+    state = endNight(state)
+    state = lynch(state, 1)
+    return lynch(state, 3)
+  }
+
+  const pages = (): [string, GameState, Parameters<typeof tvProjection>[2]][] => [
+    ['the lobby', createGame([]), {}],
+    ['the night', startNight(morning()), {}],
+    ['the morning', morning(), {}],
+    ["the room's edition", morning(), { paper: 2 }],
+    ['the final edition', over(), { over: true, finalPaper: true }],
+  ]
+
+  it("always gives the narrator's own device one way out, and a screen in the room none", () => {
+    for (const locale of LOCALES) {
+      for (const [what, state, context] of pages()) {
+        const mine = tableMarkup(tvProjection(state, locale, context))
+        const theirs = tableMarkup(tvProjection(state, locale, context), false)
+        expect(mine.match(/data-table-close/g) ?? [], `${what}, ${locale}`).toHaveLength(1)
+        expect(theirs, `${what}, ${locale}`).not.toContain('data-table-close')
+      }
+    }
+  })
+})
+
 describe('the lobby a screen opens by itself', () => {
   it('shows the code and the QR with the narrator’s line where the roster will be, in both languages', () => {
     for (const locale of LOCALES) {
