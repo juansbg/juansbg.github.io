@@ -173,7 +173,28 @@ export const endNight = (state: GameState): GameState => {
  * Can this player vote today? The dead cannot, and neither can whoever the
  * Arsonist silenced for the day.
  */
+/**
+ * Today's execution, if the town has already made its decision.
+ *
+ * A death by day is logged under the same night number as the night before
+ * it, so a hanging on day 1 carries night 1 — which makes this the day's own
+ * verdict rather than any earlier one.
+ *
+ * The narrator's day screen has always derived this to hide the Votes button.
+ * It lives here so that `canVote` knows it too, and with it every seat
+ * projection and the engine's own guard: without that, all three surfaces
+ * re-opened a ballot that could not happen and a phone tap recorded a real
+ * vote into a finished day.
+ */
+export const executedToday = (state: GameState): PlayerId | null => {
+  const verdict = state.log.find(
+    (o) => o.type === 'death' && o.cause === 'lynch' && o.night === state.night,
+  )
+  return verdict !== undefined && verdict.type === 'death' ? verdict.target : null
+}
+
 export const canVote = (state: GameState, voter: PlayerId): boolean => {
+  if (executedToday(state) !== null) return false
   const p = state.players.find((x) => x.id === voter)
   return p !== undefined && p.alive && p.silencedOnDay !== state.day
 }

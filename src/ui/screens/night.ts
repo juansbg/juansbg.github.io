@@ -2,7 +2,7 @@ import { spareCards } from '../../engine/cards'
 import { legalTargets } from '../../engine/targets'
 import { ROLES, type RoleId } from '../../engine/roles'
 import { doomedTonight } from '../../engine/resolve'
-import { currentStep, leader } from '../../engine/state'
+import { currentStep, executedToday, leader } from '../../engine/state'
 import type { GameState, Player, PlayerId } from '../../engine/types'
 import { strings, type Locale } from '../../i18n'
 import { accentOf } from '../accent'
@@ -478,10 +478,10 @@ export const dayMarkup = (
    * question gives way to the verdict and the seats stop being a choice,
    * until "Night falls" opens the next day.
    */
-  const verdict = state.log.find(
-    (o) => o.type === 'death' && o.cause === 'lynch' && o.night === state.night,
-  )
-  const executed = verdict !== undefined && verdict.type === 'death' ? nameOf(state, verdict.target) : null
+  // One definition, in the engine, so the phones and the projection cannot
+  // disagree with this screen about whether the day is decided.
+  const verdictOn = executedToday(state)
+  const executed = verdictOn === null ? null : nameOf(state, verdictOn)
 
   // Recording the vote is two taps a voter and optional; the seats swap from
   // executing to voting while it is on, and the count stays up either way.
