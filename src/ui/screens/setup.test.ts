@@ -96,13 +96,31 @@ describe('the big screen from the names screen', () => {
       const html = namesMarkup(four, locale, new Set(), idle)
       expect(html).toContain('data-screen-form')
       expect(html).toMatch(/data-screen-code[^>]*maxlength="5"/)
-      // The address in the hint is a link a TV on the root page can follow.
-      expect(html).toMatch(/<a[^>]*href="tv.html"[^>]*data-this-is-screen[^>]*>juansbg.github.io\/tv<\/a>/)
+      // The address in the hint is an address, not a link. The sentence
+      // around it is addressed to the television; underlining it offered the
+      // narrator's own phone the one road it must never take by accident.
+      expect(html).not.toMatch(/<a[^>]*href="tv\.html"/)
+      expect(html).toContain('juansbg.github.io/tv')
       expect(html).toContain(t.ui.setup.screenHint('').trim().split(/\s+/)[0] as string)
       expect(html).not.toContain('data-screen-key')
       expect(html).not.toContain('data-room-line')
       // The names still start a phoneless evening.
       expect(html).toContain(t.ui.setup.namesReady(4))
+    }
+  })
+
+  it('offers the big-screen road as a labelled row, folded away beside the code', () => {
+    for (const locale of ['en', 'es'] as const) {
+      const t = strings(locale)
+      const html = namesMarkup(four, locale, new Set(), { ...idle, open: false })
+      // Two roads, each naming the device it is about: a narrator who has a
+      // TV somewhere else, and a TV that is itself sitting on the root page.
+      expect(html).toContain('data-screen-open')
+      expect(html, locale).toMatch(/<button[^>]*data-this-is-screen[^>]*>/)
+      expect(html).toContain(t.ui.setup.thisIsScreen)
+      // A row that says what it does, never an underline inside a sentence
+      // telling you to do it on the other device.
+      expect(html).not.toMatch(/<a[^>]*href="tv\.html"/)
     }
   })
 

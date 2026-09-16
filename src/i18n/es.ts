@@ -857,6 +857,7 @@ export const es: Strings = {
       title: APP_NAME,
       noRoom: 'No hay sala en esta dirección',
       waiting: 'Esperando al narrador…',
+      home: 'Volver a la app',
       reconnecting: 'Reconectando…',
       connecting: 'Conectando…',
       quiet: 'Comprobando la conexión…',

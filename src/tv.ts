@@ -16,6 +16,7 @@ import './ui/styles.css'
 
 import { detectLocale, strings, type Locale } from './i18n'
 import {
+  cameFromApp,
   loadRelay,
   parseFragment,
   requestRoom,
@@ -208,7 +209,10 @@ const voteKey = (): string | null => {
 let lastVoteKey: string | null = null
 
 const render = (): void => {
-  const locale = projection?.locale ?? spoken ?? fallback
+  // A phone that walked in from the app says which language it was speaking;
+  // a television knows nothing but its own browser.
+  const fromApp = cameFromApp()
+  const locale = projection?.locale ?? spoken ?? fromApp ?? fallback
   const t = strings(locale).ui.tv
   document.documentElement.lang = locale
   document.documentElement.dataset['phase'] = projection?.phase ?? 'setup'
@@ -310,9 +314,13 @@ const render = (): void => {
   const voteEntering = vote !== null && vote !== lastVoteKey
   lastVoteKey = vote
 
+  // Outside the stage, like the status line: `body` has five branches and the
+  // way home belongs on all of them. The relay-error screen is the one a
+  // mistapped phone actually lands on, and it is not the lobby.
   root.innerHTML = `
     <main class="stage stage--tv"${entering ? ' data-enter' : ''}${voteEntering ? ' data-vote-enter' : ''}>${body}</main>
     ${note === '' ? '' : `<p class="tv__status">${esc(note)}</p>`}
+    ${fromApp === null ? '' : `<a class="tv__home" href="./">${esc(t.home)}</a>`}
   `
   keepAwake()
 }

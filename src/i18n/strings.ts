@@ -663,6 +663,14 @@ export interface Strings {
       title: string
       noRoom: string
       waiting: string
+      /**
+       * The way back to the app, shown only to a device that came from it.
+       *
+       * A television never sees this: it is offered on the strength of a
+       * sessionStorage marker the app sets on its way out, so it exists for
+       * the phone that walked through the door and for nothing else.
+       */
+      home: string
       reconnecting: string
       /**
        * The first connection, which is not a RE-connection.

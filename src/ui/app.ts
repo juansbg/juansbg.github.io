@@ -52,6 +52,7 @@ import {
   saveRelay,
   saveRoom,
   saveRoomKey,
+  markFromApp,
   seatUrl,
   tvUrl,
   type FromRelay,
@@ -2128,6 +2129,17 @@ function bind(): void {
     roomOpen = true
     roomError = null
     setState({}, false)
+  })
+
+  // The one road from the app to the big screen, now that the address in the
+  // hint is an address and not a link. It leaves a marker so the page it
+  // lands on can offer a way home; a television opening /tv itself sets none
+  // and stays clean.
+  on(root, '[data-this-is-screen]', 'click', () => {
+    // The marker carries the language: the page it lands on has no
+    // projection to learn it from, and this phone has already chosen.
+    markFromApp(state.locale)
+    location.assign('tv.html')
   })
 
   on(root, '[data-room-open]', 'click', () => {

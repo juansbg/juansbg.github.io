@@ -1,3 +1,4 @@
+import { isLocale, type Locale } from '../i18n'
 import type { TvProjection } from './projections'
 import type { SeatAction } from './actions'
 
@@ -167,6 +168,38 @@ export const lookAtRoom = async (relay: string, code: string, key: string): Prom
 
 /** The address a TV opens to start a room: the site's `/tv`, no code. */
 export const screenUrl = (site: string): string => `${site.replace(/\/+$/, '')}/tv`
+
+/**
+ * Somebody walked from the app to the big screen on this device.
+ *
+ * `tv.html` is a dead end on purpose: a television has no use for a link back
+ * into a phone app, and a room looking at one cannot act on it. But the app
+ * offers that road ("This device is the big screen"), and an installed PWA
+ * has no Back — so whoever came through needs a way home, and nobody else
+ * should see one. `sessionStorage` is exactly that lifetime: it survives the
+ * same-tab navigation and dies with the tab.
+ *
+ * It carries the language rather than a flag, because the device that came
+ * through is a phone whose owner has already chosen one, and the page it
+ * lands on has no projection yet to learn it from — so an evening being run
+ * in Spanish walked into an English screen, its way home included.
+ */
+const FROM_APP = 'omerta:fromApp'
+export const markFromApp = (locale: Locale): void => {
+  try {
+    sessionStorage.setItem(FROM_APP, locale)
+  } catch {
+    // Storage refused (a locked-down browser): the door is one-way, as before.
+  }
+}
+export const cameFromApp = (): Locale | null => {
+  try {
+    const mark = sessionStorage.getItem(FROM_APP)
+    return mark !== null && isLocale(mark) ? mark : null
+  } catch {
+    return null
+  }
+}
 
 /**
  * The address a second screen opens to join a room that exists. The code

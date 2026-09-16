@@ -4039,6 +4039,27 @@ html[data-dawn] body {
   font-size: var(--text-xs);
 }
 
+/* The way back to the app, on a phone that walked into the big screen by
+   mistake. The opposite corner from the status line, since both can be up at
+   once, and never rendered at all on a television. */
+.tv__home {
+  position: fixed;
+  left: var(--space-3);
+  bottom: var(--space-3);
+  /* A finger's worth, not a label's: the audit floor is 44px and the small
+     face on its own came to 35. */
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--hairline);
+  color: var(--fg-muted);
+  font-family: var(--font-display);
+  font-size: var(--text-xs);
+  letter-spacing: 0.06em;
+  text-decoration: none;
+}
+
 /* On a phone the news gets a row of its own rather than being written over
    the button. Fixed to the bottom-right corner, it landed inside PROCEED —
    measured at 815-832 against a button of 780-828, its full stop touching the
@@ -5443,18 +5464,13 @@ html[data-dawn] body {
   justify-items: start;
 }
 
-.screen-link {
-  display: inline-block;
-  padding: 0.9rem 0.25rem;
-  margin: -0.9rem -0.25rem;
+/* The TV's address, set as an address. It was a link, underlined, inside a
+   sentence that tells you to open it somewhere else; the road it offered is
+   a labelled row now, and this is only the thing to type. */
+.screen-address {
+  font-family: var(--font-mono);
+  font-size: 0.95em;
   color: var(--fg);
-  text-decoration: underline;
-  text-underline-offset: 0.2em;
-}
-
-.screen-link:focus-visible {
-  outline: 2px solid var(--fg);
-  outline-offset: 2px;
 }
 
 /* ---------- The ledger: statistics across games ---------- */

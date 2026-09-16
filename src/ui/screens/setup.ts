@@ -100,12 +100,21 @@ export const seatFor = (names: readonly string[], order: readonly string[], name
  * needs to enter, and the list is remembered between games so the same group
  * never types it twice.
  */
-/** Stands in for the address in the hint until it is set as a link. */
+/** Stands in for the address in the hint until it is set in the mono face. */
 const ADDRESS = '\u0000address\u0000'
 
-/** The hint with the TV's address as a link a TV on the root page can follow. */
-const addressLine = (hint: string, address: string, title: string): string =>
-  esc(hint).replace(ADDRESS, `<a class="screen-link" href="tv.html" title="${esc(title)}" data-this-is-screen>${esc(address)}</a>`)
+/**
+ * The hint, with the TV's address set as an address and not as a link.
+ *
+ * It used to be a real `<a href="tv.html">` carrying the title "This device
+ * is the big screen". The sentence around it says "On the TV, open …", which
+ * is addressed to a different device entirely — so on the narrator's own
+ * phone the underline offered exactly the thing the sentence was telling them
+ * to do somewhere else, and a mistap while typing names landed on a page with
+ * no way back. The road is a labelled row now; this is just the address.
+ */
+const addressLine = (hint: string, address: string): string =>
+  esc(hint).replace(ADDRESS, `<span class="screen-address">${esc(address)}</span>`)
 
 export const namesMarkup = (
   names: readonly string[],
@@ -132,8 +141,9 @@ export const namesMarkup = (
     // Folded: where a TV goes, and the way in for a narrator who has one.
     screenBlock = `
       <div class="screen-fold">
-        <p class="field__hint">${addressLine(st.screenHint(ADDRESS), screen.address, st.thisIsScreen)}</p>
+        <p class="field__hint">${addressLine(st.screenHint(ADDRESS), screen.address)}</p>
         <button class="btn btn--ghost btn--small" type="button" data-screen-open>${esc(st.screenOpen)}</button>
+        <button class="btn btn--ghost btn--small" type="button" data-this-is-screen>${esc(st.thisIsScreen)}</button>
       </div>`
   } else if (screen !== null) {
     const error =
@@ -163,7 +173,7 @@ export const namesMarkup = (
                </label>`
             : ''
         }
-        ${error === '' ? `<p class="field__hint">${addressLine(st.screenHint(ADDRESS), screen.address, st.thisIsScreen)}</p>` : `<p class="notice" data-screen-error>${esc(error)}</p>`}
+        ${error === '' ? `<p class="field__hint">${addressLine(st.screenHint(ADDRESS), screen.address)}</p>` : `<p class="notice" data-screen-error>${esc(error)}</p>`}
         ${
           // A refused key is the one refusal a person cannot act on from what
           // the screen says: the hint tells them the relay wants a key and
