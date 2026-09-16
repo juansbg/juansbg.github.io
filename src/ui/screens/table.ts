@@ -1,5 +1,5 @@
 import type { Player } from '../../engine/types'
-import { renderWinner, strings, type Locale } from '../../i18n'
+import { renderWinner, strings, type Locale, type Strings } from '../../i18n'
 import type { PlayerId } from '../../engine/types'
 import type { TvCast, TvProjection, TvSeat } from '../../room/projections'
 import { esc } from '../dom'
@@ -45,6 +45,23 @@ const seatOf = (s: TvSeat, cast?: TvCast): Player => ({
   trade: cast?.trade ?? null,
 })
 
+/**
+ * The narrator's way back off a page the room is reading.
+ *
+ * The ✕ at the corner of the table view sits in `.screen--table`'s grid, and
+ * the paper branches below return their own page above it — so showing the
+ * table at game over left the narrator's phone with no control at all. Not a
+ * small one, not one off the edge: zero buttons a finger could land on, with
+ * the bar deliberately not rendered because the room is looking at this
+ * screen. A page the room reads must still be a page the narrator can leave.
+ *
+ * Fixed, not placed: these pages bring their own layout, and the one thing
+ * that must not depend on which of them won is the way out of it. It carries
+ * the paper's ink because both pages that need it are newsprint.
+ */
+const exitMarkup = (t: Strings): string =>
+  `<button class="icon-btn tableview__exit" type="button" data-table-close aria-label="${esc(t.ui.common.back)}" title="${esc(t.ui.common.back)}">✕</button>`
+
 export const tableMarkup = (p: TvProjection, controls = true): string => {
   const t = strings(p.locale)
   if (p.phase === 'setup')
@@ -71,7 +88,9 @@ export const tableMarkup = (p: TvProjection, controls = true): string => {
   // from the projection's public facts, with no Done of its own.
   if (p.paper !== null) {
     const e = editionOf({ day: p.paper, players: p.players, log: p.log, revealed: p.revealed }, p.locale)
-    return dailyMarkup(e, p.locale, false)
+    // No Done: the room's copy is turned by the narrator, not by the room. The
+    // narrator's own device still needs the way back off it.
+    return dailyMarkup(e, p.locale, false) + (controls ? exitMarkup(t) : '')
   }
 
   // And the last one the same way. It is the whole evening as a front page and
@@ -100,7 +119,7 @@ export const tableMarkup = (p: TvProjection, controls = true): string => {
     // mid-heading; and of the three sections it is the one the room least
     // needs, having sat through every line of it. It stays on the narrator's
     // page and in the image they share.
-    return paperPage({ ...paper, record: [] }, p.locale)
+    return paperPage({ ...paper, record: [] }, p.locale) + (controls ? exitMarkup(t) : '')
   }
 
   return `

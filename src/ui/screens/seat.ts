@@ -100,10 +100,11 @@ export interface SeatPicks {
   picked: readonly PlayerId[]
   sent: boolean
   /**
-   * The action went out and nothing came back, so it did not arrive. The
-   * narrator republishes on every paint, which makes a projection the phone's
-   * only receipt — and a socket being OPEN is not one, since the frame can
-   * still be lost after it.
+   * The action went out and the step never moved, so it did not take. Either
+   * the frame was lost or the narrator refused it; the phone cannot tell the
+   * two apart and does not need to, since both ask the player for the same
+   * thing. It survives a republish of the same step — on a busy table the next
+   * one is milliseconds away, and a warning that flashes past is no warning.
    */
   unsent?: boolean
 }
@@ -130,13 +131,22 @@ export const stepKeyOf = (p: SeatProjection): string =>
  * dropping the pick on one of those is what left a phone that lost the
  * network for a few seconds looking exactly as frozen once it reconnected
  * (night-01).
+ *
+ * `sameStep` is therefore the phone's ONLY receipt, and `seat.ts` reads it as
+ * one: the three-second deadline is cleared when these picks come back unsent
+ * and by nothing else. It used to be cleared by the arrival of any projection
+ * at all, which made it a timeout on any traffic in the room rather than on
+ * this seat's own tap.
  */
 export const settlePicks = (p: SeatProjection, picks: SeatPicks, previousKey: string): SeatPicks => {
   const n = p.tonight
   const sameStep = n !== null && n.acting && stepKeyOf(p) === previousKey
   const playerStep = n !== null && n.step !== null && ROLES[n.step].target.kind === 'player'
   const keep = sameStep && !playerStep
-  return { picked: keep ? picks.picked : [], sent: picks.sent && sameStep }
+  const settled: SeatPicks = { picked: keep ? picks.picked : [], sent: picks.sent && sameStep }
+  // The warning belongs to the step it happened on, like the picks: the very
+  // next republish would otherwise wipe it off the screen before it was read.
+  return picks.unsent === true && sameStep ? { ...settled, unsent: true } : settled
 }
 
 /**

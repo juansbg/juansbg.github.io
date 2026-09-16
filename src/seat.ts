@@ -13,7 +13,7 @@ import '@fontsource/ibm-plex-mono/latin-400.css'
 import '@fontsource/ibm-plex-mono/latin-500.css'
 import './ui/styles.css'
 
-import { detectLocale, strings, type Locale } from './i18n'
+import { LOCALES, detectLocale, strings, type Locale } from './i18n'
 import { exportKeys, importKeys, makeKeys, sharedKey, unseal, type KeyPair } from './room/crypto'
 import { PlayerLink, parseFragment, type LinkStatus } from './room/client'
 import type { SeatProjection } from './room/projections'
@@ -65,6 +65,20 @@ const recall = (key: string): string | null => {
 }
 
 const cidKey = `omerta:seat:${room ?? ''}:cid`
+const localeKey = `omerta:seat:${room ?? ''}:locale`
+
+/** The room's language as this phone last heard it, or null if it never has. */
+function readLocale(): Locale | null {
+  const saved = recall(localeKey)
+  return LOCALES.some((l) => l === saved) ? (saved as Locale) : null
+}
+
+/** Learned from anything the room says, and kept for the next reload. */
+function learnLocale(locale: Locale): void {
+  if (locale === roomLocale) return
+  roomLocale = locale
+  remember(localeKey, locale)
+}
 const nameKey = `omerta:seat:${room ?? ''}:name`
 const keysKey = `omerta:seat:${room ?? ''}:keys`
 
@@ -107,14 +121,21 @@ let joined = false
 type Refusal = 'notOnList' | 'nameTaken' | 'tableFull'
 let refused: Refusal | null = null
 /**
- * The room's own language, learned from a refusal.
+ * The room's own language.
  *
  * A refused phone has no seat and so no projection to read a locale from, and
  * it was falling back to the handset's own languages — so a Spanish table
  * turned somebody away in English. The narrator's language is the room's, and
- * the relay now sends it with the refusal.
+ * the relay sends it with the refusal.
+ *
+ * It is kept beside the seat this phone remembers, because module state does
+ * not survive a reload: everything the page shows before the next projection
+ * arrives — waiting, the code, a refusal — came back in the handset's language
+ * instead of the room's. At a Spanish table that is precisely the one guest
+ * whose phone is set to English. A phone that has never been in this room
+ * still reads its own browser, which is the only thing it can know.
  */
-let roomLocale: Locale | null = null
+let roomLocale: Locale | null = readLocale()
 let projection: SeatProjection | null = null
 let link: PlayerLink | null = null
 let releaseHold: (() => void) | null = null
@@ -131,12 +152,19 @@ let picks: SeatPicks = { picked: [], sent: false }
  */
 let paperOpen = false
 /**
- * An action went out and nothing has come back.
+ * An action went out and the step has not moved.
  *
- * The narrator republishes on every paint, so a projection is the phone's
- * receipt: if one does not arrive, the tap did not land. A socket that is OPEN
- * is not proof — the frame can still be lost — so the claim has a deadline
- * rather than a state.
+ * A socket that is OPEN is not proof the narrator saw the tap — the frame can
+ * still be lost after it — so the claim has a deadline rather than a state.
+ *
+ * What clears the deadline is the STEP MOVING ON, never the arrival of a
+ * projection: the narrator republishes on every paint, so "a projection came
+ * back" only says something happened in the room, and clearing on that made
+ * the warning rarest at a busy table, which is exactly where a frame goes
+ * missing. It also left a REFUSED action stranded — the refusal comes back as
+ * the unchanged step, so it cleared the deadline while leaving the buttons
+ * dimmed with nothing left to rescue them. Both now time out, which is right:
+ * a lost frame and a refused tap ask the player for the same thing.
  */
 const ACK_MS = 3_000
 let ackTimer: number | null = null
@@ -334,15 +362,21 @@ const applySealed = async (payload: string): Promise<void> => {
   const parsed = JSON.parse(text) as SeatProjection | { kind: 'refused'; reason?: Refusal; locale?: Locale }
   if (parsed.kind === 'refused') {
     refused = parsed.reason ?? 'notOnList'
-    if (parsed.locale !== undefined) roomLocale = parsed.locale
+    if (parsed.locale !== undefined) learnLocale(parsed.locale)
     joined = true
   } else if (parsed.kind === 'seat') {
     projection = parsed
     joined = true
     refused = null
+    // Every projection, not only a refusal: a seated phone never sees one, and
+    // it was the seated phones that came back from a reload in the wrong
+    // language.
+    learnLocale(parsed.locale)
     remember(nameKey, parsed.name)
-    gotAck()
     picks = settlePicks(parsed, picks, stepKey)
+    // `settlePicks` keeps `sent` while the step stands: an answer is the step
+    // moving on, and that is the only thing that calls the deadline off.
+    if (!picks.sent) gotAck()
     stepKey = stepKeyOf(parsed)
     gate = nextGate(gate, parsed)
     gone = nextGone(gone, was, parsed)

@@ -25,15 +25,6 @@ export const actsOnNight = (activity: Activity, night: number): boolean => {
   }
 }
 
-export interface ScheduleOptions {
-  /**
-   * The one-time conversion has been spent. The Godfather wakes with the
-   * Family regardless, so his separate step — "does he signal?" — has nothing
-   * left to ask and is dropped rather than prompting the narrator for nothing.
-   */
-  infectionUsed?: boolean
-}
-
 /**
  * The ordered list of roles the narrator is prompted for on a given night.
  *
@@ -42,11 +33,7 @@ export interface ScheduleOptions {
  * `rollsUsed` array — v1 kept that array in sync by hand and dropped entries
  * for players who were never actually dead.
  */
-export const scheduleFor = (
-  players: readonly Player[],
-  night: number,
-  options: ScheduleOptions = {},
-): RoleId[] => {
+export const scheduleFor = (players: readonly Player[], night: number): RoleId[] => {
   const livingRoles = new Set(players.filter((p) => p.alive).map((p) => p.roleId))
 
   // The hit is the Family's, not the plain member's. As long as anyone who
@@ -59,10 +46,19 @@ export const scheduleFor = (
   )
   if (familyAwake) livingRoles.add('KILLER')
 
+  // The Godfather keeps his step after the conversion is spent, with nothing
+  // left to ask. Dropping it shortened the night by one, and the room reads
+  // that: every other reason this list changes is public — a death is named the
+  // next morning, parity is in the rules — so a count that falls with no death
+  // to explain it says he has used it.
+  //
+  // The invariant to hold, rather than the rule: EVERY CHANGE IN THE LENGTH OF
+  // THIS LIST IS EXPLAINED BY SOMETHING THE ROOM HAS ALREADY BEEN TOLD. The
+  // death path satisfies it — he dies on night N, is named on the morning of
+  // day N+1, and the schedule that loses his step is built at nightfall of
+  // that same day — so it stays as it is. This is the Apothecary's precedent,
+  // whose spent vials do not shorten the night either.
   return NIGHT_ROLES.filter(
-    (role) =>
-      livingRoles.has(role.id) &&
-      actsOnNight(role.activity, night) &&
-      !(role.id === 'CONVERT' && options.infectionUsed === true),
+    (role) => livingRoles.has(role.id) && actsOnNight(role.activity, night),
   ).map((role) => role.id)
 }

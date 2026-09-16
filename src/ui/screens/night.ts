@@ -168,14 +168,27 @@ export const nightMarkup = (
     // The choice that was missing: the only button used to be Confirm, so the
     // narrator could not record "he lets the hit go ahead" — every night he
     // was prompted, the victim was converted.
-    situation = victim ? t.ui.night.convertOffer(victim.name) : t.ui.night.convertNoVictim
-    chooser = table({ selected: victim ? [victim.id] : [] })
-    action = victim
-      ? `<div class="actions actions--row">
+    //
+    // Once it is spent the step stays, because dropping it shortened the night
+    // by one and told the room he had used it (`engine/schedule.ts`). It says
+    // so plainly rather than looking like a step that lost its question — and
+    // it is NOT advanced automatically: a step that flashes past is as legible
+    // from a sofa as a number that changed, which would put the leak back
+    // through timing instead of arithmetic.
+    const spent = state.infectionUsed === true
+    situation = spent
+      ? t.ui.night.convertSpent
+      : victim
+        ? t.ui.night.convertOffer(victim.name)
+        : t.ui.night.convertNoVictim
+    chooser = table({ selected: !spent && victim ? [victim.id] : [] })
+    action =
+      !spent && victim
+        ? `<div class="actions actions--row">
            <button class="btn btn--ghost" type="button" data-night-confirm>${esc(t.ui.night.convert)}</button>
            <button class="btn btn--ghost" type="button" data-skip>${esc(t.ui.night.convertDecline)}</button>
          </div>`
-      : `<div class="actions"><button class="btn btn--primary" type="button" data-skip>${esc(t.ui.common.next)}</button></div>`
+        : `<div class="actions"><button class="btn btn--primary" type="button" data-skip>${esc(t.ui.common.next)}</button></div>`
   } else if (roleId === 'PICK_SIDE') {
     // Confirm used to record a bare `confirm`, which the resolver ignores, so
     // the Associate never actually picked a side. The choice is a role change.

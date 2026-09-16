@@ -2414,7 +2414,13 @@ html[data-dawn] body {
 .screen--dawn[data-lethal] {
   --fg: var(--midnight);
   --fg-2: var(--midnight);
-  --fg-muted: color-mix(in oklab, var(--midnight) 78%, var(--vendetta));
+  /* 88%, not 78%: the muted ink on a death's Vendetta ground carries the
+     step counter and the Back button, and at 78% both measured 4.3:1 against
+     the 4.5 floor for text that size — on the one screen the whole room is
+     watching, read from a sofa. Still Midnight mixed with the ground it sits
+     on, so nothing about the palette changes; it just stops being a shade too
+     polite to read. */
+  --fg-muted: color-mix(in oklab, var(--midnight) 88%, var(--vendetta));
   --hairline-strong: var(--midnight);
   --accent: var(--midnight);
   --on-accent: var(--ledger);
@@ -3848,6 +3854,34 @@ html[data-dawn] body {
   justify-self: end;
 }
 
+/* The same way back, off the pages that bring their own layout: the room's
+   morning edition and the final one, which `tableMarkup` returns whole and
+   therefore above the ✕ in the grid above. Fixed rather than placed, so it
+   does not depend on which page won; the paper scrolls under it and the page
+   itself never does. It is the narrator's device only — a television must not
+   show a control nobody in the room can press — and it carries the paper's own
+   ink, since both pages that need it are newsprint. */
+.tableview__exit {
+  position: fixed;
+  z-index: 4;
+  right: max(var(--space-3), env(safe-area-inset-right));
+  bottom: max(var(--space-3), env(safe-area-inset-bottom));
+  border-color: color-mix(in oklab, var(--on-newsprint) 45%, transparent);
+  background: var(--newsprint);
+  color: var(--on-newsprint);
+}
+
+.tableview__exit:active {
+  border-color: var(--on-newsprint);
+}
+
+/* And the page it floats over gives it room at the end, so the last line of
+   "who was who" is not read through a button. The paper is the thing that
+   scrolls, so the space belongs to it. */
+.stage:has(> .tableview__exit) .paper {
+  padding-bottom: calc(var(--space-6) + var(--touch));
+}
+
 @media (orientation: portrait) {
   .screen--table {
     grid-template-columns: 1fr 1fr;
@@ -3900,7 +3934,13 @@ html[data-dawn] body {
 .tableview__card[data-lethal] {
   --fg: var(--midnight);
   --fg-2: var(--midnight);
-  --fg-muted: color-mix(in oklab, var(--midnight) 78%, var(--vendetta));
+  /* 88%, not 78%: the muted ink on a death's Vendetta ground carries the
+     step counter and the Back button, and at 78% both measured 4.3:1 against
+     the 4.5 floor for text that size — on the one screen the whole room is
+     watching, read from a sofa. Still Midnight mixed with the ground it sits
+     on, so nothing about the palette changes; it just stops being a shade too
+     polite to read. */
+  --fg-muted: color-mix(in oklab, var(--midnight) 88%, var(--vendetta));
   --hairline-strong: var(--midnight);
   --accent: var(--midnight);
   --on-accent: var(--ledger);

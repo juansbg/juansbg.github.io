@@ -63,7 +63,10 @@ export interface Strings {
 
   phase: {
     nightFalls: string
+    /** Read at nightfall, on the screen that opens the night. */
     nightFallsBody: string
+    /** The end of the night, which used to be read the opening line instead. */
+    nightOver: string
     townWakes: string
     townWakesBody: string
     quietNight: string
@@ -250,12 +253,16 @@ export interface Strings {
       askShot: string
       pickTwo: string
       endNight: string
+      /** Opens the night, under the line the narrator has just read out. */
+      beginNight: string
       wakeGroup: string
       asCircle: string
       asList: string
       /** The Godfather's step: who the Family chose, and the one-time choice. */
       convertOffer: (name: string) => string
       convertNoVictim: string
+      /** His one conversion is spent; the step stays so the count does not move. */
+      convertSpent: string
       /** The step's holders all hold phones: the narrator waits, and may still tap for them. */
       onPhones: (names: string[]) => string
       convert: string
