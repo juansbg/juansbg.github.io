@@ -1317,6 +1317,32 @@ body {
   min-height: 13rem;
 }
 
+/* On a 667px phone the day screen already stood 7px taller than its stage
+   before anybody voted, and the tally row — 29px and a gap — pushed "Night
+   falls" from 569 to 610, exactly the bar's top edge, where `elementFromPoint`
+   returns the bar. The narrator could not end the day at all.
+
+   Neither `scrolls()` nor the overflow audit sees this: the page does not
+   scroll and nothing crosses the stage's own edge, because the button is
+   simply laid out underneath the bar. Only hit-testing the control finds it.
+
+   The seats give way, because on this screen they are already rows that
+   scroll and carry their own fade — losing height costs a line of a list,
+   where the alternative costs the day's only exit. Downward only, which
+   cannot trip the ring/rows flip the floor above exists to prevent: a smaller
+   box is even less able to draw a readable tile, so rows stay rows. */
+@media (max-height: 720px) {
+  .screen--day .table,
+  .screen--day .table:has(> .circle[data-rows]) {
+    min-height: 9.5rem;
+  }
+}
+
+.screen--day:has(.tally) .table,
+.screen--day:has(.tally) .table:has(> .circle[data-rows]) {
+  min-height: 9.5rem;
+}
+
 /* Marks on paper: town is ink, not Ash — Ash on Ledger is invisible. */
 .report [data-accent='town'] {
   --role: var(--midnight);
