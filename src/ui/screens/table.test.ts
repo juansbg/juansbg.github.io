@@ -81,7 +81,19 @@ describe('the table for the room', () => {
     expect(html).toContain(strings('en').winner.town)
   })
 
-  it('puts the winner at display size in the middle of the ring, and shows who everyone was', () => {
+  it('puts the winner at display size in the middle of the ring, and still names nobody', () => {
+    // The ring used to reveal every role here, keyed off `over`. But `over` is
+    // the engine's answer, not the narrator's: a side wins the moment the last
+    // crew member dies, and the narrator does not reach the ending until the
+    // final reading closes. Measured across a whole game, thirteen frames of a
+    // ring reading "ANA CITIZEN · BETO FAMILY" went out under the words GAME
+    // OVER with a discussion clock still counting down — the room was handed
+    // the cast before anybody had presented anything.
+    //
+    // Gating it on the narrator actually arriving does not help: that is the
+    // same moment the final edition takes the screen. So the room's ending is
+    // the paper, where "who was who" is set to be read from a sofa, and the
+    // ring stays a table of names.
     const state = lynch(morning(), 0)
     for (const locale of LOCALES) {
       const t = strings(locale)
@@ -91,18 +103,15 @@ describe('the table for the room', () => {
       expect(html).toContain('data-over')
       expect(html).toContain('tableview__result')
       expect(html).toContain(strings(locale).winner.town)
-      expect(html).toContain('seat__sigil')
-      // The cast is public now, dead or alive: Ana's role (the Family, lynched)
-      // reads too — the tile drops a leading article the way every role tile
-      // does ("Bodyguard", not "The Bodyguard"), so check the same stripped word.
+      expect(html).not.toContain('seat__sigil')
       const tile = (name: string): string => name.replace(/^(the|el|la|los|las)\s+/i, '').trim()
-      expect(html).toContain(tile(t.roles.KILLER.name))
-      expect(html).toContain(tile(t.roles.INSPECT.name))
-      expect(html).toContain(tile(t.roles.GUARD.name))
+      for (const role of [t.roles.KILLER, t.roles.INSPECT, t.roles.GUARD]) {
+        expect(html).not.toContain(tile(role.name))
+      }
     }
   })
 
-  it('glows only the living Family Vendetta once the game is over, and says the game ended without naming a side when the narrator stopped it early', () => {
+  it('names no sides on the ring, and says the game ended without naming a winner when the narrator stopped it early', () => {
     const state = morning()
     for (const locale of LOCALES) {
       const t = strings(locale)
@@ -112,10 +121,11 @@ describe('the table for the room', () => {
       expect(html).toContain(t.ui.over.endedOn(state.night))
       expect(html).not.toContain(t.winner.town)
       expect(html).not.toContain(t.winner.crew)
-      // Ana (KILLER) is alive and Family; Caro and Dani are alive and town —
-      // only her seat glows.
-      expect(html).toMatch(/data-crew[^>]*>[\s\S]*?Ana/)
-      expect(html.match(/data-crew/g)).toHaveLength(1)
+      // And the ring names no sides either. The crew glow was on the same
+      // gate as the roles above, so an ending the engine knew about before the
+      // narrator presented it lit every Family seat on the wall. Which side
+      // somebody was on is the same secret as which role, told faster.
+      expect(html).not.toContain('data-crew')
     }
   })
 

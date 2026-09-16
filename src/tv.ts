@@ -147,6 +147,8 @@ let quiet = false
  * way to tell whether it had worked.
  */
 let guests: string[] = []
+/** The narrator closed the evening. The screen says so and does nothing else. */
+let ended = false
 let roomClosed: 'ended' | 'gone' | null = null
 /** Two missed pongs. The ping goes out every twelve seconds. */
 const QUIET_MS = 20_000
@@ -205,7 +207,15 @@ const render = (): void => {
   const trying = everOpen ? t.reconnecting : t.connecting
 
   let body: string
-  if (relay === '' || (!own && status === 'gone')) {
+  if (ended) {
+    // The last thing the room sees. Set like the winner's slide rather than
+    // like an error, because it is not one: the evening finished.
+    body = `
+      <section class="screen screen--center screen--ended">
+        <p class="label">${esc(t.title)}</p>
+        <h1 class="title tv__ended">${esc(t.ended)}</h1>
+      </section>`
+  } else if (relay === '' || (!own && status === 'gone')) {
     body = `<section class="screen screen--center"><h1 class="title title--sm">${esc(t.noRoom)}</h1></section>`
   } else if (room === null) {
     // Asking the relay for a room: the wordmark and one line, nothing to read yet.
@@ -373,7 +383,20 @@ const connect = (r: OpenRoom): void => {
         // had joined by address used to keep showing the whole live lobby —
         // code, QR and all — with a hairline in the corner as the only word
         // to the contrary, and nothing it could ever do about it.
-        closeAndReopen('ended')
+        //
+        // But recovering by opening a fresh room, which is what this used to
+        // do, over-corrected: the evening then ended by putting a new join
+        // code and a QR back on the wall with a small apology under them, so
+        // the room's last memory of the game was an invitation to a game that
+        // was over. An ending is not a dead end. The screen says the evening
+        // is over and stops there; a next game starts when somebody starts
+        // one, which is a decision a person makes and not a screen.
+        ended = true
+        room = null
+        projection = null
+        guests = []
+        saveScreen(null)
+        render()
         return
       }
       // The room is gone: never claimed in time, or the relay forgot it. A

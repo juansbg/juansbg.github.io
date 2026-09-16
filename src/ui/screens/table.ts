@@ -110,14 +110,25 @@ export const tableMarkup = (p: TvProjection, controls = true): string => {
         ${over || p.phase !== 'day' ? '' : ballotEyebrow(p, t)}
       </header>
       ${p.timer && p.phase === 'day' ? `<div class="tableview__clock">${timerMarkup(p.timer, p.locale)}</div>` : ''}
-      ${circleMarkup(p.players.map((s) => seatOf(s, over ? castMap.get(s.id) : undefined)), p.locale, {
-        // The room already watched the reading name the winner; the ring is
-        // where it studies who everyone was, so the reveal carries roles and
-        // the crew glow the narrator otherwise sees alone (docs/DESIGN.md:
-        // the one moment colour may key off a role's team on this screen).
-        showRoles: over,
-        revealTeams: over,
-        fitRoles: over,
+      ${circleMarkup(p.players.map((s) => seatOf(s)), p.locale, {
+        // The ring never reveals a role, not even at the end.
+        //
+        // It used to, keyed off `over` — and `over` is the engine's answer, not
+        // the narrator's. A side wins the moment the last crew member dies,
+        // while the narrator is still standing on the day screen with the
+        // clock running, so the room was shown every seat's role before
+        // anybody had presented anything. Measured over a whole game: thirteen
+        // frames of a ring reading "ANA CITIZEN · BETO FAMILY" under the words
+        // GAME OVER and a discussion clock still counting down.
+        //
+        // Gating it on the narrator actually reaching the ending does not
+        // help, because that is the same moment the final edition takes the
+        // screen and returns above — so the reveal is either early or never.
+        // The room's ending is the paper, where "who was who" is set to be
+        // read from a sofa. The ring stays a table of names.
+        showRoles: false,
+        revealTeams: false,
+        fitRoles: false,
         votes,
         leader: p.leader,
         // A hand up is marked while the ballot is sealed; once the count comes

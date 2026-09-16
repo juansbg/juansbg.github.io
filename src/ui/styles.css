@@ -4518,6 +4518,16 @@ html[data-dawn] body {
   font-size: 0.8em;
 }
 
+/* The evening is over, on the wall. The room's last memory of the game used to
+   be a fresh join code and a QR with a 19px apology under them — an invitation
+   to a game that had finished. This is the only thing on the screen. */
+.stage--tv .tv__ended {
+  max-width: 90vw;
+  font-size: clamp(2.5rem, 9vmin, 9rem);
+  line-height: 0.95;
+  text-wrap: balance;
+}
+
 /* ---------- A player's phone ---------- */
 .stage--seat {
   padding: max(var(--space-4), env(safe-area-inset-top)) var(--space-4) max(var(--space-4), env(safe-area-inset-bottom));
