@@ -14,7 +14,7 @@ import '@fontsource/ibm-plex-mono/latin-400.css'
 import '@fontsource/ibm-plex-mono/latin-500.css'
 import './ui/styles.css'
 
-import { detectLocale, strings, type Locale } from './i18n'
+import { detectLocale, isLocale, strings, type Locale } from './i18n'
 import {
   cameFromApp,
   loadRelay,
@@ -156,14 +156,38 @@ const QUIET_MS = 20_000
 const fallback: Locale = detectLocale(navigator.languages ?? [navigator.language])
 /**
  * The language the room has been speaking, kept past the projection that
- * carried it.
+ * carried it — and past a reload, because a variable is not kept past one.
  *
- * Everything the TV says comes from the narrator's locale, and the ending —
- * the one screen the whole room reads together — arrives with the projection
- * already dropped. So an evening run in Spanish said goodbye in whatever
- * language the television's browser happens to be set to.
+ * Everything the TV says comes from the narrator's locale, and two screens
+ * arrive with no projection to read it from: the ending, which the whole
+ * room reads together, and every repaint between a reload and the next
+ * projection. An evening run in Spanish said goodbye in the television's own
+ * browser language; the same television, rebooted while the relay was
+ * unreachable, came back with the right room code above an English lobby.
+ *
+ * So it is written down. The last language this screen was spoken to in is a
+ * better guess for the next evening than the language the television was set
+ * up in, and either way the first projection settles it.
  */
-let spoken: Locale | null = null
+const SPOKEN_KEY = 'omerta:spoken'
+const loadSpoken = (): Locale | null => {
+  try {
+    const raw = localStorage.getItem(SPOKEN_KEY)
+    return raw !== null && isLocale(raw) ? raw : null
+  } catch {
+    return null
+  }
+}
+let spoken: Locale | null = loadSpoken()
+const heard = (locale: Locale): void => {
+  if (locale === spoken) return
+  spoken = locale
+  try {
+    localStorage.setItem(SPOKEN_KEY, locale)
+  } catch {
+    // Private mode: it holds until the page closes, as it did before.
+  }
+}
 
 /**
  * The scene on screen right now, coarse enough to ignore a tally tick or a
@@ -380,7 +404,7 @@ const connect = (r: OpenRoom): void => {
     r.code,
     (next) => {
       projection = next
-      spoken = next.locale
+      heard(next.locale)
       // First-hand: only a narrator's phone publishes one.
       lastProjection = Date.now()
       roomClosed = null
