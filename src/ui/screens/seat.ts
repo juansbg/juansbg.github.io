@@ -483,8 +483,14 @@ const dayMarkup = (p: SeatProjection, locale: Locale, head: string): string => {
   const c = p.count
   const complete = c !== null && c.total > 0 && c.shown >= c.total
   const top = p.tally[0]
-  const runnerUp = p.tally[1]
-  const leader = complete && top !== undefined && (runnerUp === undefined || runnerUp.votes < top.votes) ? top.target : null
+  // The room's own answer, not a second rule that happens to agree with it.
+  // This screen used to re-derive the leader from the tally, and the two were
+  // never the same rule: the engine returns null when the top seat has no
+  // votes and this did not test that, while this required the count to be
+  // complete and the engine did not. They agreed only because of how the two
+  // contexts are set, and the copy that would have been missed by anybody
+  // changing tie-breaking was the one in a renderer.
+  const leader = p.leader
 
   let title: string
   let situation = ''

@@ -343,7 +343,14 @@ describe("a player's phone at night", () => {
     expect(html).toContain('1 / 3')
     expect(html).toContain('seat__votes')
     expect(html).toContain('data-fresh')
-    html = seatMarkup(day(2, { count: { shown: 3, total: 3, last: 2 }, tally: [{ target: 2, votes: 2 }, { target: 4, votes: 1 }] }), 'en')
+    // `leader` comes from the room now rather than being re-derived here, so a
+    // hand-built projection has to carry it — a complete count with a clear
+    // winner and a null leader is not a projection the app can produce. The
+    // partial count above deliberately still has none.
+    html = seatMarkup(
+      day(2, { count: { shown: 3, total: 3, last: 2 }, tally: [{ target: 2, votes: 2 }, { target: 4, votes: 1 }], leader: 2 }),
+      'en',
+    )
     expect(html).toContain(t.ui.table.pointsAt('Caro'))
     expect(html).toContain('data-leader')
     // The living voter's ring is a ballot and says so.
