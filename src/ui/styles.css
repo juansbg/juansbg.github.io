@@ -2414,7 +2414,13 @@ html[data-dawn] body {
 .screen--dawn[data-lethal] {
   --fg: var(--midnight);
   --fg-2: var(--midnight);
-  --fg-muted: color-mix(in oklab, var(--midnight) 78%, var(--vendetta));
+  /* 88%, not 78%: the muted ink on a death's Vendetta ground carries the
+     step counter and the Back button, and at 78% both measured 4.3:1 against
+     the 4.5 floor for text that size — on the one screen the whole room is
+     watching, read from a sofa. Still Midnight mixed with the ground it sits
+     on, so nothing about the palette changes; it just stops being a shade too
+     polite to read. */
+  --fg-muted: color-mix(in oklab, var(--midnight) 88%, var(--vendetta));
   --hairline-strong: var(--midnight);
   --accent: var(--midnight);
   --on-accent: var(--ledger);
@@ -3928,7 +3934,13 @@ html[data-dawn] body {
 .tableview__card[data-lethal] {
   --fg: var(--midnight);
   --fg-2: var(--midnight);
-  --fg-muted: color-mix(in oklab, var(--midnight) 78%, var(--vendetta));
+  /* 88%, not 78%: the muted ink on a death's Vendetta ground carries the
+     step counter and the Back button, and at 78% both measured 4.3:1 against
+     the 4.5 floor for text that size — on the one screen the whole room is
+     watching, read from a sofa. Still Midnight mixed with the ground it sits
+     on, so nothing about the palette changes; it just stops being a shade too
+     polite to read. */
+  --fg-muted: color-mix(in oklab, var(--midnight) 88%, var(--vendetta));
   --hairline-strong: var(--midnight);
   --accent: var(--midnight);
   --on-accent: var(--ledger);
