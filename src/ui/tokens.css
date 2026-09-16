@@ -57,7 +57,16 @@
   --fg: var(--ledger);
   --fg-2: var(--ash);
   --fg-muted: color-mix(in oklab, var(--ash) 72%, var(--midnight)); /* 5:1 on --surface at 12px: the eyebrows are read in the dark */
-  --fg-faint: color-mix(in oklab, var(--ash) 36%, var(--midnight));
+  /* The dead and the disabled. 66%, not the 36% this was: at 36% a dead
+     seat's name and its 12px number both measured 2.5:1 on a phone, under the
+     4.5 floor the audit holds everything else to, and quieted by TOKEN rather
+     than by opacity — so nothing in the markup said it was deliberate and no
+     sweep could tell it from ink that was simply too faint. It reads about
+     5.5:1 now. The dead still recede: the tile goes transparent, the border
+     drops to a plain hairline and a dim Vendetta strike crosses it, and a
+     living name beside it is 16.7:1. The day ground has its own value below,
+     chosen to land at the same ratio rather than the same mix. */
+  --fg-faint: color-mix(in oklab, var(--ash) 66%, var(--midnight));
 
   /* Lines. Depth comes from a hairline and a step up the surface scale. */
   --hairline: color-mix(in oklab, var(--ash) 22%, transparent);

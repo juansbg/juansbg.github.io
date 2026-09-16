@@ -2310,7 +2310,11 @@ html[data-phase='day'] body {
    more Ash; the hierarchy is carried by size and tracking, not by fading. */
 html[data-phase='day'] {
   --fg-muted: color-mix(in oklab, var(--ash) 86%, var(--midnight));
-  --fg-faint: color-mix(in oklab, var(--ash) 48%, var(--midnight));
+  /* 74% against the night's 66%: the two are chosen to READ the same, about
+     5.5:1 each, rather than to sit a fixed distance apart in the mix. Measured
+     on a dead seat at 375x667 — on this ground 70% gives 5.0:1 and 62% gives
+     3.9:1, so the old 48% was 2.5:1. */
+  --fg-faint: color-mix(in oklab, var(--ash) 74%, var(--midnight));
 }
 
 html[data-phase] body {

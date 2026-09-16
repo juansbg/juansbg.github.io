@@ -59,7 +59,9 @@ the side. `--glyph-dim` is the only derived state, for the dead.
   glance. On it red is a rule or a strike, never type.
 - **Ink**: `--fg` Ledger, `--fg-2` Ash, `--fg-muted` (72% Ash: the mono
   eyebrows are 12px and read in the dark, so it clears 5:1 on `--surface`),
-  `--fg-faint` (the dead and the disabled only, never a label).
+  `--fg-faint` (the dead and the disabled only, never a label; 66% Ash at
+  night and 74% by day, two mixes chosen to READ the same — about 5.5:1 on a
+  seat tile — rather than to sit a fixed distance apart).
 - **Lines**: `--hairline` (22% Ash), `--hairline-strong` (48% Ash).
 - **Vendetta states**: `--lethal`, `--lethal-dim`, `--lethal-glow`. The only
   colour with states.
@@ -73,7 +75,15 @@ the side. `--glyph-dim` is the only derived state, for the dead.
 - **The two occult roles (`MEDIC`, `SPLIT`) are hollow.** An Ash outline
   instead of a fill. Same palette, visibly other. They are still town.
 - **The dead are faint**, with one dim Vendetta strike across the seat.
-  Never removed, never hidden.
+  Never removed, never hidden — **and never under 4.5:1**. Faint used to mean
+  2.5:1 on a phone, for both the name and its 12px number, while the same
+  information on a television was 6.6:1 at 52px: the dead were legible in the
+  room and not in the hand. They read about 5.5:1 now against a living seat's
+  16.7:1, which is a wider gap than fading alone usually gives, and they still
+  recede by every other means — the tile goes transparent, the border drops to
+  a plain hairline, the strike crosses it. A seat that cannot be picked is
+  quieter still, at 0.35 opacity and dashed, and that one is an affordance
+  rather than information (user, 2026-09-16).
 - **The narrator's hand is Ledger.** Selected, focused, primary: all invert
   to Ledger-on-Midnight. No third colour for "you are here".
 - **The role is Neon.** Its sigil, drawn in straight lines, in `--glyph` on
