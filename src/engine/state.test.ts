@@ -431,12 +431,16 @@ describe('the Godfather can decline', () => {
     expect(state.infectionUsed).toBe(false)
   })
 
-  it('is not prompted again once the conversion is spent', () => {
+  it('keeps his step once the conversion is spent, so the night keeps its length', () => {
     let state = played({ kind: 'confirm', roleId: 'CONVERT' })
     expect(state.infectionUsed).toBe(true)
+    const was = state.schedule.length
     state = startNight(state)
-    expect(state.schedule).not.toContain('CONVERT')
+    // Dropping his step shortened the night by one with nobody dead to explain
+    // it, which is the one thing the room could read off the counter.
+    expect(state.schedule).toContain('CONVERT')
     expect(state.schedule).toContain('KILLER')
+    expect(state.schedule).toHaveLength(was)
   })
 })
 

@@ -117,7 +117,7 @@ export const startNight = (state: GameState): GameState => {
     phase: 'night',
     night,
     players,
-    schedule: scheduleFor(players, night, { infectionUsed: state.infectionUsed }),
+    schedule: scheduleFor(players, night),
     stepIndex: 0,
     pending: [],
     // A day that ended without an execution takes its votes with it.

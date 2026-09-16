@@ -256,6 +256,8 @@ export interface Strings {
       /** The Godfather's step: who the Family chose, and the one-time choice. */
       convertOffer: (name: string) => string
       convertNoVictim: string
+      /** His one conversion is spent; the step stays so the count does not move. */
+      convertSpent: string
       /** The step's holders all hold phones: the narrator waits, and may still tap for them. */
       onPhones: (names: string[]) => string
       convert: string

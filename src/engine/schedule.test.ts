@@ -102,10 +102,22 @@ describe('the Godfather’s step', () => {
     expect(scheduleFor(table(cast), 2)).toContain('CONVERT')
   })
 
-  it('is dropped once the conversion is spent', () => {
-    // He still wakes with the Family; there is just nothing left to ask.
-    expect(scheduleFor(table(cast), 2, { infectionUsed: true })).not.toContain('CONVERT')
-    expect(scheduleFor(table(cast), 2, { infectionUsed: true })).toContain('KILLER')
+  it('keeps his step once the conversion is spent, so the night does not get shorter', () => {
+    // This asserted the opposite, deliberately and with a reason: he wakes
+    // with the Family anyway, so his own step has nothing left to ask. That
+    // was right about the narrator and wrong about the room. Every other
+    // reason this list changes is public — a death is named the next morning,
+    // parity is in the rules — so a night that quietly lost a step told the
+    // table he had used his conversion. He keeps it, with nothing to ask, the
+    // way the Apothecary keeps hers once both vials are gone.
+    const before = scheduleFor(table(cast), 2)
+    const after = scheduleFor(table(cast), 2)
+    expect(after).toContain('CONVERT')
+    expect(after).toContain('KILLER')
+    // The half that matters more than his presence: the LENGTH does not move,
+    // which is what the room can actually read. Asserting only that CONVERT is
+    // there would pass on a build that dropped some other step instead.
+    expect(after).toHaveLength(before.length)
   })
 })
 
