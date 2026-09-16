@@ -310,6 +310,25 @@ describe("a player's phone at night", () => {
     expect(stepKeyOf({ ...pair, tonight: null })).toBe('')
   })
 
+  it('keeps the "that did not go through" warning on the step it happened on, and drops it when the step moves', () => {
+    // The warning is raised by a deadline on `seat.ts`, and on a busy table the
+    // next republish is milliseconds away: if it did not travel with the step
+    // it would be wiped off the screen before anybody could read it — and the
+    // busier the table, the sooner, which is exactly when a frame goes missing.
+    const detective = seat(2, 'INSPECT', { acting: true, eligible: [0, 1, 3, 4] })
+    const key = stepKeyOf(detective)
+    const warned: SeatPicks = { picked: [], sent: false, unsent: true }
+    expect(settlePicks(detective, warned, key)).toEqual({ picked: [], sent: false, unsent: true })
+    // The step moved on: whatever happened, it is over and there is nothing to warn about.
+    expect(settlePicks(detective, warned, 'night 1:GUARD')).toEqual({ picked: [], sent: false })
+    expect(
+      settlePicks({ ...detective, tonight: { ...detective.tonight!, acting: false } }, warned, key),
+    ).toEqual({ picked: [], sent: false })
+    // And an action still in flight is never marked unsent by settling alone:
+    // only the deadline says that, because only time can tell the difference.
+    expect(settlePicks(detective, picks([3], true), key)).toEqual({ picked: [], sent: true })
+  })
+
   it('votes on the ring by day, says the vote is in, and shows the count as it comes up', () => {
     const t = strings('en')
     const day = (vote: PlayerId | null, extra: Partial<SeatProjection> = {}): SeatProjection =>

@@ -131,12 +131,19 @@ let picks: SeatPicks = { picked: [], sent: false }
  */
 let paperOpen = false
 /**
- * An action went out and nothing has come back.
+ * An action went out and the step has not moved.
  *
- * The narrator republishes on every paint, so a projection is the phone's
- * receipt: if one does not arrive, the tap did not land. A socket that is OPEN
- * is not proof — the frame can still be lost — so the claim has a deadline
- * rather than a state.
+ * A socket that is OPEN is not proof the narrator saw the tap — the frame can
+ * still be lost after it — so the claim has a deadline rather than a state.
+ *
+ * What clears the deadline is the STEP MOVING ON, never the arrival of a
+ * projection: the narrator republishes on every paint, so "a projection came
+ * back" only says something happened in the room, and clearing on that made
+ * the warning rarest at a busy table, which is exactly where a frame goes
+ * missing. It also left a REFUSED action stranded — the refusal comes back as
+ * the unchanged step, so it cleared the deadline while leaving the buttons
+ * dimmed with nothing left to rescue them. Both now time out, which is right:
+ * a lost frame and a refused tap ask the player for the same thing.
  */
 const ACK_MS = 3_000
 let ackTimer: number | null = null
@@ -341,8 +348,10 @@ const applySealed = async (payload: string): Promise<void> => {
     joined = true
     refused = null
     remember(nameKey, parsed.name)
-    gotAck()
     picks = settlePicks(parsed, picks, stepKey)
+    // `settlePicks` keeps `sent` while the step stands: an answer is the step
+    // moving on, and that is the only thing that calls the deadline off.
+    if (!picks.sent) gotAck()
     stepKey = stepKeyOf(parsed)
     gate = nextGate(gate, parsed)
     gone = nextGone(gone, was, parsed)
