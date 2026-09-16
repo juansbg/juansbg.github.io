@@ -779,6 +779,15 @@ export const es: Strings = {
       open: 'Abrir una sala',
       opening: 'Abriendo…',
       close: 'Cerrar la sala',
+      closeConfirm: (players, screens) => {
+        const lost = [
+          players === 1 ? '1 jugador' : players > 1 ? `${players} jugadores` : null,
+          screens === 1 ? '1 pantalla' : screens > 1 ? `${screens} pantallas` : null,
+        ].filter(Boolean).join(' y ')
+        return lost === ''
+          ? '¿Cerrar la sala? El código deja de funcionar. La partida sigue en este teléfono.'
+          : `¿Cerrar la sala? ${lost} ${players + screens === 1 ? 'se queda' : 'se quedan'} fuera, y el código deja de funcionar. La partida sigue en este teléfono.`
+      },
       code: 'Código de sala',
       scan: 'Escanéalo en la tele, o abre la dirección en ella',
       noTv: 'Aún no hay ninguna pantalla en la sala',

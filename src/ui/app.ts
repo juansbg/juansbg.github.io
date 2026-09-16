@@ -660,7 +660,9 @@ let menuOpen = false
  * flashes a white system dialog, which in a dark room is a torch in the
  * face; this is the same question asked on our own sheet.
  */
-type Pending = 'restart' | 'newTable' | 'clearNames' | 'finish' | 'clearStats' | 'nextNight' | 'roomNames' | 'roomInPlay' | 'rewind'
+type Pending =
+  | 'restart' | 'newTable' | 'clearNames' | 'finish' | 'clearStats' | 'nextNight'
+  | 'roomNames' | 'roomInPlay' | 'closeRoom' | 'rewind'
 /** The entry a rewind would return to, held while the narrator is asked. */
 let rewindTo: number | null = null
 let confirming: Pending | null = null
@@ -1314,6 +1316,16 @@ function render(entering = false): void {
         action: roomRoad?.kind === 'join' ? t.ui.setup.screenJoin : t.ui.room.openHere,
       },
       roomInPlay: { question: t.ui.setup.roomInPlay, action: t.ui.setup.screenJoin },
+      // Closing the room drops it for everybody at once, and the row sits
+      // directly under Done. What it costs is counted here: the phones still
+      // attached (a guest marked `gone` has already left) and the screens on.
+      closeRoom: {
+        question: t.ui.room.closeConfirm(
+          [...guests.values()].filter((g) => !g.gone).length,
+          tvs,
+        ),
+        action: t.ui.room.close,
+      },
       rewind: {
         // `revertTo` keeps `past.slice(0, index)`, so everything from `index`
         // onwards goes, plus the state the narrator is standing in. That is
@@ -1549,8 +1561,13 @@ function bind(): void {
   on(root, '[data-finish]', 'click', () => ask('finish'))
 
   on(root, '[data-confirm-cancel]', 'click', () => {
+    // `ask()` steps the sheet that asked aside. For every other question
+    // that sheet is the menu, which the narrator was leaving anyway; for
+    // this one it is the room, which they are still reading the code off.
+    const pending = confirming
     confirming = null
     roomRoad = null
+    if (pending === 'closeRoom') roomOpen = true
     setState({}, false)
   })
 
@@ -1578,6 +1595,7 @@ function bind(): void {
       if (index !== null) rewind(index)
     }
     else if (pending === 'nextNight') nextNight()
+    else if (pending === 'closeRoom') closeTheRoom()
     else if (pending === 'clearStats') {
       clearStats()
       setState({}, false)
@@ -2258,7 +2276,12 @@ function bind(): void {
       })
   }
 
-  on(root, '[data-room-close]', 'click', () => {
+  // The only row in the app that ends something for other people. Every
+  // phone at the table is cut where it stands and the code stops working,
+  // and it sits one ghost button under Done on the same sheet. It asks.
+  on(root, '[data-room-close]', 'click', () => ask('closeRoom'))
+
+  function closeTheRoom(): void {
     // A decision, not a disconnection: the relay drops the room and tells
     // every screen and phone why (docs/BIG-SCREEN.md §12.2).
     link?.end()
@@ -2270,7 +2293,7 @@ function bind(): void {
     roomStatus = 'closed'
     saveRoom(null)
     setState({}, false)
-  })
+  }
 
   // The ballot comes off the seal: the count comes up on the room's screen
   // one ballot at a time, at this phone's beat, and each ballot ticks here.

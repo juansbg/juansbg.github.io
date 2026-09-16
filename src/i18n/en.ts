@@ -774,6 +774,15 @@ export const en: Strings = {
       open: 'Open a room',
       opening: 'Opening…',
       close: 'Close the room',
+      closeConfirm: (players, screens) => {
+        const lost = [
+          players === 1 ? '1 player' : players > 1 ? `${players} players` : null,
+          screens === 1 ? '1 screen' : screens > 1 ? `${screens} screens` : null,
+        ].filter(Boolean).join(' and ')
+        return lost === ''
+          ? 'Close the room? The code stops working. The game on this phone carries on.'
+          : `Close the room? ${lost} will be cut off, and the code stops working. The game on this phone carries on.`
+      },
       code: 'Room code',
       scan: 'Scan this on the TV, or open the address on it',
       noTv: 'No screen on the room yet',

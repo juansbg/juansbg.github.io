@@ -105,6 +105,23 @@ describe('string tables', () => {
     expect(strings('es').ui.reveal.stillToLook(['Hugo', 'Lucía'])).toBe('Faltan Hugo, Lucía')
   })
 
+  it('count what closing the room costs, and agree with the number in Spanish', () => {
+    for (const locale of LOCALES) {
+      const r = strings(locale).ui.room
+      // An empty half must not be read out. "0 players and 1 screen will be
+      // cut off" is the sentence this guards against, in either position.
+      expect(r.closeConfirm(0, 0), locale).not.toMatch(/\d/)
+      expect(r.closeConfirm(0, 2), locale).not.toMatch(/\b0\b/)
+      expect(r.closeConfirm(2, 0), locale).not.toMatch(/\b0\b/)
+    }
+    expect(strings('en').ui.room.closeConfirm(1, 0)).toContain('1 player will be cut off')
+    expect(strings('en').ui.room.closeConfirm(3, 1)).toContain('3 players and 1 screen will be cut off')
+    // Spanish agrees with how many are being cut off, not with the last noun.
+    expect(strings('es').ui.room.closeConfirm(1, 0)).toContain('1 jugador se queda fuera')
+    expect(strings('es').ui.room.closeConfirm(1, 1)).toContain('1 jugador y 1 pantalla se quedan fuera')
+    expect(strings('es').ui.room.closeConfirm(0, 2)).toContain('2 pantallas se quedan fuera')
+  })
+
   it('cover every death cause in both languages', () => {
     const causes: DeathCause[] = ['killers', 'rogue', 'poison', 'lynch', 'heartbreak', 'revenge']
     for (const locale of LOCALES) {

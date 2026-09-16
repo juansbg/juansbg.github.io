@@ -529,6 +529,12 @@ export interface Strings {
       open: string
       opening: string
       close: string
+      /**
+       * The same question, asked before the room is dropped. It names the
+       * phones and screens actually attached, because that is the one thing
+       * the narrator cannot see from the row they are about to tap.
+       */
+      closeConfirm: (players: number, screens: number) => string
       code: string
       scan: string
       noTv: string
