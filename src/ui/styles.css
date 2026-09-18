@@ -2553,37 +2553,12 @@ html[data-dawn] body {
    rather than "a card with a title on it". The flanks are decoration and
    the only decoration here — they name no trade, no person and no role. A
    phone's nameplate has no room for them, so there they simply go. */
-.paper__nameplate {
-  display: grid;
-  grid-template-columns: 1fr auto 1fr;
-  align-items: baseline;
-  gap: var(--space-3);
-}
-
 .paper__flank {
-  margin: 0;
-  color: var(--on-newsprint-muted);
-  font-family: var(--font-mono);
-  font-size: var(--text-xs);
   font-variant-numeric: tabular-nums;
-  letter-spacing: var(--track-label);
-  text-transform: uppercase;
   white-space: nowrap;
 }
 
-.paper__flank--left {
-  text-align: left;
-}
-
-.paper__flank--right {
-  text-align: right;
-}
-
 @media (max-width: 47.99rem) {
-  .paper__nameplate {
-    display: block;
-  }
-
   .paper__flank {
     display: none;
   }
@@ -2598,10 +2573,15 @@ html[data-dawn] body {
   font-variant-numeric: tabular-nums;
 }
 
-/* The dateline sits between two hairlines, the way a nameplate is ruled. */
+/* The dateline sits between two hairlines, the way a nameplate is ruled,
+   and the price and the edition's number hang off either end of it. They
+   used to flank the name itself, marooned at the far edges of a metre of
+   empty newsprint with a small centred wordmark between them, which is a
+   website header and not a nameplate. This is where a real paper puts
+   them. */
 .paper__edition {
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  grid-template-columns: auto 1fr auto 1fr auto;
   align-items: center;
   gap: var(--space-3);
   margin: var(--space-2) 0 0;
@@ -2611,9 +2591,7 @@ html[data-dawn] body {
   text-transform: uppercase;
 }
 
-.paper__edition::before,
-.paper__edition::after {
-  content: '';
+.paper__rule {
   height: 1px;
   background: var(--newsprint-rule);
 }
@@ -2630,8 +2608,7 @@ html[data-dawn] body {
     text-align: center;
   }
 
-  .paper__edition::before,
-  .paper__edition::after {
+  .paper__rule {
     display: none;
   }
 }
@@ -2755,7 +2732,11 @@ html[data-dawn] body {
 .paper__struck {
   text-decoration: line-through;
   text-decoration-color: var(--lethal);
-  text-decoration-thickness: 3px;
+  /* Scaled, not fixed. Three pixels is right on a phone's 24px headline
+     and disappears into the crossbar of an 80px Bebas E on a wall, where
+     the strike and the letter merge into mush — on the one word the room
+     is reading the page for. */
+  text-decoration-thickness: max(2px, 0.055em);
 }
 
 .paper__lead .paper__article {
@@ -2870,7 +2851,7 @@ html[data-dawn] body {
    frame at three stories and at ten without inventing copy. */
 .paper__scribbles {
   --greek-ink: 2px;
-  --greek-leading: 0.62rem;
+  --greek-leading: 0.55rem;
   --greek-lines: 4;
   display: block;
   margin-top: var(--space-2);
@@ -2878,18 +2859,28 @@ html[data-dawn] body {
   overflow: hidden;
 }
 
-/* Block and margin rather than flex and gap, because on a wall the lead's
-   greek is set in two sub-columns and multicol has nothing to do with a
-   flex container. */
-.paper__scribble {
+/* A line of it. The words are set on one line that cannot wrap and cannot
+   spill: a rounding error at the end of a line would otherwise drop a word
+   onto a line of its own and put a hole in the column. */
+.paper__line {
   display: block;
   margin-left: calc(var(--x, 0) * 100%);
   margin-bottom: calc(var(--greek-leading) - var(--greek-ink));
-  width: calc((var(--w, 1) - var(--x, 0)) * 100%);
   height: var(--greek-ink);
-  /* A shade heavier than a hairline: a rule separates, a block of type has
-     tone. Still Midnight and nothing else. */
-  background: color-mix(in oklab, var(--on-newsprint) 38%, transparent);
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+/* And a word. The gap between them is the whole point — a line without
+   them is a rule, and nothing a press has ever produced is an unbroken
+   rule five hundred pixels long forty times in a row. */
+.paper__scribble {
+  display: inline-block;
+  width: calc(var(--w, 0.1) * 100%);
+  height: var(--greek-ink);
+  margin-right: 2.2%;
+  vertical-align: top;
+  background: color-mix(in oklab, var(--on-newsprint) 42%, transparent);
 }
 
 .paper__section {
@@ -3051,8 +3042,16 @@ html[data-dawn] body {
   overflow: hidden;
 }
 
+/* The nameplate is the largest thing on a front page and the thing that
+   tells your eye how wide the sheet is. At 7vmin with the price and the
+   number marooned at the far edges it was a small centred logo on a header
+   bar, taking 18% of the measure. */
 .stage--tv .paper__name {
-  font-size: clamp(3rem, 7vmin, 6rem);
+  font-size: clamp(3rem, 12vmin, 10rem);
+  letter-spacing: 0.16em;
+  /* Bebas is tracked from the left, so a centred line sits half a space
+     off centre without this. */
+  text-indent: 0.16em;
 }
 
 .stage--tv .paper__flank {
@@ -3104,13 +3103,17 @@ html[data-dawn] body {
    wall. These are the numbers that make a column read as a block of type
    from the far side of a room. */
 .stage--tv .paper__scribbles {
-  --greek-ink: 3px;
-  --greek-leading: calc(1.05rem * var(--paper-fit, 1));
+  --greek-ink: 4px;
+  --greek-leading: calc(0.86rem * var(--paper-fit, 1));
 }
 
 @media (min-width: 60rem) {
+  /* The foot is the deepest margin on a printed sheet. It was eight
+     pixels, and the type block ran off the bottom of the frame into the
+     Midnight ground — which on a screen that cannot scroll has no
+     explanation at all. */
   .stage--tv .paper {
-    padding: var(--space-4) var(--space-5) var(--space-3);
+    padding: var(--space-4) var(--space-5) var(--space-6);
   }
 
   /* The sheet is ruled into `--cols` columns, of which the lead takes
@@ -3218,12 +3221,24 @@ html[data-dawn] body {
   }
 
   /* The slack in a column goes into the type block, never into bare
-     newsprint at the foot of the page. This one declaration is what makes
-     a morning with two stories look as deliberate as a morning with ten:
-     the greek was capped at four lines for the hand, and a column is free
-     to be as tall as it is. */
-  .stage--tv .paper__col .paper__scribbles,
-  .stage--tv .paper__lead .paper__scribbles {
+     newsprint at the foot of the page. This is what makes a morning with
+     two stories look as deliberate as a morning with ten: the greek is
+     capped at four lines for the hand, and a column is free to be as tall
+     as it is.
+     The chain matters. A story is a head and a body, and it is the BODY
+     that grows inside the story and the type block that grows inside the
+     body — leave the body a plain block and the block inside it renders
+     all forty-four of its lines, which is how the columns came to
+     overflow by four hundred pixels the moment the dek moved into the
+     stream. */
+  .stage--tv .paper__col .paper__body {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .stage--tv .paper__col .paper__scribbles {
     flex: 1 1 0;
     min-height: 0;
     max-height: none;
@@ -3243,16 +3258,26 @@ html[data-dawn] body {
     min-height: 0;
   }
 
-  .stage--tv .paper__lead .paper__story {
+  /* The kicker sits level with the top of the plate and the headline's
+     last line with the foot of it, so the two close the same block. Left
+     to their natural heights the headline ran out two hundred pixels
+     above the picture beside it and the lead had a hole in the middle. */
+  .stage--tv .paper__lead .paper__head {
     grid-column: 1;
     grid-row: 1;
     min-width: 0;
   }
 
+  /* The plate is as tall as the words beside it, so the two close the
+     same block. Fixed square, it overshot a two-line headline by two
+     hundred pixels and the lead had a hole in it; pushing the headline
+     down to meet it only moved the hole above the headline. */
   .stage--tv .paper__lead .paper__cut {
     grid-column: 2;
     grid-row: 1;
-    align-self: start;
+    align-self: stretch;
+    grid-template-rows: minmax(0, 1fr) auto;
+    min-height: clamp(7rem, 15vmin, 13rem);
   }
 
   .stage--tv .paper__page[data-stack] > .paper__lead .paper__article {
@@ -3265,21 +3290,38 @@ html[data-dawn] body {
     grid-template-columns: minmax(0, 1fr);
   }
 
-  .stage--tv .paper__lead .paper__scribbles {
+  /* The lead's copy and its type block are one stream, set in two
+     sub-columns and filled to the foot of the first before the second is
+     started. They used to be two objects stacked — one dek across the full
+     measure, then a wall of grey underneath in two columns — which reads as
+     a card with a headline on it and not as a lead, because in a newspaper
+     the dek IS the first paragraph and it starts inside column one. */
+  .stage--tv .paper__lead .paper__body {
     grid-column: 1 / -1;
     grid-row: 2;
+    min-height: 0;
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--on-newsprint);
+    columns: 2;
+    column-gap: var(--space-5);
+    column-rule: 1px solid var(--newsprint-rule);
+    column-fill: auto;
+    /* The stream is cut by the column box, never by the block inside it:
+       an `overflow` of its own would make the type block monolithic and
+       multicol could not break it across the two columns at all. */
+    overflow: hidden;
+  }
+
+  .stage--tv .paper__lead .paper__scribbles {
+    max-height: none;
+    overflow: visible;
   }
 
   /* On paper red is a rule, never type. A killing leads under a heavy one,
      as it does on the phone. It closes the whole top block — the words and
      the plate together — so it lands level with the foot of the picture
      rather than hanging half way up the page under the dek. */
-  .stage--tv .paper__lead .paper__scribbles {
-    padding-top: var(--space-4);
-    border-top: 1px solid var(--on-newsprint);
-  }
-
-  .stage--tv .paper--daily .paper__lead:has(> [data-kind='death'], > [data-kind='verdict']) .paper__scribbles {
+  .stage--tv .paper--daily .paper__lead:has(> [data-kind='death'], > [data-kind='verdict']) .paper__body {
     border-top-width: 4px;
     border-top-color: var(--lethal);
   }
@@ -3291,15 +3333,6 @@ html[data-dawn] body {
     display: none;
   }
 
-  /* The lead's body sets in two sub-columns, filled to the foot of the
-     first before the second is started — a balanced pair would leave both
-     half empty, which is the bare-newsprint problem again in miniature. */
-  .stage--tv .paper__lead .paper__scribbles {
-    columns: 2;
-    column-gap: var(--space-5);
-    column-fill: auto;
-    margin-top: var(--space-4);
-  }
 
   /* The engraving. A front page has a picture on it and this one has never
      had anything to put there — no face the room may see, no image the
@@ -3308,37 +3341,54 @@ html[data-dawn] body {
      either way. Blown up in a ruled frame with the name under it, that is
      a cut, which is what a paper of this vintage would have carried. It
      leaks nothing the headline above it does not already say. */
+  /* Solid, because every front page has one dark rectangle on it and the
+     eye uses it to hold the sheet down. A hairline frame round a line
+     drawing floating in empty newsprint read as a broken image from a
+     sofa: 60% of the box was nothing. The ink reverses out in newsprint,
+     the way the town's mark already does everywhere else on this page,
+     so it costs no colour the paper did not have. */
   .stage--tv .paper__lead .paper__cut {
     display: grid;
     margin: 0;
-    padding: var(--space-3) var(--space-3) 0;
-    border: 1px solid var(--on-newsprint);
+    padding: var(--space-4) var(--space-3) 0;
+    background: var(--on-newsprint);
+  }
+
+  /* A killing is ruled in red, as it is everywhere else on newsprint. */
+  .stage--tv .paper--daily .paper__lead:has(> [data-kind='death'], > [data-kind='verdict']) .paper__cut {
+    border-top: 5px solid var(--lethal);
   }
 
   .stage--tv .paper__engraving {
     display: grid;
     place-items: center;
     width: 100%;
-    aspect-ratio: 1;
-    color: var(--on-newsprint);
+    height: 100%;
+    min-height: 0;
+    color: var(--newsprint);
     font-family: var(--font-body);
     font-weight: 600;
-    font-size: clamp(2.5rem, 7vmin, 5.5rem);
+    font-size: clamp(3rem, 9vmin, 7rem);
     line-height: 1;
   }
 
   .stage--tv .paper__engraving .sigil {
-    width: 100%;
-    height: 100%;
+    width: auto;
+    height: 86%;
+    max-width: 82%;
+    aspect-ratio: 1;
+  }
+
+  .stage--tv .paper__engraving .sigil {
     stroke-width: 1.1;
   }
 
   .stage--tv .paper__caption {
     width: 100%;
     margin-top: var(--space-3);
-    padding: var(--space-1) 0;
-    border-top: 1px solid var(--newsprint-rule);
-    color: var(--on-newsprint-muted);
+    padding: var(--space-2) 0;
+    border-top: 1px solid color-mix(in oklab, var(--newsprint) 40%, transparent);
+    color: color-mix(in oklab, var(--newsprint) 82%, transparent);
     font-family: var(--font-mono);
     letter-spacing: var(--track-label);
     text-align: center;

@@ -323,6 +323,31 @@ const GREEK: readonly number[] = [
 ]
 
 /**
+ * How a line breaks into words.
+ *
+ * A line was one rule running the whole measure, and a critic watching a
+ * 1920x1080 screen from a sofa named it straight away: nothing a press has
+ * ever produced is an unbroken horizontal rule five hundred pixels long,
+ * forty times in a row. That is a lined pad, or a ledger, or a row of
+ * loading bars — and it was two thirds of the page. What makes a block of
+ * type read as type is the gaps: words.
+ *
+ * So a line is set as words off a fixed table, walked from the line's own
+ * position, cut to the line's width. Fixed, not drawn, so the same edition
+ * sets the same page every time it is painted.
+ */
+const WORDS: readonly number[] = [
+  0.09, 0.05, 0.13, 0.07, 0.16, 0.04, 0.11, 0.06, 0.19, 0.08,
+  0.12, 0.05, 0.15, 0.1, 0.06, 0.21, 0.07, 0.14, 0.05, 0.17,
+  0.08, 0.11, 0.06, 0.13, 0.09, 0.18, 0.05, 0.1, 0.15, 0.07,
+  0.2, 0.06, 0.12, 0.04, 0.16, 0.09, 0.07, 0.14, 0.05, 0.11,
+  0.08, 0.17, 0.06, 0.1, 0.13, 0.05, 0.22,
+]
+
+/** The gap between two words, as a share of the measure. */
+const SPACE = 0.022
+
+/**
  * How many lines every block carries. A television gives the lead half a
  * metre of column and a busy day's fourth story two centimetres, and the
  * block is clipped to whatever its column can hold — so this is the tallest
@@ -330,15 +355,36 @@ const GREEK: readonly number[] = [
  */
 const GREEK_LINES = 44
 
+const lineMarkup = (seed: number, i: number): string => {
+  const width = GREEK[(i + seed * 7) % GREEK.length] ?? 1
+  // Every fifth line ends a paragraph, so the one after it is indented.
+  const ends = i % 5 === 4
+  const opens = i % 5 === 0 && i > 0
+  const measure = ends ? Math.min(width, 0.66) : width
+  const indent = opens ? 0.06 : 0
+
+  const words: string[] = []
+  let at = indent
+  // Thirteen and forty-seven are coprime, so consecutive lines start a
+  // long way apart in the table and the pattern does not come back into
+  // step for a whole column. Stepping by three through thirty put the same
+  // word lengths under each other every few lines and opened rivers down
+  // the type — which real setting has and this kind of setting should not
+  // advertise.
+  let w = (i * 13 + seed * 29) % WORDS.length
+  while (at < measure) {
+    const word = Math.min(WORDS[w % WORDS.length] ?? 0.1, measure - at)
+    if (word < 0.03) break
+    words.push(`<i class="paper__scribble" style="--w: ${word.toFixed(3)}"></i>`)
+    at += word + SPACE
+    w++
+  }
+  return `<span class="paper__line" style="--x: ${indent}">${words.join('')}</span>`
+}
+
 const greekMarkup = (seed: number, lines = GREEK_LINES): string => {
   const out: string[] = []
-  for (let i = 0; i < lines; i++) {
-    const w = GREEK[(i + seed * 7) % GREEK.length] ?? 1
-    // Every fifth line ends a paragraph, so the one after it is indented.
-    const ends = i % 5 === 4
-    const opens = i % 5 === 0 && i > 0
-    out.push(`<i class="paper__scribble" style="--w: ${ends ? Math.min(w, 0.66) : w}${opens ? '; --x: 0.06' : ''}"></i>`)
-  }
+  for (let i = 0; i < lines; i++) out.push(lineMarkup(seed, i))
   return `<span class="paper__scribbles" aria-hidden="true">${out.join('')}</span>`
 }
 
@@ -393,19 +439,19 @@ const cutMarkup = (a: Article): string => {
  */
 const articleMarkup = (a: Article, i: number, tier = 3): string => `
   <article class="paper__article" data-kind="${a.kind}" data-tier="${tier}"${a.accent ? ` data-accent="${a.accent}"` : ''} style="--i: ${i}">
-    <div class="paper__story">
-      <header class="paper__head">
-        ${a.mark ? `<span class="mark paper__mark" aria-hidden="true">${a.mark}</span>` : ''}
-        <div class="paper__title">
-          ${a.eyebrow ? `<p class="paper__eyebrow">${esc(a.eyebrow)}</p>` : ''}
-          <h3 class="paper__headline">${headlineMarkup(a)}</h3>
-        </div>
-      </header>
+    <header class="paper__head">
+      ${a.mark ? `<span class="mark paper__mark" aria-hidden="true">${a.mark}</span>` : ''}
+      <div class="paper__title">
+        ${a.eyebrow ? `<p class="paper__eyebrow">${esc(a.eyebrow)}</p>` : ''}
+        <h3 class="paper__headline">${headlineMarkup(a)}</h3>
+      </div>
+    </header>
+    ${tier === 1 ? cutMarkup(a) : ''}
+    <div class="paper__body">
       <p class="paper__dek">${esc(a.dek)}</p>
       ${noteMarkup(a)}
+      ${greekMarkup(i, tier === 1 ? GREEK_LINES * 2 : GREEK_LINES)}
     </div>
-    ${tier === 1 ? cutMarkup(a) : ''}
-    ${greekMarkup(i, tier === 1 ? GREEK_LINES * 2 : GREEK_LINES)}
   </article>`
 
 /** What sits either side of the nameplate: the price, and the day's number. */
@@ -433,16 +479,18 @@ const mastheadMarkup = (
   flanks: Flanks | null = null,
 ): string => `
   <header class="paper__masthead">
-    <div class="paper__nameplate">
-      <p class="paper__flank paper__flank--left">${flanks ? esc(flanks.left) : ''}</p>
-      <p class="paper__name">${esc(name)}</p>
-      <p class="paper__flank paper__flank--right">${flanks ? esc(flanks.right) : ''}</p>
-    </div>
-    <p class="paper__edition">${
-      short === null
-        ? esc(dateline)
-        : `<span><span class="paper__edition-long">${esc(dateline)}</span><span class="paper__edition-short">${esc(short)}</span></span>`
-    }</p>
+    <p class="paper__name">${esc(name)}</p>
+    <p class="paper__edition">
+      <span class="paper__flank paper__flank--left">${flanks ? esc(flanks.left) : ''}</span>
+      <span class="paper__rule"></span>
+      <span class="paper__dateline">${
+        short === null
+          ? esc(dateline)
+          : `<span class="paper__edition-long">${esc(dateline)}</span><span class="paper__edition-short">${esc(short)}</span>`
+      }</span>
+      <span class="paper__rule"></span>
+      <span class="paper__flank paper__flank--right">${flanks ? esc(flanks.right) : ''}</span>
+    </p>
   </header>`
 
 /**
@@ -529,9 +577,14 @@ const pageMarkup = (lead: Article | null, rest: readonly Article[], plan = planF
               .map(
                 (col) =>
                   `<div class="paper__col">${col
-                    .map((a) => {
+                    .map((a, k) => {
                       n++
-                      return articleMarkup(a, n, n === 1 ? 2 : 3)
+                      // A column headed NOTICES over NOTICES is a template
+                      // repeating itself, not an edited page: the label is
+                      // the page saying what KIND of thing follows, and it
+                      // only has to say it when the kind changes.
+                      const same = k > 0 && col[k - 1]?.eyebrow === a.eyebrow
+                      return articleMarkup(same ? { ...a, eyebrow: null } : a, n, n === 1 ? 2 : 3)
                     })
                     .join('')}</div>`,
               )

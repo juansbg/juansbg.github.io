@@ -2,6 +2,15 @@ import { APP_NAME, type Strings } from './strings'
 
 const cap = (s: string): string => s.charAt(0).toUpperCase() + s.slice(1)
 const doors = (n: number): string => (n === 1 ? 'una puerta' : `${n} puertas`)
+/**
+ * The two contractions Spanish will not let you skip. Every trade in
+ * `tradesNamed` carries its article, so a line that puts `a` or `de` in
+ * front of one wrote "a el pescadero" and "de el sastre" — which a Spanish
+ * reader sees before they see the headline, and one of them was on the
+ * front page of the town's newspaper.
+ */
+const al = (t: string): string => (t.startsWith('el ') ? `al ${t.slice(3)}` : `a ${t}`)
+const del = (t: string): string => (t.startsWith('el ') ? `del ${t.slice(3)}` : `de ${t}`)
 
 export const es: Strings = {
   appName: APP_NAME,
@@ -105,7 +114,7 @@ export const es: Strings = {
         (t) => `${cap(t)} oyó pasos en la casa de al lado de madrugada, y no se encendió ninguna luz.`,
         (t) => `${cap(t)} jura que alguien entró en la casa de al lado mucho después de medianoche.`,
         (t) => `${cap(t)} dice que el perro de al lado no ladró anoche. Y siempre ladra a los desconocidos.`,
-        (t) => `Una ventana pegada a la de ${t} estuvo encendida hasta el alba, y en esa casa nadie trasnocha.`,
+        (t) => `Una ventana pegada a la ${del(t)} estuvo encendida hasta el alba, y en esa casa nadie trasnocha.`,
       ],
       quiet: [
         (t) => `${cap(t)} durmió mal y de al lado no oyó más que ronquidos.`,
@@ -115,9 +124,9 @@ export const es: Strings = {
       ],
       doors: [
         (t, n) => `${cap(t)} cuenta ${doors(n)} entre la tienda y la casa donde ocurrió.`,
-        (t, n) => `Desde la ventana de ${t} hay ${doors(n)} hasta la casa del crespón negro.`,
+        (t, n) => `Desde la ventana ${del(t)} hay ${doors(n)} hasta la casa del crespón negro.`,
         (t, n) => `${cap(t)} lo midió a pasos: ${doors(n)} desde la tienda hasta el lugar.`,
-        (t, n) => `La policía tomó declaración a ${t}: ${doors(n)} de distancia, y nada visto.`,
+        (t, n) => `La policía tomó declaración ${al(t)}: ${doors(n)} de distancia, y nada visto.`,
       ],
     },
   },
