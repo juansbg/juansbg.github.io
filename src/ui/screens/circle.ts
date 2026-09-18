@@ -167,7 +167,12 @@ export const circleMarkup = (
   const circleClass = `circle${compact ? ' circle--compact' : ''}${list ? ' circle--list' : ''}`
   const middle = centre === '' ? '' : `<div class="circle__centre">${centre}</div>`
   const fit = options.fitRoles === true ? ' data-fit-roles' : ''
-  return `<div class="${tableClass}"><div class="${circleClass}"${fit} style="--seats: ${players.length}">${seats}${middle}</div></div>`
+  // `--offset` rides with `--seats`: 0 puts seat 1 at the top of an odd
+  // table, 0.5 makes an even one straddle it so both halves of the room
+  // mirror. It was CSS (`mod()`) until it turned out to take the whole ring
+  // down on an engine that does not have it; see the note in styles.css.
+  const offset = players.length % 2 === 0 ? '0.5' : '0'
+  return `<div class="${tableClass}"><div class="${circleClass}"${fit} style="--seats: ${players.length}; --offset: ${offset}">${seats}${middle}</div></div>`
 }
 
 /** The smallest tile a name still reads in, in px (3.5rem). Under it, rows. */
