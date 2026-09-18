@@ -536,8 +536,23 @@ body {
   );
   --radius: calc((var(--avail) - var(--seat)) / 2);
   /* Seat 1 sits at the top for an odd table; an even table straddles the
-     top, half a step either side, so both halves of the room mirror. */
-  --offset: calc((1 - mod(var(--seats, 8), 2)) / 2);
+     top, half a step either side, so both halves of the room mirror.
+
+     The value comes from the markup beside `--seats` (`circleMarkup`), and
+     this is the floor under it rather than the source. It used to be
+     `calc((1 - mod(var(--seats, 8), 2)) / 2)`, and `mod()` is Chrome 125 —
+     newer than anything else in this file. A custom property takes almost any
+     token stream, so on an older engine that parsed and then failed where it
+     was USED: `--angle` below substitutes it, the calc() goes invalid at
+     computed-value time, `transform` falls back to its initial `none`, and
+     every seat lands on the same spot. Measured, by poisoning `--offset` on a
+     real table: eight seats, one position, 730px across to 0 — the seating
+     circle, on the television, as one pile in the middle.
+
+     Zero is the safe floor, not merely a default: a ring that starts at the
+     top is right for odd tables and a half-step out of true for even ones,
+     where the old line's failure was no ring at all. */
+  --offset: 0;
   position: relative;
   width: var(--avail);
   height: var(--avail);
