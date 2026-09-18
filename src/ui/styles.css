@@ -2782,6 +2782,11 @@ html[data-dawn] body {
      disappears under an 80px Bebas cap on a wall. */
   text-decoration-thickness: max(2px, 0.055em);
   text-underline-offset: -0.45em;
+  /* An underline is skipped wherever it would cross a descender, and a
+     rule lifted into the letterform crosses every letter there is — so
+     the strike came out as four red dots in the gaps between the caps of
+     ANA, which is not a strike, it is dirt on the page. */
+  text-decoration-skip-ink: none;
 }
 
 .paper__lead .paper__article {
@@ -3261,6 +3266,14 @@ html[data-dawn] body {
     padding-top: var(--space-3);
     border-top: 1px solid var(--on-newsprint);
     border-bottom: 0;
+  }
+
+  /* Head size is how a reader ranks stories, and the widest story on the
+     half of the page it sits in was announcing itself as the smallest —
+     set at exactly the size of the single-column story directly above it.
+     It has twice the measure to fill, so it gets the second tier. */
+  .stage--tv .paper__foot .paper__headline {
+    font-size: calc(clamp(1.8rem, 3.9vmin, 3.6rem) * var(--paper-fit, 1) * var(--air, 1));
   }
 
   /* A story two or three columns wide sets its copy in as many, so the
@@ -5141,6 +5154,11 @@ html[data-dawn] body {
 .stage--tv .paper:has(.paper__section) .paper__casting::after {
   content: '';
   grid-column: 3;
+  /* On the row, explicitly. Auto-placement had already walked past column
+     four placing the role when it reached a leader asking for column
+     three, so the leader went to a second row — under the name instead of
+     beside it, which is the dotted divider between rows again. */
+  grid-row: 1;
   align-self: baseline;
   margin-bottom: 0.14em;
   height: 1px;
@@ -5158,8 +5176,17 @@ html[data-dawn] body {
   max-width: 34rem;
 }
 
+/* A two-pixel rule between the stems of a 27px Bebas cap is red by the
+   numbers and grey to a room: the computed colour is Vendetta on both the
+   headline and the list, and only the headline reads as struck. The list
+   gets the weight the smaller type needs. */
+.stage--tv .paper:has(.paper__section) .paper__casting[data-dead] .paper__who {
+  text-decoration-thickness: 3px;
+}
+
 .stage--tv .paper:has(.paper__section) .paper__role {
   grid-column: 4;
+  grid-row: 1;
 }
 
 .stage--tv .paper:has(.paper__section) .paper__cast {

@@ -820,6 +820,49 @@ export const fitPaper = (root: ParentNode): void => {
     if (!changed) break
   }
 
+  /**
+   * And the lead's headline, which is sized off its own character count.
+   *
+   * A count cannot know whether the string clears the measure, because it
+   * does not know the measure exists — so the biggest step pushed "A word
+   * from a neighbour" straight past the point where it fits on one line
+   * and landed it on a two-line rag that filled 61% and 43%. Measured, the
+   * void beside the head doubled.
+   *
+   * This is the guard, not a fitting pass: while the head runs to more
+   * than one line and its LAST line is under half the measure, step the
+   * size down a notch and look again. Bounded at three, and a head that
+   * comes back to one line is done whatever it fills.
+   */
+  const head = paper.querySelector<HTMLElement>('.paper__lead .paper__headline')
+  if (head !== null) {
+    head.style.removeProperty('--fill')
+    const range = document.createRange()
+    for (let step = 0; step < 3; step++) {
+      range.selectNodeContents(head)
+      // One visual line can be several rects when the head carries a
+      // struck name, so they are grouped by where they sit.
+      const rows = new Map<number, { left: number; right: number }>()
+      for (const rect of range.getClientRects()) {
+        if (rect.width === 0) continue
+        const at = Math.round(rect.top)
+        const row = rows.get(at)
+        if (row === undefined) rows.set(at, { left: rect.left, right: rect.right })
+        else {
+          row.left = Math.min(row.left, rect.left)
+          row.right = Math.max(row.right, rect.right)
+        }
+      }
+      if (rows.size <= 1) break
+      const last = [...rows.entries()].sort((a, b) => a[0] - b[0])[rows.size - 1]
+      if (last === undefined) break
+      const measure = head.clientWidth
+      if (measure === 0 || (last[1].right - last[1].left) / measure >= 0.5) break
+      const now = parseFloat(getComputedStyle(head).getPropertyValue('--fill')) || 1
+      head.style.setProperty('--fill', String(Math.max(0.85, now - 0.14)))
+    }
+  }
+
   paper.setAttribute('data-measuring', '')
   const beaten = fitStep === FIT_STEPS.length - 1 && over()
   paper.removeAttribute('data-measuring')
