@@ -439,7 +439,7 @@ export const es: Strings = {
     },
     paper: {
       title: 'El periódico de la mañana',
-      masthead: APP_NAME,
+      masthead: 'La Coartada',
       edition: (nights, players) =>
         `Última edición · Noche ${nights} · ${players} jugadores`,
       editionShort: (nights) => `Última edición · Noche ${nights}`,

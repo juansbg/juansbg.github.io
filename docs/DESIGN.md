@@ -110,14 +110,16 @@ The two that bite: **text on a red button is Midnight, not white**, and
 
 ## Typography
 
-Three faces, one job each. All three are self-hosted through `@fontsource`
-(imported in `src/main.ts`, latin subsets) because the PWA rule bans CDNs.
+Three faces, one job each — and one serif, for one word. All are self-hosted
+through `@fontsource` (imported in `src/main.ts`, `src/tv.ts` and
+`src/seat.ts`, latin subsets) because the PWA rule bans CDNs.
 
 | Role | Face | Where |
 |---|---|---|
 | Display | **Bebas Neue** | Titles, buttons, seat names, menu items, the marks. Always caps, tracked `0.02–0.05em`, line-height `0.9`. Never below `1.25rem` (`--text-display-min`), with one sanctioned exception: the name inside a seat tile, a label of one word, may go down to `0.75rem`, and the tile itself never goes under `3.5rem`. Never for a sentence that is read aloud. |
 | Body | **IBM Plex Sans** 400 / 500 / 600 | Anything the narrator reads aloud: the night prompt, the report, outcome text. Never caps. |
 | Data | **IBM Plex Mono** 400 / 500 | Seat numbers, night counters, timestamps, eyebrow labels. Always `tabular-nums`. |
+| Masthead | **Abril Fatface** 400 | The paper's nameplate — *The Daily Alibi* / *La Coartada* — and nothing else (`--font-masthead`; user, 2026-09-18). A fat-face Didone is what a newspaper's name was set in for a century, and a masthead is the one place a paper breaks its own type rules. Title case, untracked, line-height `1.05`. Never a heading, a button, a label or a line read aloud; a second use needs this row changed. |
 
 Rules:
 

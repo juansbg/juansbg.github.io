@@ -2602,11 +2602,13 @@ html[data-dawn] body {
 
 .paper__name {
   margin: 0;
-  font-family: var(--font-display);
+  /* The nameplate's own face, title case, untracked: a Didone is set the
+     way it was cut, and it is the one thing on the page not in Bebas. */
+  font-family: var(--font-masthead);
   font-size: var(--text-hero);
-  letter-spacing: 0.06em;
-  line-height: 0.9;
-  text-transform: uppercase;
+  letter-spacing: 0;
+  line-height: 1.05;
+  text-transform: none;
 }
 
 /* Price, name, number: the three-part front a newspaper has had since there
@@ -3243,8 +3245,10 @@ html[data-dawn] body {
        until it clears its ears, measured, because no arithmetic on a
        character count knows what PRECIO 5 CTS. is wide in this face at
        this size on this frame. */
-    font-size: calc(clamp(3rem, 12vmin, 10rem) * var(--name-fit, 1));
-    letter-spacing: 0.16em;
+    /* A notch under Bebas's size: the serif is nearly twice as wide per
+       letter, and the guard would spend most of its ladder otherwise. */
+    font-size: calc(clamp(2.6rem, 10vmin, 8rem) * var(--name-fit, 1));
+    letter-spacing: 0;
     /* No indent to correct the tracking's trailing space. It was 0.16em on
        the theory that a tracked line sits half a space left of centre, and
        the theory was wrong here: measured, 0.16em put the ink 10px RIGHT of

@@ -98,6 +98,10 @@
   --font-display: 'Bebas Neue', 'Oswald', Impact, 'Arial Narrow', sans-serif;
   --font-body: 'IBM Plex Sans', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: 'IBM Plex Mono', ui-monospace, Menlo, Consolas, monospace;
+  /* The one serif, for one word: the paper's nameplate. A fat-face Didone
+     is what a newspaper's name was set in for a century, and a masthead is
+     the one place a paper breaks its own type rules. Nowhere else. */
+  --font-masthead: 'Abril Fatface', Georgia, 'Times New Roman', serif;
   --track-display: 0.03em;
   --track-label: 0.12em;
 

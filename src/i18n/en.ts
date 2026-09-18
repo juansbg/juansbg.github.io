@@ -425,7 +425,7 @@ export const en: Strings = {
     },
     paper: {
       title: 'The morning paper',
-      masthead: APP_NAME,
+      masthead: 'The Daily Alibi',
       edition: (nights, players) =>
         `Final edition · Night ${nights} · ${players} players`,
       editionShort: (nights) => `Final edition · Night ${nights}`,

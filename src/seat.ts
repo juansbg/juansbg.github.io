@@ -6,6 +6,7 @@
 // handlers. The narrator validates every action and answers with the seat's
 // projection, so nothing here assumes a tap landed.
 import '@fontsource/bebas-neue/latin-400.css'
+import '@fontsource/abril-fatface/latin-400.css'
 import '@fontsource/ibm-plex-sans/latin-400.css'
 import '@fontsource/ibm-plex-sans/latin-500.css'
 import '@fontsource/ibm-plex-sans/latin-600.css'
