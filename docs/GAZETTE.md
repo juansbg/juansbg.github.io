@@ -145,9 +145,11 @@ type Clue =
   at a glance. Decision 1; it needs one line in `docs/DESIGN.md` and two
   tokens (`--newsprint`, `--on-newsprint`, both mixes of Ash and Midnight).
 - **An article is a headline and a dek**, Bebas and Plex, then *scribbles*:
-  three or four short hairlines of varying length drawn in CSS, the way a
-  paper is mocked up, never lorem ipsum. Lead article across the top, then
-  two columns. The page scrolls inside the stage; nothing else does.
+  short rules of varying length drawn in CSS, the way a paper is mocked up,
+  never lorem ipsum. Lead article across the top, then two columns. The
+  page scrolls inside the stage; nothing else does. *(Still true of the
+  phone. On a wall the scribbles are set as words and the sheet is ruled
+  into columns — section 5b.)*
 - **Article sources, in page order:**
   1. **Deaths**, named: headline from the death's own line (`deathLines()`
      already gives each death a unique sentence), the dek names the cause the
@@ -174,6 +176,76 @@ type Clue =
   1930s desk. Headlines short; deks one sentence; no exclamation marks.
   Every string in the tables, both languages, each its own small story like
   the death banks.
+
+## 5b. The page on a wall (2026-09-18)
+
+Section 5 designed a page for a hand and it was a good one. A user played
+a live game and the same page, blown up onto a television, was a phone
+page enlarged — one 1440px column of 83-character lines where a newspaper
+column is 35 to 45, 186 to 217px of bare newsprint under the last story on
+a quiet morning, and the three scribbles under each headline reading as
+loading bars at three metres. The final edition was worse: a whole story
+and its dek below the bottom edge, on a screen that cannot scroll, with
+`scrollHeight === clientHeight` reporting nothing wrong. The user asked
+for a redesign, not an adaptation: "much more realistic, fun and
+eye-catching".
+
+The page above still describes the phone's, which is unchanged in
+substance. What a room sees is set differently, and these are the rules a
+change has to keep:
+
+- **The sheet is re-ruled from how much news there is.** `planFor(rest)`
+  gives the column count and the lead's span; a quiet morning gets three
+  wide columns and a loud one five. The engine's output swings by a factor
+  of four and a page set for one end of that has to look wrong at the
+  other. A light day is also set louder (`--air`), the way a front page
+  enlarges a lead when there is little to run.
+- **The follow-ups are dealt DOWN the columns, not across** (`columnsOf`),
+  which is the order a page is read and the order this game's record runs:
+  night 2 above night 3, never beside it. The columns differ by at most one
+  story and the news is heaviest on the left.
+- **The type block under each story stretches.** This is the whole answer
+  to "a quiet day has to look as deliberate as a bloody one": a column runs
+  floor to ceiling at two stories and at ten, by construction, with no bare
+  newsprint left to explain. A block that would get fewer than three lines
+  is taken off instead — one line is a rule stuck under the dek, not a
+  block — and taking it off feeds the others.
+- **The greek is set like type, not like rules.** Words with gaps, a ragged
+  right, paragraphs, a reading leading, off a fixed table walked by a
+  coprime step so the pattern does not come back into phase and open
+  rivers. An unbroken rule five hundred pixels long, forty times in a row,
+  is a thing no press has ever produced. Still never lorem: it says nothing
+  in any language and cannot be read as a clue.
+- **The lead's dek is its first paragraph.** It flows into column one and
+  the type block continues under it in the same stream. Set full-measure
+  above a separate wall of grey, it read as a card with a headline on it.
+- **The lead carries a plate**, which is the mark already beside that very
+  outcome, blown up in a solid Midnight frame with the name under it and
+  the sigil reversed out in newsprint. Every front page has one dark
+  rectangle and the eye uses it to hold the sheet down. It leaks nothing
+  the headline does not already say, and `paper.test.ts` still holds the
+  page's sigils to an exact list.
+- **One thing crosses a gutter.** From four follow-ups the last story runs
+  across the foot of the columns with the lead full-depth beside it. A page
+  built only of full-depth columns is a grid, and the room sees it every
+  morning.
+- **The page cannot lose a story in silence.** `fitPaper` steps the type
+  down until no run of real type is clipped and marks the page
+  `data-fit-over` if it runs out of steps. It asks about the TYPE, not
+  about the boxes: the lead's body hides its own overflow so the greek can
+  stop at the foot of a column, which made a clipped dek invisible to every
+  ancestor's `scrollHeight`. It also holds the `line-in` entrance while it
+  measures, because a `translateY(4px)` counts towards a box's scrollable
+  overflow and the first paint otherwise reads four pixels too tall — at
+  every step of the ladder, cached against a key that never changes again.
+
+The evidence is a play-through probe rather than an argument:
+`scratchpad/paper/run.mjs` plays real games through the relay and reports,
+for every edition on the wall, how many runs of real type are cut out of
+how many asked, what `--paper-fit` settled at and whether it was beaten.
+`scratchpad/paper/beaten.mjs` is its control: squeezed to 1000x340 the
+ladder bottoms out, the page marks itself, the console says so once, and
+the frame coming back restores it.
 
 ## 6. Engine, projection, UI — what changes where
 
