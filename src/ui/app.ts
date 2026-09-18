@@ -583,6 +583,46 @@ function lobbyRoster(): { name: string; joined: boolean }[] {
     : game.players.map((p) => ({ name: p.name, joined: seated.has(p.id) }))
 }
 
+/**
+ * Is the day's edition on the wall?
+ *
+ * The room's copy of the paper, which is not the narrator's (`paperOpen`,
+ * their own full screen with its own Done). It used to be the same flag, so
+ * the page reached the big screen only while the narrator sat on it — and the
+ * narrator has to leave it to run the day at all, since the clock, Votes and
+ * the execution all live on the day screen. The one person at the table who
+ * does not need to read the paper was the only one who could keep it up, and
+ * the living are deliberately not given a copy on their own phones
+ * (`seatProjection` sends the edition to the dead alone), so with the
+ * narrator off the page the town could not read its morning anywhere at all.
+ * A live game found exactly that: no newspaper, ever (user, 2026-09-18).
+ *
+ * Derived, and deliberately not a flag. A flag was the obvious fix and it was
+ * wrong for a reason worth writing down: the service worker updates itself
+ * silently (`registerType: 'autoUpdate'`) and local flags reset to the
+ * narrator's side by design, so a reload mid-argument took the page off the
+ * wall with no way back short of replaying the whole dawn. Measured: the room
+ * lost it every time. Everything the flag was tracking is already in the
+ * game, so there is nothing left to lose.
+ *
+ * It reads as the four things that take the room's attention off the news:
+ * the day being over, a reading (`tableMarkup` returns the paper before it
+ * draws the reading's card, so a page left up would hide the verdict), the
+ * vote being recorded or counted, and a verdict already in — after which the
+ * morning is yesterday's news and the room wants the table back.
+ */
+function editionOnWall(): boolean {
+  const game = state.session.current
+  return (
+    state.screen === 'day' &&
+    game.awaitingHunterShot === null &&
+    dawn === null &&
+    !voting &&
+    shown === null &&
+    !game.log.some((o) => o.type === 'death' && o.cause === 'lynch' && o.night === game.night)
+  )
+}
+
 function projectionNow(): TvProjection {
   return tvProjection(state.session.current, state.locale, {
     over: state.screen === 'over',
@@ -596,16 +636,8 @@ function projectionNow(): TvProjection {
     roster: lobbyRoster(),
     // The same test the seat projection uses: the narrator has left the names.
     dealt: state.screen !== 'setup',
-    // The edition stays on the wall once the reading has ended, whether or
-    // not the narrator is still looking at it — that is the whole point of
-    // `paperUp`. It comes down for the things the room needs the table for:
-    // a reading (which `tableMarkup` would otherwise never reach, since the
-    // paper is an earlier return than the reading's card), the vote being
-    // recorded, and the count coming up.
-    paper:
-      paperUp && state.screen === 'day' && dawn === null && !voting && shown === null
-        ? state.session.current.day
-        : null,
+    // The room's copy, which outlives the narrator's: see `editionOnWall`.
+    paper: editionOnWall() ? state.session.current.day : null,
     finalPaper: state.screen === 'over',
   })
 }
@@ -655,20 +687,6 @@ let dawnKind: Reading = 'dawn'
  * the town while it is read.
  */
 let paperOpen = false
-/**
- * The edition is on the wall: the room's copy, which outlives the narrator's.
- *
- * These were one flag, and the room's copy was the narrator's own screen —
- * so the page reached the television only while the narrator sat on it, and
- * the narrator has to leave it to run the day at all (the clock, Votes and
- * the execution all live on the day screen). The one person at the table who
- * does not need to read the paper was the only one who could keep it up, and
- * a live game found exactly that: nobody ever saw a newspaper (user,
- * 2026-09-18). A morning the town argues over is not a page the narrator
- * holds; it is a page on the wall, and it stays there until the town is
- * finished with it.
- */
-let paperUp = false
 /** The ledger is up: the record of finished games, opened from ⋯. */
 let statsOpen = false
 /**
@@ -782,7 +800,6 @@ window.addEventListener('keydown', (event) => {
 const leaveDay = (): void => {
   voting = false
   voter = null
-  paperUp = false
   stopCount()
   setTimer(resetTimer(timer))
 }
@@ -954,7 +971,6 @@ function render(entering = false): void {
   if (state.screen !== 'day' || game.awaitingHunterShot !== null) {
     dawn = null
     paperOpen = false
-    paperUp = false
   }
   const slides = dawn === null ? [] : currentSlides()
   const slide = dawn === null ? null : slides[Math.min(dawn, slides.length - 1)] ?? null
@@ -2574,7 +2590,6 @@ function bind(): void {
     }
     if (morning) {
       paperOpen = true
-      paperUp = true
       setState({})
     } else {
       setState({}, false)
@@ -2585,7 +2600,6 @@ function bind(): void {
   // The day's edition, full screen; a scene of its own, so it enters.
   on(root, '[data-paper-open]', 'click', () => {
     paperOpen = true
-    paperUp = true
     buzz()
     setState({})
   })
