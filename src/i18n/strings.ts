@@ -409,6 +409,12 @@ export interface Strings {
       editionShort: (nights: number) => string
       whoWasWho: string
       /**
+       * The heading over the day's roll, down the side of a morning
+       * edition on a wall. The town used to read who was dead off the
+       * seating ring; the ring is not on the screen while the page is.
+       */
+      roll: string
+      /**
        * The front page of a morning nobody died on.
        *
        * Without it the lead article on a quiet day was whichever colour piece

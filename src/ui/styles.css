@@ -2801,6 +2801,23 @@ html[data-dawn] body {
   display: none;
 }
 
+/* Neither is the day's roll, for the same reason and one more: a phone
+   holding this page has the seating ring one tap behind it, and a screen
+   on a wall does not. */
+.paper__roll {
+  display: none;
+}
+
+/* The clock reads as a dateline until there is room to set it properly. */
+.paper__clock {
+  display: inline-flex;
+  gap: var(--space-2);
+}
+
+.paper__clock-digits {
+  font-variant-numeric: tabular-nums;
+}
+
 .paper__lead .paper__mark {
   width: 2.5rem;
   height: 2.5rem;
@@ -3117,6 +3134,28 @@ html[data-dawn] body {
   font-size: clamp(0.9rem, 1.7vmin, 1.4rem);
 }
 
+/* The one live thing on the sheet, and it has to look right holding 3:00
+   un-started as well as mid-count: the narrator cannot start the clock
+   until they have left the page, so the first frame the room sees is
+   always idle. Its word is the day screen's word, so the two never
+   disagree about whether the town is paused or out of time. */
+.stage--tv .paper__clock {
+  align-items: baseline;
+  gap: var(--space-3);
+}
+
+.stage--tv .paper__clock-digits {
+  font-size: calc(clamp(1.1rem, 2.4vmin, 2rem) * var(--paper-fit, 1));
+  color: var(--on-newsprint);
+}
+
+/* Out of time is a rule, not red type: on newsprint Vendetta rules and
+   strikes and never sets a word, which a clock at 0:00 would have been. */
+.stage--tv .paper__clock[data-phase='done'] {
+  padding-bottom: 2px;
+  border-bottom: 3px solid var(--lethal);
+}
+
 /* The paper's reading copy was the smallest thing in the room: a 24px dek
    under a 60px headline. Everything scales with the frame, and with
    `--paper-fit`, which is 1 until the page does not fit. */
@@ -3280,6 +3319,77 @@ html[data-dawn] body {
      It has twice the measure to fill, so it gets the second tier. */
   .stage--tv .paper__foot .paper__headline {
     font-size: calc(clamp(1.8rem, 3.9vmin, 3.6rem) * var(--paper-fit, 1) * var(--air, 1));
+  }
+
+  /* The town, down the side.
+     The page owns the wall from the end of the reading until the narrator
+     arms Votes — the whole discussion — and the seating ring is not on the
+     screen for any of it, so the room loses who is dead and who has asked
+     about their card for the length of the argument. A front page has a
+     column for exactly this: a register, in seating order, set to be read
+     down rather than across. It carries nothing the ring did not carry a
+     minute earlier, and it is the only thing on the sheet that would
+     rather be a list than a story. */
+  .stage--tv .paper__page[data-roll] {
+    grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr)) clamp(9rem, 13vw, 15rem);
+  }
+
+  .stage--tv .paper__page[data-roll] > .paper__foot {
+    grid-column: var(--foot-from, 3) / -2;
+  }
+
+  .stage--tv .paper__roll {
+    display: flex;
+    grid-column: -2 / -1;
+    grid-row: 1 / -1;
+    flex-direction: column;
+    min-height: 0;
+    padding-left: var(--space-5);
+    border-left: 1px solid var(--on-newsprint);
+    overflow: hidden;
+  }
+
+  .stage--tv .paper__standing {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    justify-content: space-between;
+    min-height: 0;
+    margin: 0;
+    padding: var(--space-2) 0 0;
+    list-style: none;
+  }
+
+  .stage--tv .paper__seat {
+    display: flex;
+    align-items: baseline;
+    gap: var(--space-2);
+    padding-bottom: var(--space-1);
+    border-bottom: 1px solid var(--newsprint-rule);
+  }
+
+  .stage--tv .paper__seat:last-child {
+    border-bottom: 0;
+  }
+
+  .stage--tv .paper__seat-name {
+    font-family: var(--font-display);
+    font-size: calc(clamp(1.1rem, 2.3vmin, 2rem) * var(--paper-fit, 1));
+    letter-spacing: var(--track-display);
+    text-transform: uppercase;
+  }
+
+  /* A seat the town has already buried is still on the roll, struck — the
+     register is the evening's record as much as it is today's list. */
+  .stage--tv .paper__seat[data-dead] {
+    color: var(--on-newsprint-muted);
+  }
+
+  .stage--tv .paper__asking {
+    margin-left: auto;
+    color: var(--on-newsprint-muted);
+    font-family: var(--font-mono);
+    font-size: calc(clamp(0.9rem, 1.8vmin, 1.5rem) * var(--paper-fit, 1));
   }
 
   /* A story two or three columns wide sets its copy in as many, so the

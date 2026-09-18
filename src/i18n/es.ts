@@ -443,6 +443,7 @@ export const es: Strings = {
         `Última edición · Noche ${nights} · ${players} jugadores`,
       editionShort: (nights) => `Última edición · Noche ${nights}`,
       whoWasWho: 'Quién era quién',
+      roll: 'El pueblo hoy',
       allWell: [
         'Todos se despertaron',
         'Una noche sin nada dentro',

@@ -429,6 +429,7 @@ export const en: Strings = {
         `Final edition · Night ${nights} · ${players} players`,
       editionShort: (nights) => `Final edition · Night ${nights}`,
       whoWasWho: 'Who was who',
+      roll: 'The town today',
       allWell: [
         'Everybody woke up',
         'A night with nothing in it',

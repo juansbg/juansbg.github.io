@@ -90,7 +90,14 @@ export const tableMarkup = (p: TvProjection, controls = true): string => {
     const e = editionOf({ day: p.paper, players: p.players, log: p.log, revealed: p.revealed }, p.locale)
     // No Done: the room's copy is turned by the narrator, not by the room. The
     // narrator's own device still needs the way back off it.
-    return dailyMarkup(e, p.locale, false) + (controls ? exitMarkup(t) : '')
+    //
+    // The clock goes with it. The page owns the wall from the end of the
+    // reading until the narrator arms Votes — the whole discussion — and
+    // `.tableview__clock` lives on the branch below, so for that whole
+    // stretch the room had nothing counting down. `timer` is non-null on
+    // every projection that carries a paper, by construction: both are
+    // published on the day screen.
+    return dailyMarkup(e, p.locale, false, p.timer) + (controls ? exitMarkup(t) : '')
   }
 
   // And the last one the same way. It is the whole evening as a front page and

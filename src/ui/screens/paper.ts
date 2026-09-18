@@ -5,6 +5,7 @@ import { outcomeAccent, renderOutcome, renderWinner, strings, type Locale } from
 import { accentOf, outcomeAccentOf, type Accent } from '../accent'
 import { esc } from '../dom'
 import { sigilMarkup } from '../sigils'
+import { formatClock, type TimerView } from './timer'
 import { deathLines } from './dawn'
 
 /**
@@ -59,10 +60,28 @@ export interface Article {
   who?: string | null
 }
 
+/** One name in the day's roll, in seating order, as the ring has it. */
+export interface Standing {
+  name: string
+  alive: boolean
+  /** Raised a question about their card; the day table already shows it. */
+  asking: boolean
+}
+
 export interface Edition {
   masthead: string
   dateline: string
   day: number
+  /**
+   * The town, down the side of the page.
+   *
+   * The room used to read who was dead off the seating ring, and the ring
+   * is not on the wall while the edition is — which, now the page stays up
+   * for the whole discussion, is the length of the argument. A front page
+   * has a column for exactly this: a register, in seating order, the dead
+   * struck. It carries no fact the ring did not carry a minute earlier.
+   */
+  roll: Standing[] | null
   /** The first article, across the top of the page. */
   lead: Article | null
   /** The rest, in two columns. */
@@ -83,7 +102,14 @@ export interface Revealed {
  */
 export interface EditionSource {
   day: number
-  players: readonly Pick<Player, 'id' | 'name'>[]
+  /**
+   * `alive` and `hasQuestion` are what the day's roll is set from. They
+   * are optional because a test may build a source without them and the
+   * roll is then simply not printed — never guessed, because a roll that
+   * says everybody is alive is a lie on the one page the town reads.
+   * Both are already public: the ring shows them all day.
+   */
+  players: readonly (Pick<Player, 'id' | 'name'> & Partial<Pick<Player, 'alive' | 'hasQuestion'>>)[]
   /** Public outcomes; anything else in here is ignored. */
   log: readonly Outcome[]
   revealed: readonly Revealed[]
@@ -275,7 +301,16 @@ export const editionOf = (src: EditionSource, locale: Locale): Edition => {
   }
 
   const [lead = null, ...rest] = articles
-  return { masthead: t.appName, dateline: p.daily(src.day), day: src.day, lead, rest }
+  const roll = src.players.every((seat) => typeof seat.alive === 'boolean')
+    ? src.players.map(
+        (seat): Standing => ({
+          name: seat.name,
+          alive: seat.alive === true,
+          asking: seat.hasQuestion === true,
+        }),
+      )
+    : null
+  return { masthead: t.appName, dateline: p.daily(src.day), day: src.day, lead, rest, roll }
 }
 
 /** The edition of a day, from the narrator's own state. */
@@ -480,6 +515,8 @@ const mastheadMarkup = (
   dateline: string,
   short: string | null = null,
   flanks: Flanks | null = null,
+  /** The right flank is already markup (the clock), not a string to escape. */
+  rightIsMarkup = false,
 ): string => `
   <header class="paper__masthead">
     <p class="paper__nameplate">
@@ -487,7 +524,7 @@ const mastheadMarkup = (
       <span class="paper__rule"></span>
       <span class="paper__name">${esc(name)}</span>
       <span class="paper__rule"></span>
-      <span class="paper__flank paper__flank--right">${flanks ? esc(flanks.right) : ''}</span>
+      <span class="paper__flank paper__flank--right">${flanks ? (rightIsMarkup ? flanks.right : esc(flanks.right)) : ''}</span>
     </p>
     <p class="paper__edition">${
       short === null
@@ -589,7 +626,12 @@ export const columnsOf = <T>(items: readonly T[], k: number): T[][] => {
  */
 const FOOT_FROM = 4
 
-const pageMarkup = (lead: Article | null, rest: readonly Article[], plan = planFor(rest.length)): string => {
+const pageMarkup = (
+  lead: Article | null,
+  rest: readonly Article[],
+  plan = planFor(rest.length),
+  roll?: string,
+): string => {
   // A lead as wide as the page has no room beside it, so the columns fall
   // to the row underneath: that is the final edition, which runs in half
   // the sheet with "who was who" alongside.
@@ -606,7 +648,7 @@ const pageMarkup = (lead: Article | null, rest: readonly Article[], plan = planF
   // side by side on a wall read as next to each other anyway.
   let said: string | null = null
   return `
-    <div class="paper__page"${stack ? ' data-stack' : ''}${foot ? ' data-foot' : ''} style="--cols: ${plan.cols}; --lead: ${plan.lead}; --foot-from: ${plan.lead + 1}; --air: ${air(rest.length)}">
+    <div class="paper__page"${stack ? ' data-stack' : ''}${foot ? ' data-foot' : ''}${roll ? ' data-roll' : ''} style="--cols: ${plan.cols}; --lead: ${plan.lead}; --foot-from: ${plan.lead + 1}; --air: ${air(rest.length)}">
       ${lead ? `<div class="paper__lead">${articleMarkup(lead, 0, 1)}</div>` : ''}
       ${
         rest.length > 0
@@ -634,16 +676,71 @@ const pageMarkup = (lead: Article | null, rest: readonly Article[], plan = planF
               3,
             )}</div>`
       }
+      ${roll ?? ''}
     </div>`
 }
 
-/** A morning edition as the page. */
-export const editionMarkup = (e: Edition, locale: Locale): string => {
+/**
+ * The town, down the side of the page.
+ *
+ * Seating order, so it reads against the ring the room was looking at a
+ * minute ago; the dead struck the way they are struck everywhere else on
+ * this paper; a mono question mark on anyone who has asked about their
+ * card, which the day table already flags. Printed on a wall only — a
+ * phone has the ring behind the page and no width to spare.
+ */
+const rollMarkup = (roll: readonly Standing[], locale: Locale): string => {
   const t = strings(locale)
   return `
+    <aside class="paper__roll">
+      <h3 class="paper__label">${esc(t.ui.paper.roll)}</h3>
+      <ol class="paper__standing">
+        ${roll
+          .map(
+            (seat) => `
+          <li class="paper__seat"${seat.alive ? '' : ' data-dead'}>
+            <span class="paper__seat-name">${
+              seat.alive ? esc(seat.name) : `<s class="paper__struck">${esc(seat.name)}</s>`
+            }</span>
+            ${seat.asking ? `<span class="paper__asking" aria-hidden="true">?</span>` : ''}
+          </li>`,
+          )
+          .join('')}
+      </ol>
+    </aside>`
+}
+
+/**
+ * A morning edition as the page.
+ *
+ * `clock` is the discussion timer, and it is the only live thing on the
+ * sheet. The room used to watch it count down under the seating ring, and
+ * the ring is not on the wall while the page is — so the page carries it,
+ * in the one slot on a broadsheet front where a live thing has ever sat:
+ * the right-hand end of the nameplate's own line, where the edition
+ * number goes when there is nothing better there. It is a dateline's
+ * cousin and it reads as one.
+ */
+export const editionMarkup = (e: Edition, locale: Locale, clock: TimerView | null = null): string => {
+  const t = strings(locale)
+  const ct = t.ui.timer
+  // The same word the day screen is showing, so the two never disagree.
+  const said =
+    clock === null
+      ? null
+      : clock.phase === 'done'
+        ? ct.timeUp
+        : clock.phase === 'paused'
+          ? ct.paused
+          : ct.label
+  const right =
+    clock === null || said === null
+      ? esc(t.ui.paper.number(e.day))
+      : `<span class="paper__clock" data-phase="${clock.phase}"><span class="paper__clock-said">${esc(said)}</span><span class="paper__clock-digits" data-timer-digits>${esc(formatClock(clock.seconds))}</span></span>`
+  return `
     <article class="paper paper--daily" data-paper data-edition="${e.day}" aria-label="${esc(t.ui.paper.title)}">
-      ${mastheadMarkup(e.masthead, e.dateline, null, { left: t.ui.paper.price, right: t.ui.paper.number(e.day) })}
-      ${pageMarkup(e.lead, e.rest)}
+      ${mastheadMarkup(e.masthead, e.dateline, null, { left: t.ui.paper.price, right }, clock !== null)}
+      ${pageMarkup(e.lead, e.rest, undefined, e.roll === null ? undefined : rollMarkup(e.roll, locale))}
     </article>
   `
 }
@@ -936,11 +1033,16 @@ export const fitPaper = (root: ParentNode): void => {
  * while it is up (`app.ts`): the phone may be facing the town. Without
  * `controls` it is what a TV shows while the phone shows the paper.
  */
-export const dailyMarkup = (e: Edition, locale: Locale, controls = true): string => {
+export const dailyMarkup = (
+  e: Edition,
+  locale: Locale,
+  controls = true,
+  clock: TimerView | null = null,
+): string => {
   const t = strings(locale)
   return `
     <section class="screen screen--paper" data-daily>
-      ${editionMarkup(e, locale)}
+      ${editionMarkup(e, locale, clock)}
       ${controls ? `<div class="actions"><button class="btn btn--primary" type="button" data-paper-close>${esc(t.ui.common.done)}</button></div>` : ''}
     </section>
   `

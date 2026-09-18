@@ -274,13 +274,36 @@ describe('the daily edition', () => {
     const fromSource = editionOf(
       {
         day: 2,
-        players: state.players.map((p) => ({ id: p.id, name: p.name })),
+        // Exactly the four fields `TvSeat` carries that the page reads:
+        // the day's roll is set from `alive` and `hasQuestion`, which the
+        // ring has been showing the room all day.
+        players: state.players.map((p) => ({
+          id: p.id,
+          name: p.name,
+          alive: p.alive,
+          hasQuestion: p.hasQuestion,
+        })),
         log: state.log.filter((o) => o.public),
         revealed: revealedBy(state),
       },
       'en',
     )
     expect(fromSource).toEqual(fromState)
+    // A source that cannot say who is alive prints no roll at all rather
+    // than a roll that says everybody is, which on the one page the town
+    // reads would be a lie.
+    expect(fromSource.roll).not.toBeNull()
+    expect(
+      editionOf(
+        {
+          day: 2,
+          players: state.players.map((p) => ({ id: p.id, name: p.name })),
+          log: state.log.filter((o) => o.public),
+          revealed: revealedBy(state),
+        },
+        'en',
+      ).roll,
+    ).toBeNull()
     const html = dailyMarkup(fromSource, 'en')
     expect(html).toContain('data-paper-close')
     expect(dailyMarkup(fromSource, 'en', false)).not.toContain('data-paper-close')
