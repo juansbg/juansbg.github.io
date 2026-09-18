@@ -212,6 +212,13 @@ describe('the paper on the table', () => {
       // band of three when the page was set as a broadsheet, and a regex
       // pinned to `<p>` stopped stripping anything without saying so.
       const body = open.replace(/<(p|span) class="paper__name">[^<]*<\/\1>/, '')
+      // And the strip has to have stripped. A pattern that stops matching
+      // leaves this test quietly wider than it was written to be — which
+      // is exactly what happened, and the only reason it was noticed is
+      // that the app's name is also the crew's and the assertion below
+      // caught it. The next nameplate change fails here instead.
+      expect(body.length, locale).toBeLessThan(open.length)
+      expect(body, locale).not.toContain(t.appName)
       for (const id of ['KILLER', 'INSPECT', 'GUARD'] as const) expect(body).not.toContain(t.roles[id].name)
     }
   })
