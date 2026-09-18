@@ -2539,6 +2539,19 @@ html[data-dawn] body {
   border-width: 1px 1px 0 0;
 }
 
+/* The nameplate reaches both column edges, which is how the eye learns
+   the sheet's width before it reads anything. The name alone, however big,
+   floated in the middle of a bare band; the price and the number back at
+   the margins with a hairline running from each of them to the name close
+   it, and the dateline rule below is left to carry the edition line. */
+.paper__nameplate {
+  display: grid;
+  grid-template-columns: auto 1fr auto 1fr auto;
+  align-items: center;
+  gap: var(--space-3);
+  margin: 0;
+}
+
 .paper__name {
   margin: 0;
   font-family: var(--font-display);
@@ -2554,12 +2567,22 @@ html[data-dawn] body {
    the only decoration here — they name no trade, no person and no role. A
    phone's nameplate has no room for them, so there they simply go. */
 .paper__flank {
+  color: var(--on-newsprint-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
   font-variant-numeric: tabular-nums;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
   white-space: nowrap;
 }
 
 @media (max-width: 47.99rem) {
-  .paper__flank {
+  .paper__nameplate {
+    display: block;
+  }
+
+  .paper__flank,
+  .paper__nameplate .paper__rule {
     display: none;
   }
 }
@@ -2581,7 +2604,7 @@ html[data-dawn] body {
    them. */
 .paper__edition {
   display: grid;
-  grid-template-columns: auto 1fr auto 1fr auto;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
   gap: var(--space-3);
   margin: var(--space-2) 0 0;
@@ -2592,6 +2615,13 @@ html[data-dawn] body {
 }
 
 .paper__rule {
+  height: 1px;
+  background: var(--newsprint-rule);
+}
+
+.paper__edition::before,
+.paper__edition::after {
+  content: '';
   height: 1px;
   background: var(--newsprint-rule);
 }
@@ -2608,7 +2638,9 @@ html[data-dawn] body {
     text-align: center;
   }
 
-  .paper__rule {
+  .paper__rule,
+  .paper__edition::before,
+  .paper__edition::after {
     display: none;
   }
 }
@@ -2796,11 +2828,10 @@ html[data-dawn] body {
   flex: none;
   width: 0.6rem;
   height: 0.6rem;
-  border: 1px solid var(--on-newsprint);
+  background: color-mix(in oklab, var(--on-newsprint) 35%, transparent);
 }
 
 .paper__note--side[data-side='crew']::before {
-  border-color: var(--lethal);
   background: var(--lethal);
 }
 
@@ -2874,6 +2905,15 @@ html[data-dawn] body {
 /* And a word. The gap between them is the whole point — a line without
    them is a rule, and nothing a press has ever produced is an unbroken
    rule five hundred pixels long forty times in a row. */
+/* A type block of one or two lines is not a block: at three metres it
+   reads as a rule attached to the dek above it, which is the loading-bar
+   problem in a new costume. `fitPaper` measures what each block actually
+   got and takes this off the ones that got too little — a story that ends
+   on its dek is honest, a one-line block is not. */
+.paper__scribbles[data-thin] {
+  display: none;
+}
+
 .paper__scribble {
   display: inline-block;
   width: calc(var(--w, 0.1) * 100%);
@@ -2925,13 +2965,17 @@ html[data-dawn] body {
   background: var(--lethal);
 }
 
+/* The town's value used to be a hollow outlined square, which is the shape
+   of a missing glyph: at three metres it reads as a rendering fault beside
+   the solid red ones, and the left edge of the cast list staggered. Same
+   legend, same two places, same colours — a mass against a mass. */
 .paper__casting:not([data-crew])::before {
   content: '';
   flex: none;
   align-self: center;
   width: 0.6rem;
   height: 0.6rem;
-  border: 1px solid var(--on-newsprint);
+  background: color-mix(in oklab, var(--on-newsprint) 35%, transparent);
 }
 
 .paper__who {
@@ -3102,9 +3146,16 @@ html[data-dawn] body {
 /* Greek at reading weight: at a phone's 2px and 0.62rem it disappears on a
    wall. These are the numbers that make a column read as a block of type
    from the far side of a room. */
+/* The leading is whole pixels. A fractional one put the columns on four
+   different depths inside one line of it and made them wander by a few
+   pixels against each other down the page — which the eye reads across a
+   gutter even when it cannot read the words, and which shimmers when it is
+   nearly but not quite right. The plain calc stays under it for a browser
+   without `round()`. */
 .stage--tv .paper__scribbles {
   --greek-ink: 4px;
   --greek-leading: calc(0.86rem * var(--paper-fit, 1));
+  --greek-leading: round(calc(0.86rem * var(--paper-fit, 1)), 1px);
 }
 
 @media (min-width: 60rem) {
@@ -3113,7 +3164,7 @@ html[data-dawn] body {
      Midnight ground — which on a screen that cannot scroll has no
      explanation at all. */
   .stage--tv .paper {
-    padding: var(--space-4) var(--space-5) var(--space-6);
+    padding: var(--space-4) var(--space-5) var(--space-7);
   }
 
   /* The sheet is ruled into `--cols` columns, of which the lead takes
@@ -3136,6 +3187,66 @@ html[data-dawn] body {
     padding-top: var(--space-3);
   }
 
+  /* One horizontal cut. With a foot the lead runs the full depth on the
+     left, the columns take the top of the rest and the last story runs
+     across the bottom of them — so something on the page finally crosses
+     a gutter, which is the difference between an edited page and a grid
+     the room sees five mornings running. */
+  .stage--tv .paper__page[data-foot] {
+    grid-template-rows: minmax(0, 1fr) minmax(0, 0.44fr);
+  }
+
+  .stage--tv .paper__page[data-foot] > .paper__lead {
+    grid-row: 1 / -1;
+  }
+
+  .stage--tv .paper__page[data-foot] > .paper__columns > .paper__col {
+    grid-row: 1;
+  }
+
+  .stage--tv .paper__foot {
+    grid-column: var(--foot-from, 3) / -1;
+    grid-row: 2;
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding-left: var(--space-5);
+    border-left: 1px solid var(--newsprint-rule);
+    overflow: hidden;
+  }
+
+  .stage--tv .paper__foot > .paper__article {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--on-newsprint);
+    border-bottom: 0;
+  }
+
+  /* A story two or three columns wide sets its copy in as many, so the
+     measure stays a measure. */
+  .stage--tv .paper__foot .paper__body {
+    flex: 1 1 auto;
+    min-height: 0;
+    columns: 2;
+    column-gap: var(--space-5);
+    column-rule: 1px solid var(--newsprint-rule);
+    column-fill: auto;
+    overflow: hidden;
+  }
+
+  .stage--tv .paper__foot .paper__scribbles {
+    max-height: none;
+    overflow: visible;
+  }
+
+  .stage--tv .paper__foot .paper__dek,
+  .stage--tv .paper__foot .paper__note {
+    break-inside: avoid;
+  }
+
   .stage--tv .paper__page > .paper__lead {
     grid-column: span var(--lead, 2);
     display: flex;
@@ -3154,20 +3265,55 @@ html[data-dawn] body {
      of news under it measured zero pixels high and overflowed by 143 and
      166. The lead takes a little under half and the evening's record the
      rest, which is the way round the room needs it. */
+  /* Both rows are shares of the frame. An `auto` lead is as tall as its
+     own type block, which is as tall as it likes, and it took the whole
+     sheet; taking the type block away instead left the dek stranded in a
+     column with five hundred pixels of nothing beside it, which is the
+     same fault in the other direction. The lead is a lead here like it is
+     on every other page: a share of the sheet, filled. */
+  /* How the sheet is split between the lead and the record under it. An
+     evening that ran to nine deaths gave each of them a hundred and
+     thirty pixels and drove the fit pass to the bottom of its ladder —
+     15px deks on a wall, which is the unreadable failure wearing the
+     other hat. A long evening gives its lead less. */
   .stage--tv .paper__page[data-stack] {
     grid-template-rows: auto minmax(0, 1fr);
     grid-auto-rows: minmax(0, 1fr);
   }
 
-  /* No type block behind the last page's lead. It is the only lead with
-     nothing under it but more of the same news, and giving it a share of
-     the sheet left a hand's width of blank between the dek and the first
-     column — which is the fault this whole page was rebuilt to remove.
-     Without it the row is the height of the words and the plate, which is
-     a height that cannot run away, and the evening's record takes the
-     rest. */
+  /* The last page's lead is the one lead with no type block under it, and
+     it is the one lead that has earned the exception: a daily lead carries
+     three stories under it and this one carries the whole evening, up to
+     nine at a full table in Spanish. Something has to give, and the only
+     thing on the page that carries no information is the greek. Without
+     it the lead's row is the height of its own words and cannot run away,
+     and the record takes everything else.
+     Tried the other way first, twice: a share of the sheet left the dek in
+     a 93px box that could not hold it, and the fit pass drove the whole
+     page to the bottom of its ladder — 15px deks on a wall — to pay for a
+     block of fake text. */
+  .stage--tv .paper__page[data-stack] > .paper__lead .paper__body {
+    /* Column one only. The plate stands in column two for both rows here,
+       and a body spanning the pair ran the dek underneath it: "El pa" and
+       then a picture, with the rest of the sentence on the next line. */
+    grid-column: 1;
+    columns: auto;
+    column-rule: none;
+    padding-top: var(--space-2);
+    border-top: 0;
+    overflow: visible;
+  }
+
   .stage--tv .paper__page[data-stack] > .paper__lead .paper__scribbles {
     display: none;
+  }
+
+  .stage--tv .paper__page[data-stack] > .paper__lead .paper__article {
+    grid-template-rows: auto auto;
+  }
+
+  .stage--tv .paper__page[data-stack] > .paper__lead .paper__cut {
+    grid-row: 1 / -1;
   }
 
   .stage--tv .paper__page[data-stack] > .paper__lead {
@@ -3277,7 +3423,10 @@ html[data-dawn] body {
     grid-row: 1;
     align-self: stretch;
     grid-template-rows: minmax(0, 1fr) auto;
-    min-height: clamp(7rem, 15vmin, 13rem);
+    /* Low enough that a two-line headline beside it does not hang with a
+       hand's width of newsprint under it; the plate stretches past this
+       whenever the words do. */
+    min-height: clamp(6rem, 12vmin, 11rem);
   }
 
   .stage--tv .paper__page[data-stack] > .paper__lead .paper__article {
@@ -3315,6 +3464,14 @@ html[data-dawn] body {
   .stage--tv .paper__lead .paper__scribbles {
     max-height: none;
     overflow: visible;
+  }
+
+  /* The dek is one sentence and it stays one sentence. In a tall lead it
+     sits in column one by itself; in a short one the flow was happy to
+     put half of it either side of the column rule. */
+  .stage--tv .paper__lead .paper__dek,
+  .stage--tv .paper__lead .paper__note {
+    break-inside: avoid;
   }
 
   /* On paper red is a rule, never type. A killing leads under a heavy one,
@@ -3420,7 +3577,7 @@ html[data-dawn] body {
 /* The winner is the reason the room is still looking at the screen. It was
    set smaller than the lead's headline underneath it. */
 .stage--tv .paper__banner {
-  font-size: calc(clamp(2rem, 5.5vmin, 5rem) * var(--paper-fit, 1));
+  font-size: calc(clamp(2.25rem, 7.4vmin, 6.5rem) * var(--paper-fit, 1));
 }
 
 .stage--tv .paper__label {
@@ -4921,22 +5078,37 @@ html[data-dawn] body {
   min-height: 0;
 }
 
+/* Nothing in a newspaper rules between every item of a list, and ruling
+   ten of them in one column at a 65px pitch made "who was who" a
+   spreadsheet — which is a hard thing to do to the one page anybody keeps.
+   An index page, a cast list and a results table all solve this the same
+   way: no interior rules, one above the block and one below, and a leader
+   carrying the eye from the name to the role so each row fills its measure
+   instead of floating two words in a seven-hundred-pixel band. */
 .stage--tv .paper:has(.paper__section) .paper__casting {
-  align-items: baseline;
-  padding-bottom: var(--space-1);
-  border-bottom: 1px solid var(--newsprint-rule);
+  display: grid;
+  grid-template-columns: auto auto minmax(var(--space-4), 1fr) auto;
+  align-items: center;
+  gap: 0 var(--space-3);
 }
 
-.stage--tv .paper:has(.paper__section) .paper__casting:last-child {
-  border-bottom: 0;
+.stage--tv .paper:has(.paper__section) .paper__casting::after {
+  content: '';
+  grid-column: 3;
+  height: 1px;
+  background: repeating-linear-gradient(
+    to right,
+    var(--newsprint-rule) 0 2px,
+    transparent 2px 7px
+  );
 }
 
-/* The side's square sits beside the name. The rows stretch to rule the
-   column, and a marker centred in a stretched row lands under the name it
-   belongs to rather than next to it. */
-.stage--tv .paper:has(.paper__section) .paper__casting::before {
-  align-self: start;
-  margin-top: 0.45em;
+.stage--tv .paper:has(.paper__section) .paper__role {
+  grid-column: 4;
+}
+
+.stage--tv .paper:has(.paper__section) .paper__cast {
+  border-bottom: 1px solid var(--on-newsprint);
 }
 
 /* Two codes on the sheet: one for the players, one for the TV. */

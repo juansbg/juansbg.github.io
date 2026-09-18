@@ -479,18 +479,18 @@ const mastheadMarkup = (
   flanks: Flanks | null = null,
 ): string => `
   <header class="paper__masthead">
-    <p class="paper__name">${esc(name)}</p>
-    <p class="paper__edition">
+    <p class="paper__nameplate">
       <span class="paper__flank paper__flank--left">${flanks ? esc(flanks.left) : ''}</span>
       <span class="paper__rule"></span>
-      <span class="paper__dateline">${
-        short === null
-          ? esc(dateline)
-          : `<span class="paper__edition-long">${esc(dateline)}</span><span class="paper__edition-short">${esc(short)}</span>`
-      }</span>
+      <span class="paper__name">${esc(name)}</span>
       <span class="paper__rule"></span>
       <span class="paper__flank paper__flank--right">${flanks ? esc(flanks.right) : ''}</span>
     </p>
+    <p class="paper__edition">${
+      short === null
+        ? esc(dateline)
+        : `<span><span class="paper__edition-long">${esc(dateline)}</span><span class="paper__edition-short">${esc(short)}</span></span>`
+    }</p>
   </header>`
 
 /**
@@ -548,28 +548,62 @@ export const planFor = (rest: number): Plan => {
  * news is heaviest on the left.
  */
 export const columnsOf = <T>(items: readonly T[], k: number): T[][] => {
-  const cols: T[][] = Array.from({ length: Math.max(1, k) }, () => [])
+  const width = Math.max(1, k)
+  const cols: T[][] = Array.from({ length: width }, () => [])
   if (items.length === 0) return cols
-  const per = Math.ceil(items.length / Math.max(1, k))
+  // Each column takes the floor, and the leftover goes one apiece to the
+  // ones on the left, so the news is heaviest where the page is read
+  // first. Filling each column to the ceiling before starting the next
+  // dealt seven stories as three, three and one — two crowded columns
+  // beside one holding a single item and a metre of type block.
+  const base = Math.floor(items.length / width)
+  const extra = items.length % width
   let at = 0
+  let room = base + (extra > 0 ? 1 : 0)
   for (const item of items) {
-    // Only step on once this column has had its share AND there is a column
-    // left to step into, so nothing is ever dropped off the end.
-    if (cols[at] !== undefined && cols[at]!.length >= per && at < cols.length - 1) at++
+    while (room === 0 && at < width - 1) {
+      at++
+      room = base + (at < extra ? 1 : 0)
+    }
     cols[at]?.push(item)
+    room--
   }
   return cols
 }
+
+/**
+ * Whether the page's last story runs across the foot of the columns
+ * instead of down one of them.
+ *
+ * Nothing on a morning edition crossed a gutter except the nameplate:
+ * every column started under the dateline and ended at the foot, five
+ * mornings running, which a room reads as a template rather than as an
+ * edited page. A front page has one horizontal cut in it, and one is
+ * enough — so once there is enough news to spare a story, the last one
+ * (the colour piece, by the order the edition is built in) runs two or
+ * three columns wide across the bottom with the columns above it stopping
+ * on a rule.
+ */
+const FOOT_FROM = 4
 
 const pageMarkup = (lead: Article | null, rest: readonly Article[], plan = planFor(rest.length)): string => {
   // A lead as wide as the page has no room beside it, so the columns fall
   // to the row underneath: that is the final edition, which runs in half
   // the sheet with "who was who" alongside.
   const stack = plan.lead >= plan.cols
-  const body = columnsOf(rest, stack ? plan.cols : plan.cols - plan.lead).filter((c) => c.length > 0)
+  const foot = !stack && rest.length >= FOOT_FROM ? rest[rest.length - 1] : undefined
+  const down = foot === undefined ? rest : rest.slice(0, -1)
+  const body = columnsOf(down, stack ? plan.cols : plan.cols - plan.lead).filter((c) => c.length > 0)
   let n = 0
+  // A label over every headline made a column read NOTICES over NOTICES,
+  // which is a template repeating itself rather than an edited page. The
+  // label says what KIND of thing follows, so it only has to say it when
+  // the kind changes — counted down the whole page, not down each column,
+  // because a phone sets the same articles in one flow and two columns
+  // side by side on a wall read as next to each other anyway.
+  let said: string | null = null
   return `
-    <div class="paper__page"${stack ? ' data-stack' : ''} style="--cols: ${plan.cols}; --lead: ${plan.lead}; --air: ${air(rest.length)}">
+    <div class="paper__page"${stack ? ' data-stack' : ''}${foot ? ' data-foot' : ''} style="--cols: ${plan.cols}; --lead: ${plan.lead}; --foot-from: ${plan.lead + 1}; --air: ${air(rest.length)}">
       ${lead ? `<div class="paper__lead">${articleMarkup(lead, 0, 1)}</div>` : ''}
       ${
         rest.length > 0
@@ -577,19 +611,25 @@ const pageMarkup = (lead: Article | null, rest: readonly Article[], plan = planF
               .map(
                 (col) =>
                   `<div class="paper__col">${col
-                    .map((a, k) => {
+                    .map((a) => {
                       n++
-                      // A column headed NOTICES over NOTICES is a template
-                      // repeating itself, not an edited page: the label is
-                      // the page saying what KIND of thing follows, and it
-                      // only has to say it when the kind changes.
-                      const same = k > 0 && col[k - 1]?.eyebrow === a.eyebrow
+                      const same = said !== null && said === a.eyebrow
+                      said = a.eyebrow
                       return articleMarkup(same ? { ...a, eyebrow: null } : a, n, n === 1 ? 2 : 3)
                     })
                     .join('')}</div>`,
               )
               .join('')}</div>`
           : ''
+      }
+      ${
+        foot === undefined
+          ? ''
+          : `<div class="paper__foot">${articleMarkup(
+              said !== null && said === foot.eyebrow ? { ...foot, eyebrow: null } : foot,
+              n + 1,
+              3,
+            )}</div>`
       }
     </div>`
 }
@@ -645,36 +685,66 @@ export const fitPaper = (root: ParentNode): void => {
     return
   }
   /**
-   * Whether anything real is taller than the box it has to live in.
+   * Whether any real type on the page is cut off.
    *
-   * Two readings were wrong before this one, and both were wrong in the
-   * direction that costs the room the whole page.
+   * Three readings before this one, each wrong in the direction that costs
+   * the room the page.
    *
    * `scrollHeight` on its own counts a box's scrollable overflow, and every
    * article carries the `line-in` entrance — a `translateY(4px)` held by
    * `animation-fill-mode: both` until its stagger delay runs out. A
    * transformed box counts towards that overflow, so the first paint always
    * read four pixels too tall, at every step of the ladder, and the answer
-   * was then cached against a key that never changes again: the room read
-   * a whole evening at the smallest type for no reason, on a page that fit
-   * at full size. So the entrance is held off for the length of the
-   * measurement, the way `fitTables` holds a seat's transition.
+   * was cached against a key that never changes again: the room read a
+   * whole evening at the smallest type on a page that fit at full size. So
+   * the entrance is held off for the length of the measurement, the way
+   * `fitTables` holds a seat's transition.
    *
-   * Summing the children's `offsetHeight` instead dodged the transform and
-   * was wrong about the lead, which is a grid — the words, the plate beside
-   * them and the type block under both are not a column of boxes, and
-   * adding them up says a page overflows by the height of whichever two
-   * things happen to sit side by side.
+   * Summing the children's `offsetHeight` dodged the transform and was
+   * wrong about the lead, which is a grid — the words, the plate beside
+   * them and the type block under both are not a column of boxes.
    *
-   * With the transform out of the way `scrollHeight` is simply right, for a
-   * flex column and a grid alike.
+   * And asking the boxes at all was the wrong question. The lead's body
+   * hides its own overflow, because the type block behind the copy is
+   * *meant* to stop at the foot of the column — so a dek clipped inside it
+   * was invisible to every ancestor's `scrollHeight`, and the page reported
+   * that it fit while two thirds of a sentence was gone. Measured on a
+   * twelve-seat Spanish ending: `--paper-fit: 0.78`, no box overflowing,
+   * and 66% of the lead's dek cut.
+   *
+   * So the question is the one that matters: is any run of real type not
+   * entirely inside every box that clips it, and inside the frame. The
+   * greek is not asked, because the greek is supposed to be cut.
    */
-  const over = (): boolean =>
-    [
-      ...paper.querySelectorAll<HTMLElement>(
-        '.paper__lead, .paper__col, .paper__article, .paper__section',
-      ),
-    ].some((el) => el.scrollHeight > el.clientHeight + 1)
+  const INK =
+    '.paper__headline, .paper__dek, .paper__note, .paper__eyebrow, .paper__caption,' +
+    '.paper__who, .paper__role, .paper__banner, .paper__label, .paper__entry, .paper__name'
+
+  const cut = (el: HTMLElement): boolean => {
+    const box = el.getBoundingClientRect()
+    if (box.width === 0 || box.height === 0) return false
+    let top = box.top
+    let bottom = box.bottom
+    let left = box.left
+    let right = box.right
+    for (let up = el.parentElement; up !== null; up = up.parentElement) {
+      const style = getComputedStyle(up)
+      if (style.overflowY === 'visible' && style.overflowX === 'visible') continue
+      const clip = up.getBoundingClientRect()
+      top = Math.max(top, clip.top)
+      bottom = Math.min(bottom, clip.bottom)
+      left = Math.max(left, clip.left)
+      right = Math.min(right, clip.right)
+    }
+    top = Math.max(top, 0)
+    bottom = Math.min(bottom, window.innerHeight)
+    left = Math.max(left, 0)
+    right = Math.min(right, window.innerWidth)
+    const seen = Math.max(0, bottom - top) * Math.max(0, right - left)
+    return seen < box.width * box.height - 2
+  }
+
+  const over = (): boolean => [...paper.querySelectorAll<HTMLElement>(INK)].some(cut)
 
   const key = [
     window.innerWidth,
@@ -705,6 +775,46 @@ export const fitPaper = (root: ParentNode): void => {
     paper.removeAttribute('data-measuring')
   } else {
     paper.style.setProperty('--paper-fit', String(FIT_STEPS[fitStep]))
+  }
+
+  /**
+   * And then the type blocks that got too little to be blocks.
+   *
+   * A column shares its slack between the stories in it, so a column with
+   * four short stories gives each of them one line of greek — and one line
+   * is not a block of type, it is a rule stuck under the dek. Taking it
+   * off gives its space back to the blocks that can use it, which is why
+   * this runs twice: the second pass catches a block that only became
+   * thin because the first pass fed it.
+   */
+  const MIN_LINES = 3
+  const blocks = [...paper.querySelectorAll<HTMLElement>('.paper__scribbles')]
+  for (const block of blocks) block.removeAttribute('data-thin')
+  // Marked one at a time, never cleared between rounds, because hiding one
+  // feeds the rest: reading a height after setting the attribute forces the
+  // layout, so each answer already knows what the last one gave away. The
+  // first version cleared every mark at the top of each round and simply
+  // re-derived the same answer twice.
+  //
+  // The leading is measured off a line rather than read from the custom
+  // property: `--greek-leading` holds `round(calc(...))`, and an unregistered
+  // custom property comes back from `getComputedStyle` as that token stream,
+  // not as a length — so `parseFloat` returned NaN and the whole rule did
+  // nothing at all, quietly.
+  for (let pass = 0; pass < 2; pass++) {
+    let changed = false
+    for (const block of blocks) {
+      if (block.hasAttribute('data-thin')) continue
+      const line = block.querySelector<HTMLElement>('.paper__line')
+      if (!line) continue
+      const leading = line.offsetHeight + parseFloat(getComputedStyle(line).marginBottom)
+      if (!(leading > 0)) continue
+      if (block.clientHeight < leading * MIN_LINES) {
+        block.setAttribute('data-thin', '')
+        changed = true
+      }
+    }
+    if (!changed) break
   }
 
   paper.setAttribute('data-measuring', '')
@@ -898,8 +1008,11 @@ export const paperPage = (paper: Paper, locale: Locale): string => {
       ${
         // The last page runs in half the sheet, with who was who beside it,
         // so it is ruled for that: the lead across its own width and the
-        // evening's deaths in two columns under it.
-        pageMarkup(lead, rest, { cols: 2, lead: 2 })
+        // evening's deaths in columns under it. Three of them once the
+        // evening has run long — a twelve-seat game in Spanish reached
+        // nine deaths, which in two columns beat the fit pass all the way
+        // to the bottom of its ladder and still cut a third off a dek.
+        pageMarkup(lead, rest, rest.length >= 6 ? { cols: 3, lead: 3 } : { cols: 2, lead: 2 })
       }
       <section class="paper__section">
         <h3 class="paper__label">${esc(t.ui.paper.whoWasWho)}</h3>

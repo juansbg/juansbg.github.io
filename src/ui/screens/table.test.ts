@@ -208,7 +208,10 @@ describe('the paper on the table', () => {
       expect(open).not.toContain('data-paper-close')
       expect(open).not.toContain('data-table')
       // The masthead is the app's name, which is also the crew's; look past it for a leaked role.
-      const body = open.replace(/<p class="paper__name">[^<]*<\/p>/, '')
+      // Matched on the class rather than the tag: the nameplate became a
+      // band of three when the page was set as a broadsheet, and a regex
+      // pinned to `<p>` stopped stripping anything without saying so.
+      const body = open.replace(/<(p|span) class="paper__name">[^<]*<\/\1>/, '')
       for (const id of ['KILLER', 'INSPECT', 'GUARD'] as const) expect(body).not.toContain(t.roles[id].name)
     }
   })

@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { paperMarkup, paperOf } from './paper'
+import { columnsOf, paperMarkup, paperOf, planFor } from './paper'
 import { quietGame } from '../../engine/testing'
 import { endNight, lynch, recordAction, startNight, type PlayerSetup } from '../../engine/state'
 import { LOCALES, strings } from '../../i18n'
@@ -292,6 +292,45 @@ describe('the daily edition', () => {
 // ---------------------------------------------------------------------------
 // The banks the paper is set from
 // ---------------------------------------------------------------------------
+
+describe('how the sheet is ruled', () => {
+  it('deals the follow-ups down the columns in reading order, heaviest on the left', () => {
+    // Nothing is ever dropped, the order down the columns is the order the
+    // edition was built in, and the columns differ by at most one story.
+    for (let n = 0; n <= 12; n++) {
+      for (let k = 1; k <= 5; k++) {
+        const items = Array.from({ length: n }, (_, i) => i)
+        const cols = columnsOf(items, k)
+        expect(cols, `${n} in ${k}`).toHaveLength(k)
+        expect(cols.flat(), `${n} in ${k}`).toEqual(items)
+        const sizes = cols.map((c) => c.length)
+        expect(Math.max(...sizes) - Math.min(...sizes), `${n} in ${k}: ${sizes.join(',')}`).toBeLessThanOrEqual(1)
+        // Heaviest on the left: never a column shorter than one to its right.
+        for (let i = 1; i < sizes.length; i++) {
+          expect(sizes[i - 1]!, `${n} in ${k}: ${sizes.join(',')}`).toBeGreaterThanOrEqual(sizes[i]!)
+        }
+      }
+    }
+    // The case that sent this back to the drawing board: seven stories over
+    // three columns used to come out 3, 3, 1.
+    expect(columnsOf([1, 2, 3, 4, 5, 6, 7], 3).map((c) => c.length)).toEqual([3, 2, 2])
+  })
+
+  it('re-rules the sheet from how much news there is', () => {
+    // Fewer stories, fewer and wider columns; the lead always takes two,
+    // because a lead one column wide is not a lead.
+    expect(planFor(0)).toEqual({ cols: 1, lead: 1 })
+    expect(planFor(1).cols).toBe(3)
+    expect(planFor(4).cols).toBe(4)
+    expect(planFor(9).cols).toBe(5)
+    for (let rest = 1; rest <= 12; rest++) {
+      const plan = planFor(rest)
+      expect(plan.lead, `${rest}`).toBe(2)
+      // There is always at least one column left for the follow-ups.
+      expect(plan.cols - plan.lead, `${rest}`).toBeGreaterThanOrEqual(1)
+    }
+  })
+})
 
 describe('the paper’s banks', () => {
   /** Every string in `ui.paper` that could be read, rendered with a stand-in name and card. */
