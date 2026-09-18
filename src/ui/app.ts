@@ -583,6 +583,46 @@ function lobbyRoster(): { name: string; joined: boolean }[] {
     : game.players.map((p) => ({ name: p.name, joined: seated.has(p.id) }))
 }
 
+/**
+ * Is the day's edition on the wall?
+ *
+ * The room's copy of the paper, which is not the narrator's (`paperOpen`,
+ * their own full screen with its own Done). It used to be the same flag, so
+ * the page reached the big screen only while the narrator sat on it — and the
+ * narrator has to leave it to run the day at all, since the clock, Votes and
+ * the execution all live on the day screen. The one person at the table who
+ * does not need to read the paper was the only one who could keep it up, and
+ * the living are deliberately not given a copy on their own phones
+ * (`seatProjection` sends the edition to the dead alone), so with the
+ * narrator off the page the town could not read its morning anywhere at all.
+ * A live game found exactly that: no newspaper, ever (user, 2026-09-18).
+ *
+ * Derived, and deliberately not a flag. A flag was the obvious fix and it was
+ * wrong for a reason worth writing down: the service worker updates itself
+ * silently (`registerType: 'autoUpdate'`) and local flags reset to the
+ * narrator's side by design, so a reload mid-argument took the page off the
+ * wall with no way back short of replaying the whole dawn. Measured: the room
+ * lost it every time. Everything the flag was tracking is already in the
+ * game, so there is nothing left to lose.
+ *
+ * It reads as the four things that take the room's attention off the news:
+ * the day being over, a reading (`tableMarkup` returns the paper before it
+ * draws the reading's card, so a page left up would hide the verdict), the
+ * vote being recorded or counted, and a verdict already in — after which the
+ * morning is yesterday's news and the room wants the table back.
+ */
+function editionOnWall(): boolean {
+  const game = state.session.current
+  return (
+    state.screen === 'day' &&
+    game.awaitingHunterShot === null &&
+    dawn === null &&
+    !voting &&
+    shown === null &&
+    !game.log.some((o) => o.type === 'death' && o.cause === 'lynch' && o.night === game.night)
+  )
+}
+
 function projectionNow(): TvProjection {
   return tvProjection(state.session.current, state.locale, {
     over: state.screen === 'over',
@@ -596,10 +636,8 @@ function projectionNow(): TvProjection {
     roster: lobbyRoster(),
     // The same test the seat projection uses: the narrator has left the names.
     dealt: state.screen !== 'setup',
-    // The TV shows the paper while the phone does — including the last one,
-    // which is the whole evening as a front page and used to reach nobody but
-    // the narrator holding it.
-    paper: paperOpen && state.screen === 'day' ? state.session.current.day : null,
+    // The room's copy, which outlives the narrator's: see `editionOnWall`.
+    paper: editionOnWall() ? state.session.current.day : null,
     finalPaper: state.screen === 'over',
   })
 }
