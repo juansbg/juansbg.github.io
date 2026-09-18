@@ -26,6 +26,7 @@ import {
   type OpenRoom,
 } from './room/client'
 import type { TvProjection } from './room/projections'
+import { fitPaper } from './ui/screens/paper'
 import { lobbyMarkup, tableMarkup } from './ui/screens/table'
 import { esc } from './ui/dom'
 
@@ -346,6 +347,9 @@ const render = (): void => {
     ${note === '' ? '' : `<p class="tv__status">${esc(note)}</p>`}
     ${fromApp === null ? '' : `<a class="tv__home" href="./">${esc(t.home)}</a>`}
   `
+  // A television cannot scroll and nobody can reach it, so the page is
+  // measured against the frame before the room reads it.
+  fitPaper(root)
   keepAwake()
 }
 
@@ -539,6 +543,13 @@ window.setInterval(() => {
 }, 250)
 
 render()
+// A television does not resize; a browser window pointed at this page does,
+// and so does a projector changing mode. The page is ruled for the frame it
+// is on, so it is re-ruled when the frame changes.
+window.addEventListener('resize', () => fitPaper(root))
+// And once the page's own faces have arrived: the first paint of a cold
+// television measures Bebas in Impact's metrics, which is a different page.
+if (typeof document.fonts !== 'undefined') void document.fonts.ready.then(() => fitPaper(root))
 if (relay !== '') {
   if (room !== null) connect(room)
   else void open(0)

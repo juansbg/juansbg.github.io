@@ -2548,6 +2548,47 @@ html[data-dawn] body {
   text-transform: uppercase;
 }
 
+/* Price, name, number: the three-part front a newspaper has had since there
+   were newspapers, and the cheapest thing on this page that says "printed"
+   rather than "a card with a title on it". The flanks are decoration and
+   the only decoration here — they name no trade, no person and no role. A
+   phone's nameplate has no room for them, so there they simply go. */
+.paper__nameplate {
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
+  align-items: baseline;
+  gap: var(--space-3);
+}
+
+.paper__flank {
+  margin: 0;
+  color: var(--on-newsprint-muted);
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--track-label);
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.paper__flank--left {
+  text-align: left;
+}
+
+.paper__flank--right {
+  text-align: right;
+}
+
+@media (max-width: 47.99rem) {
+  .paper__nameplate {
+    display: block;
+  }
+
+  .paper__flank {
+    display: none;
+  }
+}
+
 .paper__edition,
 .paper__eyebrow,
 .paper__note,
@@ -2632,15 +2673,26 @@ html[data-dawn] body {
   padding-top: var(--space-1);
 }
 
+/* The columns are their own boxes in the markup now (`.paper__col`), so a
+   wall can rule the sheet into five and fill each one floor to ceiling. A
+   phone has room for neither, so the boxes step aside and the articles fall
+   back into one flow — the same page this has always been. */
+.paper__col {
+  display: contents;
+}
+
 @media (min-width: 30rem) {
   .paper__columns[data-many] {
     grid-template-columns: 1fr 1fr;
+    /* The gutter rule, drawn down the middle of the box rather than onto
+       every second article: with the columns boxed, "every second article"
+       is no longer a thing the page can count. */
+    background: linear-gradient(var(--newsprint-rule), var(--newsprint-rule)) no-repeat center top / 1px 100%;
   }
 
-  /* The rule between the columns, drawn by the piece on the right. */
-  .paper__columns[data-many] > .paper__article:nth-child(even) {
+  .paper__columns[data-many] > .paper__article:nth-child(even),
+  .paper__columns[data-many] .paper__col:nth-child(even) > .paper__article {
     padding-left: var(--space-4);
-    border-left: 1px solid var(--newsprint-rule);
   }
 }
 
@@ -2709,6 +2761,13 @@ html[data-dawn] body {
 .paper__lead .paper__article {
   padding: 0;
   border-bottom: 0;
+}
+
+/* The lead's engraving. There is no room for a picture on a phone and no
+   picture to put there anyway; on a wall it is the one thing that makes the
+   top of the page read as a front page rather than as a headline. */
+.paper__cut {
+  display: none;
 }
 
 .paper__lead .paper__mark {
@@ -2798,17 +2857,39 @@ html[data-dawn] body {
 /* A dek in a column used to shrink to 12px, the smallest type on a page that
    is read rather than scanned, in a dim room. The grid gives each piece a
    real measure, so it keeps the reading size. */
+/* The greek: the body copy of a page that is mocked up rather than written.
+   It was four full-width hairlines at 0.3rem apart, which on a phone passes
+   for text and on a wall reads as three loading bars under every headline.
+   Set like type instead — an ink weight, a leading, a ragged right and a
+   paragraph indent — it is the grey mass that tells a room across the sofa
+   it is looking at a newspaper before it has read a word.
+
+   The block is clipped to whatever its column can spare: on a phone that is
+   four lines under each story, and on a wall it is however much of the
+   column the real news did not use. That is what lets one page fill the
+   frame at three stories and at ten without inventing copy. */
 .paper__scribbles {
-  display: grid;
-  gap: 0.3rem;
+  --greek-ink: 2px;
+  --greek-leading: 0.62rem;
+  --greek-lines: 4;
+  display: block;
   margin-top: var(--space-2);
+  max-height: calc(var(--greek-lines) * var(--greek-leading));
+  overflow: hidden;
 }
 
+/* Block and margin rather than flex and gap, because on a wall the lead's
+   greek is set in two sub-columns and multicol has nothing to do with a
+   flex container. */
 .paper__scribble {
   display: block;
-  width: calc(var(--w, 1) * 100%);
-  height: 2px;
-  background: var(--newsprint-rule);
+  margin-left: calc(var(--x, 0) * 100%);
+  margin-bottom: calc(var(--greek-leading) - var(--greek-ink));
+  width: calc((var(--w, 1) - var(--x, 0)) * 100%);
+  height: var(--greek-ink);
+  /* A shade heavier than a hairline: a rule separates, a block of type has
+     tone. Still Midnight and nothing else. */
+  background: color-mix(in oklab, var(--on-newsprint) 38%, transparent);
 }
 
 .paper__section {
@@ -2928,71 +3009,372 @@ html[data-dawn] body {
   gap: var(--space-3);
 }
 
-/* On a TV the page is a broadsheet: wider, three columns, nothing to tap,
-   and the type a size up all round, because the phone's steps are capped
-   for a hand and the room reads this from the sofa. */
+/* ---------- The paper on a wall ---------- */
+
+/* A television is the one place this page is READ rather than glanced at,
+   by a room on a sofa, for the length of an argument — and the one place
+   that cannot scroll, so anything past the bottom edge is not "further
+   down", it is gone.
+
+   What was here was the phone's page enlarged. Measured on 1920x1080: one
+   1440px column of 83-character lines (a newspaper column is 35 to 45),
+   203 to 274px of bare newsprint under the last story on a quiet morning,
+   and a sheet capped at 92rem with 224px of Midnight down either side. The
+   three scribbles under each headline, which pass for body copy in the
+   hand, read as loading bars at three metres.
+
+   So the page is ruled like a broadsheet instead. Everything below is
+   gated on width as well as on `.stage--tv`, because `/tv.html` opened on
+   a phone is still the screen's page and a phone cannot carry five
+   columns. */
 .stage--tv .screen--paper {
-  max-width: min(92rem, 100%);
+  max-width: 100%;
+  gap: var(--space-2);
 }
 
-.stage--tv .paper__columns {
-  columns: 3;
-  column-gap: var(--space-5);
+/* Held off while the page is measured: the entrance is a transform, and a
+   transform counts towards a box's scrollable overflow (`fitPaper`). */
+.paper[data-measuring] .paper__article {
+  animation: none;
+}
+
+.stage--tv .paper {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  /* The frame is the page. A television has no scrollbar and no hand near
+     it, so a page that overflows has silently lost a story — which is
+     exactly what the final edition was doing, with `scrollHeight ===
+     clientHeight` saying nothing was wrong. `fitPaper()` in `paper.ts`
+     measures this box after every paint and steps the type down until the
+     news fits; this is the backstop under it. */
+  overflow: hidden;
 }
 
 .stage--tv .paper__name {
-  font-size: 4.5rem;
+  font-size: clamp(3rem, 7vmin, 6rem);
 }
 
-/* The paper is the one screen built to be read rather than glanced at, and on
-   a wall its reading copy was the smallest thing in the room: a 24px dek under
-   a 60px headline, a 16px dateline. The headline was doing all the work and
-   the sentence a viewer actually wants was under the floor. Everything here
-   scales with the frame now. */
+.stage--tv .paper__flank {
+  font-size: clamp(0.9rem, 1.7vmin, 1.4rem);
+}
+
+/* The paper's reading copy was the smallest thing in the room: a 24px dek
+   under a 60px headline. Everything scales with the frame, and with
+   `--paper-fit`, which is 1 until the page does not fit. */
 .stage--tv .paper__edition,
 .stage--tv .paper__note,
-.stage--tv .paper__eyebrow {
-  font-size: clamp(1rem, 2.4vmin, 2rem);
+.stage--tv .paper__eyebrow,
+.stage--tv .paper__caption {
+  font-size: calc(clamp(0.95rem, 1.6vmin, 1.5rem) * var(--paper-fit, 1));
 }
 
 .stage--tv .paper__headline {
-  font-size: 2.25rem;
+  font-size: calc(clamp(1.5rem, 3vmin, 2.8rem) * var(--paper-fit, 1) * var(--air, 1));
+}
+
+/* Three sizes of type, and they mean something: the lead, the story at the
+   top of the first column, and the rest. A front page ranks its news by
+   how loudly it is set, and the rank here is the order the edition was
+   built in — deaths, then the verdict, then what happened, then what the
+   police found, then the colour. */
+.stage--tv .paper__article[data-tier='2'] .paper__headline {
+  font-size: calc(clamp(1.8rem, 3.9vmin, 3.6rem) * var(--paper-fit, 1) * var(--air, 1));
 }
 
 .stage--tv .paper__lead .paper__headline {
-  font-size: 3.75rem;
+  font-size: calc(clamp(2.5rem, 7vmin, 6.5rem) * var(--paper-fit, 1) * var(--air, 1));
 }
 
-.stage--tv .paper__dek,
-.stage--tv .paper__columns .paper__dek {
-  font-size: clamp(1.25rem, 2.6vmin, 2.5rem);
+.stage--tv .paper__dek {
+  font-size: calc(clamp(1.05rem, 2.05vmin, 1.85rem) * var(--paper-fit, 1) * var(--air, 1));
+  line-height: 1.32;
+}
+
+.stage--tv .paper__article[data-tier='2'] .paper__dek {
+  font-size: calc(clamp(1.15rem, 2.25vmin, 2.05rem) * var(--paper-fit, 1) * var(--air, 1));
 }
 
 .stage--tv .paper__lead .paper__dek {
-  font-size: clamp(1.5rem, 3.2vmin, 3rem);
+  font-size: calc(clamp(1.4rem, 3.15vmin, 2.9rem) * var(--paper-fit, 1) * var(--air, 1));
+  line-height: 1.28;
+}
+
+/* Greek at reading weight: at a phone's 2px and 0.62rem it disappears on a
+   wall. These are the numbers that make a column read as a block of type
+   from the far side of a room. */
+.stage--tv .paper__scribbles {
+  --greek-ink: 3px;
+  --greek-leading: calc(1.05rem * var(--paper-fit, 1));
+}
+
+@media (min-width: 60rem) {
+  .stage--tv .paper {
+    padding: var(--space-4) var(--space-5) var(--space-3);
+  }
+
+  /* The sheet is ruled into `--cols` columns, of which the lead takes
+     `--lead` (`planFor` in `paper.ts`: fewer stories, fewer and wider
+     columns). One row, the height of everything the nameplate left, so the
+     columns run floor to ceiling whatever the news volume is.
+
+     Both editions, not only the morning one: the final page is the same
+     page in half the sheet, and scoping this to `.paper--daily` left it as
+     a plain block — the lead ran to 1807px inside a 1004px frame and
+     thirty-one runs of real type went off the bottom edge. That is the
+     original fault, worse. */
+  .stage--tv .paper__page {
+    flex: 1 1 auto;
+    display: grid;
+    grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr));
+    grid-auto-rows: minmax(0, 1fr);
+    column-gap: var(--space-5);
+    min-height: 0;
+    padding-top: var(--space-3);
+  }
+
+  .stage--tv .paper__page > .paper__lead {
+    grid-column: span var(--lead, 2);
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding: 0 var(--space-5) 0 0;
+    border-bottom: 0;
+    overflow: hidden;
+  }
+
+  /* A lead as wide as the sheet has nothing beside it, so the columns go
+     underneath: that is the final edition, in half the page. */
+  /* Stacked, both rows are shares of the frame, not one `auto` row and
+     one remainder: an `auto` lead is as tall as its own type block, which
+     is as tall as it likes, and it took the whole sheet — the two columns
+     of news under it measured zero pixels high and overflowed by 143 and
+     166. The lead takes a little under half and the evening's record the
+     rest, which is the way round the room needs it. */
+  .stage--tv .paper__page[data-stack] {
+    grid-template-rows: auto minmax(0, 1fr);
+    grid-auto-rows: minmax(0, 1fr);
+  }
+
+  /* No type block behind the last page's lead. It is the only lead with
+     nothing under it but more of the same news, and giving it a share of
+     the sheet left a hand's width of blank between the dek and the first
+     column — which is the fault this whole page was rebuilt to remove.
+     Without it the row is the height of the words and the plate, which is
+     a height that cannot run away, and the evening's record takes the
+     rest. */
+  .stage--tv .paper__page[data-stack] > .paper__lead .paper__scribbles {
+    display: none;
+  }
+
+  .stage--tv .paper__page[data-stack] > .paper__lead {
+    padding: 0 0 var(--space-3);
+    border-bottom: 1px solid var(--on-newsprint);
+  }
+
+  /* The columns become the page's own tracks: the boxes exist so the
+     stories can be dealt down them in reading order (`columnsOf`), not
+     across them, which is how a page is read and how this game's record
+     runs — night 2 above night 3, never beside it. */
+  .stage--tv .paper__page > .paper__columns {
+    display: contents;
+  }
+
+  .stage--tv .paper__col {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding-left: var(--space-5);
+    border-left: 1px solid var(--newsprint-rule);
+    /* Nothing real is ever cut here — the fit pass sees to that — but the
+       greek is meant to be, and this is what lets a block of it stop
+       exactly at the foot of its column. */
+    overflow: hidden;
+  }
+
+  .stage--tv .paper__page[data-stack] > .paper__columns > .paper__col:first-child {
+    padding-left: 0;
+    border-left: 0;
+  }
+
+  /* The stories share the column between them and the type block inside
+     each one takes its share of the slack, so a column is full whether it
+     holds one story or four. Without the grow, every article sat at its
+     own content height and three quarters of the sheet was bare. */
+  .stage--tv .paper__col > .paper__article {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+    padding-top: var(--space-3);
+  }
+
+  .stage--tv .paper__col > .paper__article:first-child {
+    padding-top: 0;
+  }
+
+  .stage--tv .paper__col > .paper__article:last-child {
+    border-bottom: 0;
+  }
+
+  /* The slack in a column goes into the type block, never into bare
+     newsprint at the foot of the page. This one declaration is what makes
+     a morning with two stories look as deliberate as a morning with ten:
+     the greek was capped at four lines for the hand, and a column is free
+     to be as tall as it is. */
+  .stage--tv .paper__col .paper__scribbles,
+  .stage--tv .paper__lead .paper__scribbles {
+    flex: 1 1 0;
+    min-height: 0;
+    max-height: none;
+  }
+
+  /* The lead: the words, the plate beside them, and the type block across
+     the foot of both. The plate was full width first and a single glyph
+     floating in an 810px frame reads as a box somebody forgot to fill; a
+     portrait plate beside the text is what a front page actually does with
+     one picture. */
+  .stage--tv .paper__lead .paper__article {
+    display: grid;
+    flex: 1 1 auto;
+    grid-template-columns: minmax(0, 1fr) clamp(9rem, 23vmin, 20rem);
+    grid-template-rows: auto minmax(0, 1fr);
+    column-gap: var(--space-5);
+    min-height: 0;
+  }
+
+  .stage--tv .paper__lead .paper__story {
+    grid-column: 1;
+    grid-row: 1;
+    min-width: 0;
+  }
+
+  .stage--tv .paper__lead .paper__cut {
+    grid-column: 2;
+    grid-row: 1;
+    align-self: start;
+  }
+
+  .stage--tv .paper__page[data-stack] > .paper__lead .paper__article {
+    grid-template-columns: minmax(0, 1fr) clamp(8rem, 15vmin, 13rem);
+  }
+
+  /* No plate: the words take the whole measure rather than leaving a
+     column of newsprint where one would have been. */
+  .stage--tv .paper__lead .paper__article:not(:has(.paper__cut)) {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .stage--tv .paper__lead .paper__scribbles {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  /* On paper red is a rule, never type. A killing leads under a heavy one,
+     as it does on the phone. It closes the whole top block — the words and
+     the plate together — so it lands level with the foot of the picture
+     rather than hanging half way up the page under the dek. */
+  .stage--tv .paper__lead .paper__scribbles {
+    padding-top: var(--space-4);
+    border-top: 1px solid var(--on-newsprint);
+  }
+
+  .stage--tv .paper--daily .paper__lead:has(> [data-kind='death'], > [data-kind='verdict']) .paper__scribbles {
+    border-top-width: 4px;
+    border-top-color: var(--lethal);
+  }
+
+  /* The plate IS the mark, at twenty times the size and with the name under
+     it. Printing the small one as well beside the headline says the same
+     thing twice and costs the lead the first inch of its own measure. */
+  .stage--tv .paper__lead .paper__article:has(.paper__cut) .paper__mark {
+    display: none;
+  }
+
+  /* The lead's body sets in two sub-columns, filled to the foot of the
+     first before the second is started — a balanced pair would leave both
+     half empty, which is the bare-newsprint problem again in miniature. */
+  .stage--tv .paper__lead .paper__scribbles {
+    columns: 2;
+    column-gap: var(--space-5);
+    column-fill: auto;
+    margin-top: var(--space-4);
+  }
+
+  /* The engraving. A front page has a picture on it and this one has never
+     had anything to put there — no face the room may see, no image the
+     engine writes. What it does have is the mark already beside this very
+     outcome: the sigil of the role that caused it, which the page prints
+     either way. Blown up in a ruled frame with the name under it, that is
+     a cut, which is what a paper of this vintage would have carried. It
+     leaks nothing the headline above it does not already say. */
+  .stage--tv .paper__lead .paper__cut {
+    display: grid;
+    margin: 0;
+    padding: var(--space-3) var(--space-3) 0;
+    border: 1px solid var(--on-newsprint);
+  }
+
+  .stage--tv .paper__engraving {
+    display: grid;
+    place-items: center;
+    width: 100%;
+    aspect-ratio: 1;
+    color: var(--on-newsprint);
+    font-family: var(--font-body);
+    font-weight: 600;
+    font-size: clamp(2.5rem, 7vmin, 5.5rem);
+    line-height: 1;
+  }
+
+  .stage--tv .paper__engraving .sigil {
+    width: 100%;
+    height: 100%;
+    stroke-width: 1.1;
+  }
+
+  .stage--tv .paper__caption {
+    width: 100%;
+    margin-top: var(--space-3);
+    padding: var(--space-1) 0;
+    border-top: 1px solid var(--newsprint-rule);
+    color: var(--on-newsprint-muted);
+    font-family: var(--font-mono);
+    letter-spacing: var(--track-label);
+    text-align: center;
+    text-transform: uppercase;
+  }
 }
 
 /* "Who was who" is the moment the evening exists for, and on a 1080p screen
    it was the smallest thing on it: the names at `--text-display-min` and the
    roles at `--text-sm`, because every other part of the paper got a TV size
-   and this section never did. Twenty-pixel names, sixteen-pixel roles, on the
-   two lines the whole room is leaning in to read.
+   and this section never did.
    The size is half the problem. At a full table the same block then ran off
    the bottom of the frame and the last entries were simply gone, because a
    TV cannot scroll and nobody can reach it. So it lays out in as many
-   columns as the frame will take, which keeps a full cast on one screen at
-   the size the room can actually read it. */
+   columns as the frame will take. */
 .stage--tv .paper__cast {
   grid-template-columns: repeat(auto-fill, minmax(min(20rem, 100%), 1fr));
   gap: var(--space-2) var(--space-5);
 }
 
 .stage--tv .paper__who {
-  font-size: clamp(1.5rem, 3.4vmin, 3rem);
+  font-size: calc(clamp(1.4rem, 3vmin, 2.6rem) * var(--paper-fit, 1));
 }
 
 .stage--tv .paper__role {
-  font-size: clamp(1.1rem, 2.4vmin, 2rem);
+  font-size: calc(clamp(1rem, 2.1vmin, 1.8rem) * var(--paper-fit, 1));
+}
+
+/* The winner is the reason the room is still looking at the screen. It was
+   set smaller than the lead's headline underneath it. */
+.stage--tv .paper__banner {
+  font-size: calc(clamp(2rem, 5.5vmin, 5rem) * var(--paper-fit, 1));
+}
+
+.stage--tv .paper__label {
+  font-size: calc(clamp(0.9rem, 1.8vmin, 1.5rem) * var(--paper-fit, 1));
 }
 
 .stage--tv .paper__casting {
@@ -3006,23 +3388,23 @@ html[data-dawn] body {
 }
 
 .stage--tv .paper__mark {
-  width: 2.5rem;
-  height: 2.5rem;
+  width: calc(2.25rem * var(--paper-fit, 1));
+  height: calc(2.25rem * var(--paper-fit, 1));
 }
 
 .stage--tv .paper__lead .paper__mark {
-  width: 3.5rem;
-  height: 3.5rem;
+  width: calc(3.25rem * var(--paper-fit, 1));
+  height: calc(3.25rem * var(--paper-fit, 1));
 }
 
 .stage--tv .paper__mark .sigil {
-  width: 1.5rem;
-  height: 1.5rem;
+  width: 1.4rem;
+  height: 1.4rem;
 }
 
 .stage--tv .paper__lead .paper__mark .sigil {
-  width: 2.25rem;
-  height: 2.25rem;
+  width: 2rem;
+  height: 2rem;
 }
 
 /* The drawn page, shown for a long press where there is no share sheet. */
@@ -4419,36 +4801,22 @@ html[data-dawn] body {
   text-align: center;
 }
 
-/* The morning paper, read again for a TV frame.
-   `.paper` (the newsprint article itself, "The town's paper" above) grows
-   to fill whatever height the screen leaves it and scrolls if it has to —
-   right for a long final edition, but on a light day of two short colour
-   pieces it left the masthead and two headlines sitting at the top of a
-   box that ran most of the way down a 1080p frame, the rest bare newsprint.
-   `safe center` keeps the fill-and-scroll behaviour for a long edition
-   (it only centres when everything already fits; overflowing content still
-   starts at the top, so nothing is ever clipped) and balances a short one
-   in the middle of its own box instead of leaving it stranded at the top. */
-.stage--tv .paper {
-  display: flex;
-  flex-direction: column;
-  justify-content: safe center;
-}
-
-/* The final edition is the one paper that does not fit. A morning edition is
+/* The final edition is the one page that does not fit. A morning edition is
    a couple of deaths and a colour piece; the last one carries every death of
    the evening AND "who was who", and stacked in one column at a full table it
-   ran to 1360px on a 1080px frame — the news alone reached 1127, and the cast,
-   which the room is actually waiting for, began at 1151. Entirely below the
-   fold, on a screen nobody can scroll.
-   So the last page is composed for the frame rather than poured down it: the
-   masthead and the banner across the top, the evening's news down the left,
-   and who was who beside it where the room can read it. */
+   ran to 1360px on a 1080px frame. Composed for the frame instead: the
+   nameplate and the banner across the top, the evening's news down the left,
+   and who was who beside it where the room can read it.
+
+   Measured again after the broadsheet went in, because it had kept a quieter
+   version of both faults: "Day 4 — Fran loses the vote" sat entirely below
+   the bottom edge with `scrollHeight === clientHeight` reporting nothing
+   wrong, and the cast's column ran out half way down with bare newsprint
+   under it. */
 .stage--tv .paper:has(.paper__section) {
   display: grid;
   grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
-  grid-template-rows: auto auto auto minmax(0, 1fr);
-  align-content: start;
+  grid-template-rows: auto auto minmax(0, 1fr);
   column-gap: var(--space-5);
   height: 100%;
   min-height: 0;
@@ -4464,65 +4832,61 @@ html[data-dawn] body {
   grid-row: 2;
 }
 
-.stage--tv .paper:has(.paper__section) > .paper__lead {
+/* The news takes what is left of its own column and stops there. At the end
+   of an evening the deaths have all been read aloud twice already; the cast
+   has not been read at all. */
+.stage--tv .paper:has(.paper__section) > .paper__page {
   grid-column: 1;
   grid-row: 3;
-}
-
-/* The news takes what is left of its own column and stops there. At the end of
-   an evening the deaths have all been read aloud twice already; the cast has
-   not been read at all. */
-.stage--tv .paper:has(.paper__section) > .paper__columns {
-  grid-column: 1;
-  grid-row: 4;
   min-height: 0;
-  overflow: hidden;
+  padding-top: var(--space-3);
 }
 
 .stage--tv .paper:has(.paper__section) > .paper__section {
   grid-column: 2;
-  grid-row: 3 / -1;
+  grid-row: 3;
+  display: flex;
+  flex-direction: column;
   min-height: 0;
-  align-self: start;
+  margin-top: 0;
+  padding-top: var(--space-3);
+  padding-left: var(--space-5);
+  border-left: 1px solid var(--newsprint-rule);
+  overflow: hidden;
 }
 
-/* Two columns of news in half the width, not three. */
-.stage--tv .paper:has(.paper__section) .paper__columns {
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-/* The cast fills its own column, going two-up when the table is big enough to
-   need it — one column is right for five players and three rows too tall for
-   twelve, and the whole point of moving it here was that none of it is cut. */
+/* The cast takes the whole column rather than ending half way down it with
+   bare newsprint underneath. One column, ruled: at eleven players spread
+   two-up it was six rows with a hundred and forty pixels of nothing
+   between them, which reads as a page that broke rather than as a list.
+   A rule under each name makes the same space read as a ledger — which is
+   what "who was who" is, and the one thing on this page the room has been
+   waiting all evening for. */
 .stage--tv .paper:has(.paper__section) .paper__cast {
-  grid-template-columns: repeat(auto-fill, minmax(min(16rem, 100%), 1fr));
-  gap: var(--space-1) var(--space-4);
+  flex: 1 1 auto;
+  grid-template-columns: minmax(0, 1fr);
+  grid-auto-rows: minmax(0, 1fr);
+  align-content: stretch;
+  gap: 0;
+  min-height: 0;
 }
 
-/* `.paper__columns` on a TV asked for three CSS columns, but the box it is
-   on is `display: grid` (`.paper__columns` above), which a multicol
-   `columns` declaration cannot affect — inert since the TV scale was
-   written. Set the same three-up layout the grid already understands, on
-   the breakpoint the paper itself uses for "there is enough news to split
-   in two" (`[data-many]`, three or more follow-up stories). */
-.stage--tv .paper__columns[data-many] {
-  grid-template-columns: repeat(3, 1fr);
+.stage--tv .paper:has(.paper__section) .paper__casting {
+  align-items: baseline;
+  padding-bottom: var(--space-1);
+  border-bottom: 1px solid var(--newsprint-rule);
 }
 
-/* A quiet day's edition never reaches `[data-many]` (fewer than three
-   follow-ups): the two short colour pieces that stand in for it read as
-   an unfinished page at a phone's type size blown up onto a TV. Nothing
-   else about a light day can be made to look intentional without inventing
-   copy the engine did not write, so this is the one thing CSS can still
-   do — read the size the story is given as if it were the day's whole
-   news, the way a real front page enlarges a lead when there is little
-   else to run. */
-.stage--tv .paper__columns:not([data-many]) .paper__headline {
-  font-size: clamp(2rem, 4.4vmin, 4rem);
+.stage--tv .paper:has(.paper__section) .paper__casting:last-child {
+  border-bottom: 0;
 }
 
-.stage--tv .paper__columns:not([data-many]) .paper__dek {
-  font-size: clamp(1.5rem, 3vmin, 2.75rem);
+/* The side's square sits beside the name. The rows stretch to rule the
+   column, and a marker centred in a stretched row lands under the name it
+   belongs to rather than next to it. */
+.stage--tv .paper:has(.paper__section) .paper__casting::before {
+  align-self: start;
+  margin-top: 0.45em;
 }
 
 /* Two codes on the sheet: one for the players, one for the TV. */

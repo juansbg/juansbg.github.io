@@ -446,7 +446,17 @@ export const es: Strings = {
       cannotShare: 'Este navegador no puede dibujar la página. Una captura de pantalla sirve.',
       holdHint: 'Mantén pulsada la imagen para guardarla o compartirla',
       daily: (day) => `Edición de la mañana · Día ${day}`,
+      price: 'Precio 5 cts.',
+      number: (n) => `N.º ${n}`,
       side: { town: 'El pueblo', crew: 'La Familia' },
+      kicker: {
+        death: 'Anoche',
+        verdict: 'El veredicto',
+        event: 'Anoche',
+        investigation: 'La policía',
+        clue: 'Se comenta',
+        colour: 'Avisos',
+      },
       headline: {
         killers: [
           (name) => `Encuentran sin vida a ${name}`,

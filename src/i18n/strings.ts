@@ -426,8 +426,36 @@ export interface Strings {
       holdHint: string
       /** The dateline of a morning edition. */
       daily: (day: number) => string
+      /**
+       * The two mono lines either side of the nameplate, the oldest
+       * furniture on a newspaper's front and the cheapest way for a page on
+       * a wall to read as something that was printed rather than as a card
+       * with a title on it. Decoration, and deliberately the only thing on
+       * the page that is: the price names no trade, no person and no role,
+       * and the number is the day the room is already being told.
+       */
+      price: string
+      number: (n: number) => string
       /** A side, as the paper names it on an investigation. */
       side: { town: string; crew: string }
+      /**
+       * The mono label over each headline, which is the page saying what
+       * kind of thing the reader is about to read.
+       *
+       * Not decoration: a colour piece and a police finding are set in the
+       * same type, and the one rule this paper has is that a colour piece
+       * must never read as a clue. The bank keeps the words apart; the
+       * label says so on the page, which is the half a room three metres
+       * away can actually use.
+       */
+      kicker: {
+        death: string
+        verdict: string
+        event: string
+        investigation: string
+        clue: string
+        colour: string
+      }
       /**
        * The headline over a death, short enough for Bebas in a column; the
        * dek under it is the line the town was read at dawn. A bank per

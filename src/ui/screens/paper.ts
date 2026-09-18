@@ -51,6 +51,12 @@ export interface Article {
   accent: Accent | null
   /** The dead, to strike through in the headline as the report does. */
   subject: string | null
+  /**
+   * The name under the lead's plate. Usually the struck-through one, but
+   * an investigation names somebody it does not strike — the town already
+   * buried them — and that is still whose picture the page would run.
+   */
+  who?: string | null
 }
 
 export interface Edition {
@@ -154,7 +160,7 @@ export const editionOf = (src: EditionSource, locale: Locale): Edition => {
     const verdict = o.cause === 'lynch'
     return {
       kind: verdict ? 'verdict' : 'death',
-      eyebrow: null,
+      eyebrow: verdict ? p.kicker.verdict : p.kicker.death,
       headline: p.headline[o.cause][headlines.get(o) ?? 0]?.(who) ?? '',
       dek: bank[o.cause][lines.get(o) ?? 0]?.(who) ?? '',
       note: verdict ? count : null,
@@ -180,9 +186,11 @@ export const editionOf = (src: EditionSource, locale: Locale): Edition => {
     }
     const dek = renderOutcome(o, src.players, locale)
     if (dek === null) return null
+    const named = o.type === 'silenced' || o.type === 'extraVote' ? name(o.target) : null
     return {
       kind: o.type === 'clue' ? 'clue' : 'event',
-      eyebrow: null,
+      who: named,
+      eyebrow: o.type === 'clue' ? p.kicker.clue : p.kicker.event,
       headline,
       dek,
       note: null,
@@ -213,13 +221,14 @@ export const editionOf = (src: EditionSource, locale: Locale): Edition => {
     const card = p.cardOn(name(r.id), t.roles[r.roleId].name)
     articles.push({
       kind: 'investigation',
-      eyebrow: null,
+      eyebrow: p.kicker.investigation,
       headline: line(name(r.id)),
       dek: trade ? `${card} ${p.tradeLine(trade)}` : card,
       note: p.side[ROLES[r.roleId].team],
       mark: sigilMarkup(r.roleId),
       accent: accentOf(r.roleId),
       subject: null,
+      who: name(r.id),
     })
   }
   for (const o of todays) {
@@ -241,7 +250,7 @@ export const editionOf = (src: EditionSource, locale: Locale): Edition => {
   if (!newsOn(log, src.day)) {
     articles.unshift({
       kind: 'event',
-      eyebrow: null,
+      eyebrow: p.kicker.event,
       headline: p.allWell[(src.day - 1) % p.allWell.length] ?? p.allWell[0] ?? '',
       dek: t.phase.quietNight,
       note: null,
@@ -259,7 +268,7 @@ export const editionOf = (src: EditionSource, locale: Locale): Edition => {
     const piece = p.colour[colourIndex(before + k, p.colour.length)]
     if (piece) {
       articles.push({
-        kind: 'colour', eyebrow: null, headline: piece.headline, dek: piece.dek, note: null,
+        kind: 'colour', eyebrow: p.kicker.colour, headline: piece.headline, dek: piece.dek, note: null,
         mark: null, accent: null, subject: null,
       })
     }
@@ -286,22 +295,52 @@ export const edition = (state: GameState, day: number, locale: Locale): Edition 
 // ---------------------------------------------------------------------------
 
 /**
- * The scribbles under an article: the body copy of a page that is mocked up
- * rather than written, three or four hairlines of varying length. Never
- * lorem ipsum. The pattern is picked by position so a page does not look
- * ruled.
+ * The body copy of a page that is mocked up rather than written.
+ *
+ * It was four hairlines at 94%, 98% and 58% of the column, evenly spaced —
+ * which at a phone's size reads as body text and, blown up onto a wall,
+ * reads as three loading bars under every headline. A printed page is
+ * mostly type: the grey mass of it is what tells a room across the sofa
+ * that it is looking at a newspaper before it has read a word.
+ *
+ * So the greek is set like type instead: a long run of short rules with a
+ * ragged right, broken into paragraphs — a shorter line where one ends and
+ * an indent where the next begins — and the block is allowed to stretch,
+ * which is what lets a column fill the frame at three stories or at ten
+ * without the page inventing copy the engine never wrote. Never lorem
+ * ipsum: it says nothing, in no language, and cannot be mistaken for a
+ * clue.
+ *
+ * The widths are a fixed table walked from a per-article offset, so the
+ * same edition sets the same page every time it is painted.
  */
-const SCRIBBLES: readonly (readonly number[])[] = [
-  [1, 0.94, 0.98, 0.58],
-  [1, 0.9, 0.42],
-  [0.96, 1, 0.9, 0.7],
-  [1, 0.97, 0.62],
+const GREEK: readonly number[] = [
+  0.97, 0.84, 1, 0.91, 0.58,
+  0.93, 1, 0.8, 0.96, 0.44,
+  0.88, 0.99, 0.82, 1, 0.67,
+  0.95, 0.79, 1, 0.9, 0.39,
+  1, 0.86, 0.94, 0.81, 0.62,
 ]
 
-const scribblesMarkup = (i: number): string =>
-  `<span class="paper__scribbles" aria-hidden="true">${(SCRIBBLES[i % SCRIBBLES.length] ?? [])
-    .map((w) => `<i class="paper__scribble" style="--w: ${w}"></i>`)
-    .join('')}</span>`
+/**
+ * How many lines every block carries. A television gives the lead half a
+ * metre of column and a busy day's fourth story two centimetres, and the
+ * block is clipped to whatever its column can hold — so this is the tallest
+ * a column could ever be, not the number anybody sees.
+ */
+const GREEK_LINES = 44
+
+const greekMarkup = (seed: number, lines = GREEK_LINES): string => {
+  const out: string[] = []
+  for (let i = 0; i < lines; i++) {
+    const w = GREEK[(i + seed * 7) % GREEK.length] ?? 1
+    // Every fifth line ends a paragraph, so the one after it is indented.
+    const ends = i % 5 === 4
+    const opens = i % 5 === 0 && i > 0
+    out.push(`<i class="paper__scribble" style="--w: ${ends ? Math.min(w, 0.66) : w}${opens ? '; --x: 0.06' : ''}"></i>`)
+  }
+  return `<span class="paper__scribbles" aria-hidden="true">${out.join('')}</span>`
+}
 
 /** The headline with the dead struck through, as the report strikes a killing's name. */
 const headlineMarkup = (a: Article): string => {
@@ -320,28 +359,85 @@ const noteMarkup = (a: Article): string => {
   return `<p class="paper__note">${esc(a.note)}</p>`
 }
 
-const articleMarkup = (a: Article, i: number): string => `
-  <article class="paper__article" data-kind="${a.kind}"${a.accent ? ` data-accent="${a.accent}"` : ''} style="--i: ${i}">
-    <header class="paper__head">
-      ${a.mark ? `<span class="mark paper__mark" aria-hidden="true">${a.mark}</span>` : ''}
-      <div class="paper__title">
-        ${a.eyebrow ? `<p class="paper__eyebrow">${esc(a.eyebrow)}</p>` : ''}
-        <h3 class="paper__headline">${headlineMarkup(a)}</h3>
-      </div>
-    </header>
-    <p class="paper__dek">${esc(a.dek)}</p>
-    ${noteMarkup(a)}
-    ${scribblesMarkup(i)}
+/**
+ * The lead's cut.
+ *
+ * A front page has a picture on it, and this one has never had anything to
+ * put there — the engine writes no images and the room may see no face.
+ * What it does have is the mark the rest of the app already puts beside
+ * this very outcome: the sigil of the role that caused it. Blown up inside
+ * a ruled box with the name under it, that is an engraving, which is what a
+ * paper of this vintage would have printed anyway.
+ *
+ * It leaks nothing: the mark is on the article either way, and the caption
+ * is the name already struck through in the headline above it. Only the
+ * lead gets one, only when it has both, and only where there is a wall to
+ * put it on — the phone's page hides it, the way it hides the columns.
+ */
+const cutMarkup = (a: Article): string => {
+  const who = a.who === undefined ? a.subject : a.who
+  if (a.mark === null || who === null) return ''
+  return `
+    <figure class="paper__cut" aria-hidden="true">
+      <span class="paper__engraving">${a.mark}</span>
+      <figcaption class="paper__caption">${esc(who)}</figcaption>
+    </figure>`
+}
+
+/**
+ * One story. `tier` is how loudly it is set: 1 is the lead, 2 the story
+ * that follows it at the top of the first column, 3 everything else. It is
+ * not decoration — a front page ranks its news by the size of the type, and
+ * the rank here is the page order the edition was built in, which is the
+ * order the town cares about.
+ */
+const articleMarkup = (a: Article, i: number, tier = 3): string => `
+  <article class="paper__article" data-kind="${a.kind}" data-tier="${tier}"${a.accent ? ` data-accent="${a.accent}"` : ''} style="--i: ${i}">
+    <div class="paper__story">
+      <header class="paper__head">
+        ${a.mark ? `<span class="mark paper__mark" aria-hidden="true">${a.mark}</span>` : ''}
+        <div class="paper__title">
+          ${a.eyebrow ? `<p class="paper__eyebrow">${esc(a.eyebrow)}</p>` : ''}
+          <h3 class="paper__headline">${headlineMarkup(a)}</h3>
+        </div>
+      </header>
+      <p class="paper__dek">${esc(a.dek)}</p>
+      ${noteMarkup(a)}
+    </div>
+    ${tier === 1 ? cutMarkup(a) : ''}
+    ${greekMarkup(i, tier === 1 ? GREEK_LINES * 2 : GREEK_LINES)}
   </article>`
+
+/** What sits either side of the nameplate: the price, and the day's number. */
+export interface Flanks {
+  left: string
+  right: string
+}
 
 /**
  * The masthead. A `short` dateline is the same line with the player count
  * dropped: the full one broke onto two lines under 390px, which on a
  * newspaper reads as a page that did not fit rather than as a design.
+ *
+ * `flanks` are the mono lines either side of the name — the price and the
+ * edition's number, which is the oldest thing on a newspaper's front and
+ * the cheapest way to say "printed" rather than "card with a title". They
+ * are hidden on a phone, where the nameplate has no room for them; the
+ * right-hand one is also the only slot on the page a live thing could sit
+ * in, if the room ever keeps the page up while a clock runs.
  */
-const mastheadMarkup = (name: string, dateline: string, short: string | null = null): string => `
+const mastheadMarkup = (
+  name: string,
+  dateline: string,
+  short: string | null = null,
+  flanks: Flanks | null = null,
+): string => `
   <header class="paper__masthead">
-    <p class="paper__name">${esc(name)}</p>
+    <div class="paper__nameplate">
+      <p class="paper__flank paper__flank--left">${flanks ? esc(flanks.left) : ''}</p>
+      <p class="paper__name">${esc(name)}</p>
+      <p class="paper__flank paper__flank--right">${flanks ? esc(flanks.right) : ''}</p>
+    </div>
     <p class="paper__edition">${
       short === null
         ? esc(dateline)
@@ -350,36 +446,225 @@ const mastheadMarkup = (name: string, dateline: string, short: string | null = n
   </header>`
 
 /**
- * The lead across the top, the rest below it.
+ * How a page of `rest` follow-ups is set: how many columns the sheet is
+ * ruled into, and how many of them the lead takes.
  *
- * They used to be CSS columns, filled top to bottom, so four stories read
- * night 2 and night 3 across the top with night 2 again underneath — the
- * record of the game out of order — and a single follow-up sat in a 155px
- * half-column against blank newsprint. A grid fills row by row, which is
- * chronological left to right, and it only splits in two once there are
- * enough stories to be worth a second column.
+ * This is the whole answer to the thing that made the page look unfinished
+ * on a wall. The engine's output swings by a factor of four — a quiet
+ * morning is one story and a colour piece; a bad one is three deaths, a
+ * verdict, two investigations and a breadcrumb — and a page set to one
+ * shape for both has to look wrong for one of them. It was set for the
+ * busy end, so a quiet day ran one 1440px column of 83-character lines
+ * with 274px of blank newsprint under it.
+ *
+ * A real front page answers this by re-ruling: fewer stories, fewer and
+ * wider columns, and a lead given the room the others are not using. The
+ * lead always takes two, because a lead that is one column wide is not a
+ * lead.
  */
-const COLUMN_FROM = 3
+export interface Plan {
+  /** Columns the whole page is ruled into. */
+  cols: number
+  /** How many of them the lead spans. */
+  lead: number
+}
 
-const pageMarkup = (lead: Article | null, rest: readonly Article[]): string => `
-  ${lead ? `<div class="paper__lead">${articleMarkup(lead, 0)}</div>` : ''}
-  ${
-    rest.length > 0
-      ? `<div class="paper__columns"${rest.length >= COLUMN_FROM ? ' data-many' : ''}>${rest
-          .map((a, i) => articleMarkup(a, i + 1))
-          .join('')}</div>`
-      : ''
-  }`
+/**
+ * How much bigger the news is set when there is less of it.
+ *
+ * Re-ruling the sheet answers half the question: fewer stories, fewer and
+ * wider columns. The other half is that a real front page shouts louder on
+ * a thin day — one story at ninety points, not three at thirty with the
+ * rest of the sheet given over to body copy. This is the multiplier on the
+ * headlines and the deks, and only on those: the type block behind them
+ * keeps its reading size, so the share of the page that is actually news
+ * goes up rather than everything growing together.
+ */
+const air = (rest: number): number => (rest <= 1 ? 1.25 : rest <= 2 ? 1.16 : rest <= 4 ? 1.08 : 1)
+
+export const planFor = (rest: number): Plan => {
+  if (rest === 0) return { cols: 1, lead: 1 }
+  if (rest <= 2) return { cols: 3, lead: 2 }
+  if (rest <= 4) return { cols: 4, lead: 2 }
+  return { cols: 5, lead: 2 }
+}
+
+/**
+ * The follow-ups dealt into `k` columns, in reading order: down the first,
+ * then down the second, the way a page is read and the way this game's
+ * record runs — night 2 above night 3, never beside it.
+ *
+ * Balanced by count rather than by height, because height is not knowable
+ * here and a column that is one story short of its neighbour is what a
+ * newspaper looks like anyway. The earlier columns take the extra, so the
+ * news is heaviest on the left.
+ */
+export const columnsOf = <T>(items: readonly T[], k: number): T[][] => {
+  const cols: T[][] = Array.from({ length: Math.max(1, k) }, () => [])
+  if (items.length === 0) return cols
+  const per = Math.ceil(items.length / Math.max(1, k))
+  let at = 0
+  for (const item of items) {
+    // Only step on once this column has had its share AND there is a column
+    // left to step into, so nothing is ever dropped off the end.
+    if (cols[at] !== undefined && cols[at]!.length >= per && at < cols.length - 1) at++
+    cols[at]?.push(item)
+  }
+  return cols
+}
+
+const pageMarkup = (lead: Article | null, rest: readonly Article[], plan = planFor(rest.length)): string => {
+  // A lead as wide as the page has no room beside it, so the columns fall
+  // to the row underneath: that is the final edition, which runs in half
+  // the sheet with "who was who" alongside.
+  const stack = plan.lead >= plan.cols
+  const body = columnsOf(rest, stack ? plan.cols : plan.cols - plan.lead).filter((c) => c.length > 0)
+  let n = 0
+  return `
+    <div class="paper__page"${stack ? ' data-stack' : ''} style="--cols: ${plan.cols}; --lead: ${plan.lead}; --air: ${air(rest.length)}">
+      ${lead ? `<div class="paper__lead">${articleMarkup(lead, 0, 1)}</div>` : ''}
+      ${
+        rest.length > 0
+          ? `<div class="paper__columns"${rest.length >= 3 ? ' data-many' : ''}>${body
+              .map(
+                (col) =>
+                  `<div class="paper__col">${col
+                    .map((a) => {
+                      n++
+                      return articleMarkup(a, n, n === 1 ? 2 : 3)
+                    })
+                    .join('')}</div>`,
+              )
+              .join('')}</div>`
+          : ''
+      }
+    </div>`
+}
 
 /** A morning edition as the page. */
 export const editionMarkup = (e: Edition, locale: Locale): string => {
   const t = strings(locale)
   return `
     <article class="paper paper--daily" data-paper data-edition="${e.day}" aria-label="${esc(t.ui.paper.title)}">
-      ${mastheadMarkup(e.masthead, e.dateline)}
+      ${mastheadMarkup(e.masthead, e.dateline, null, { left: t.ui.paper.price, right: t.ui.paper.number(e.day) })}
       ${pageMarkup(e.lead, e.rest)}
     </article>
   `
+}
+
+/**
+ * Make the page fit the frame it is on, and say so when it cannot.
+ *
+ * A television has no scrollbar and nobody within reach of it, so a page
+ * that runs past the bottom edge has not been pushed down, it has been
+ * thrown away. The final edition was doing exactly that — a whole story
+ * and its dek entirely below the frame — and `scrollHeight === clientHeight`
+ * reported nothing wrong, because the clipping happened two boxes further
+ * out. A layout that can lose a story quietly is worse than one that
+ * obviously does not fit.
+ *
+ * The broadsheet cannot lose one to VOLUME: the greek under each story
+ * takes up the slack, so a column fills whether it holds two stories or
+ * five. What it can still be beaten by is LENGTH — a Spanish headline at
+ * a twelve-seat table, a short frame, a name nobody expected — and that is
+ * what this is for. It steps the type down until the real news fits, and
+ * if it runs out of steps it marks the page `data-fit-over` and says so
+ * once, rather than printing a tidy page with the end missing.
+ *
+ * Measured per column, not per page: each column hides its own overflow so
+ * that the greek can stop at the foot of it, which means the sheet's own
+ * `scrollHeight` is exactly the number that lied last time.
+ *
+ * Cached on what actually decides the layout — the frame, the edition, how
+ * many stories and how many characters — because the room's screen repaints
+ * on every one of the narrator's paints, and this forces a reflow.
+ */
+const FIT_STEPS = [1, 0.92, 0.85, 0.78, 0.7] as const
+
+let fitKey = ''
+let fitStep = 0
+let fitWarned = ''
+
+export const fitPaper = (root: ParentNode): void => {
+  const paper = root.querySelector<HTMLElement>('.stage--tv .paper')
+  if (!paper) {
+    fitKey = ''
+    return
+  }
+  /**
+   * Whether anything real is taller than the box it has to live in.
+   *
+   * Two readings were wrong before this one, and both were wrong in the
+   * direction that costs the room the whole page.
+   *
+   * `scrollHeight` on its own counts a box's scrollable overflow, and every
+   * article carries the `line-in` entrance — a `translateY(4px)` held by
+   * `animation-fill-mode: both` until its stagger delay runs out. A
+   * transformed box counts towards that overflow, so the first paint always
+   * read four pixels too tall, at every step of the ladder, and the answer
+   * was then cached against a key that never changes again: the room read
+   * a whole evening at the smallest type for no reason, on a page that fit
+   * at full size. So the entrance is held off for the length of the
+   * measurement, the way `fitTables` holds a seat's transition.
+   *
+   * Summing the children's `offsetHeight` instead dodged the transform and
+   * was wrong about the lead, which is a grid — the words, the plate beside
+   * them and the type block under both are not a column of boxes, and
+   * adding them up says a page overflows by the height of whichever two
+   * things happen to sit side by side.
+   *
+   * With the transform out of the way `scrollHeight` is simply right, for a
+   * flex column and a grid alike.
+   */
+  const over = (): boolean =>
+    [
+      ...paper.querySelectorAll<HTMLElement>(
+        '.paper__lead, .paper__col, .paper__article, .paper__section',
+      ),
+    ].some((el) => el.scrollHeight > el.clientHeight + 1)
+
+  const key = [
+    window.innerWidth,
+    window.innerHeight,
+    paper.dataset['edition'] ?? 'final',
+    paper.querySelectorAll('.paper__article').length,
+    (paper.textContent ?? '').length,
+    document.documentElement.lang,
+    // A page measured before its own faces have arrived is measured in the
+    // fallback's metrics, which are wider and taller — and the answer would
+    // then be cached against a key that never changes again, so the room
+    // would read an evening at the smallest step for no reason. This is the
+    // trap the stylesheet's own note calls "a region measured mid-paint
+    // keeps a lie all morning", and the fonts are the version of it that
+    // fires on the very first page.
+    typeof document.fonts === 'undefined' ? 'nofonts' : document.fonts.status,
+  ].join('/')
+
+  if (key !== fitKey) {
+    fitKey = key
+    fitStep = 0
+    paper.setAttribute('data-measuring', '')
+    for (let i = 0; i < FIT_STEPS.length; i++) {
+      fitStep = i
+      paper.style.setProperty('--paper-fit', String(FIT_STEPS[i]))
+      if (!over()) break
+    }
+    paper.removeAttribute('data-measuring')
+  } else {
+    paper.style.setProperty('--paper-fit', String(FIT_STEPS[fitStep]))
+  }
+
+  paper.setAttribute('data-measuring', '')
+  const beaten = fitStep === FIT_STEPS.length - 1 && over()
+  paper.removeAttribute('data-measuring')
+  if (beaten) paper.setAttribute('data-fit-over', '')
+  else paper.removeAttribute('data-fit-over')
+  // Once per page, not once per paint: the room's screen repaints whenever
+  // the narrator's phone does.
+  if (beaten && fitWarned !== key) {
+    fitWarned = key
+    console.warn(`[paper] the page still does not fit at ${FIT_STEPS[FIT_STEPS.length - 1]}; a story is being cut`)
+  }
 }
 
 /**
@@ -420,6 +705,8 @@ export interface Casting {
 
 export interface Paper {
   masthead: string
+  /** The night the game ended on: the nameplate's edition number. */
+  night: number
   edition: string
   /** The edition line without the player count, for a phone under 390px. */
   editionShort: string
@@ -495,6 +782,7 @@ export const paperFrom = (state: PaperSource, locale: Locale): Paper => {
 
   return {
     masthead: t.appName,
+    night: state.night,
     edition: t.ui.paper.edition(state.night, state.players.length),
     editionShort: t.ui.paper.editionShort(state.night),
     // Nobody won: the narrator ended it early. The page used to fall back to
@@ -552,9 +840,14 @@ export const paperPage = (paper: Paper, locale: Locale): string => {
 
   return `
     <article class="paper" data-paper aria-label="${esc(t.ui.paper.title)}">
-      ${mastheadMarkup(paper.masthead, paper.edition, paper.editionShort)}
+      ${mastheadMarkup(paper.masthead, paper.edition, paper.editionShort, { left: t.ui.paper.price, right: t.ui.paper.number(paper.night) })}
       <h2 class="paper__banner">${esc(paper.banner)}</h2>
-      ${pageMarkup(lead, rest)}
+      ${
+        // The last page runs in half the sheet, with who was who beside it,
+        // so it is ruled for that: the lead across its own width and the
+        // evening's deaths in two columns under it.
+        pageMarkup(lead, rest, { cols: 2, lead: 2 })
+      }
       <section class="paper__section">
         <h3 class="paper__label">${esc(t.ui.paper.whoWasWho)}</h3>
         <ul class="paper__cast">${cast}</ul>

@@ -199,8 +199,14 @@ describe('the daily edition', () => {
     expect(html).not.toContain(t.roles.SILENCE.name)
     for (const id of ROLE_IDS) expect(bare(html)).not.toContain(`"${id}"`)
     // The investigations carry the revealed roles' sigils and no other.
+    // Two KILLERs, not one: the lead prints its own mark twice, small
+    // beside the headline for the hand and again as the plate a wall
+    // carries in place of a photograph. Still an exact list, and still the
+    // same two roles — the second is a copy of the first, not a third
+    // player's card. Add to it on purpose, never by loosening the check.
     const sigils = [...html.matchAll(/data-sigil="([A-Z_]+)"/g)].map((m) => m[1])
-    expect(sigils).toEqual(['KILLER', 'PLAIN'])
+    expect(sigils).toEqual(['KILLER', 'KILLER', 'PLAIN'])
+    expect(new Set(sigils)).toEqual(new Set(['KILLER', 'PLAIN']))
     // The dead are struck through in their headlines.
     expect(editionMarkup(edition(state, 1, locale), locale)).toContain('<s class="paper__struck">Beto</s>')
     // Day one carries nobody's role at all; the Family is named only as the

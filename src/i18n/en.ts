@@ -441,7 +441,17 @@ export const en: Strings = {
       cannotShare: 'This browser cannot draw the page. A screenshot will do.',
       holdHint: 'Press and hold the image to save or share it',
       daily: (day) => `Morning edition · Day ${day}`,
+      price: 'Price 5¢',
+      number: (n) => `No. ${n}`,
       side: { town: 'The town', crew: 'The Family' },
+      kicker: {
+        death: 'Last night',
+        verdict: 'The verdict',
+        event: 'Last night',
+        investigation: 'The police',
+        clue: 'Word going round',
+        colour: 'Notices',
+      },
       headline: {
         killers: [
           (name) => `${name} found dead`,
