@@ -64,7 +64,7 @@ import { seatProjection, waitingSeat, type SeatProjection } from '../room/projec
 import { acceptAction, acceptMark } from '../room/actions'
 import { timelineMarkup, type Notice } from './screens/timeline'
 import { fitTables } from './screens/circle'
-import { dailyMarkup, edition, paperMarkup, sharePaper, type ShareResult } from './screens/paper'
+import { dailyMarkup, edition, fitPaper, paperMarkup, sharePaper, tracksFor, type ShareResult } from './screens/paper'
 import {
   TIMER_LENGTHS,
   formatClock,
@@ -820,12 +820,29 @@ unlockOnGesture()
 // The room a table has changes with the viewport (a rotation, the keyboard
 // bar, a split view), not only with a paint: watch the root's box and let
 // the circle fall back to rows, or come back, as it does.
+let ruled = tracksFor(window.innerWidth)
 const refit = (): void => {
+  // The morning's page is ruled for the frame it is on (`tracksFor`), and
+  // the ruling is in the markup: a window dragged across the line is set
+  // again rather than fitted harder.
+  const tracks = tracksFor(window.innerWidth)
+  if (tracks !== ruled) {
+    ruled = tracks
+    if (root.querySelector('.paper--daily') !== null) {
+      setState({}, false)
+      return
+    }
+  }
   fitTables(root)
   markEdges(root)
+  // The morning's page is a sheet on a tablet or a laptop, the same as on
+  // the television, and it is fitted the same way — on the paint, and again
+  // when the frame or the faces change.
+  fitPaper(root)
 }
 window.addEventListener('resize', refit)
 if (typeof ResizeObserver !== 'undefined') new ResizeObserver(refit).observe(root)
+if (typeof document.fonts !== 'undefined') void document.fonts.ready.then(refit)
 
 window.addEventListener('beforeinstallprompt', (event) => {
   event.preventDefault()
@@ -1107,6 +1124,8 @@ function render(entering = false): void {
   fitTables(root)
   // ...and any region that ends up scrolling says so at the edge it clips.
   markEdges(root)
+  // ...and a page that is a sheet is fitted to its frame, before it is seen.
+  fitPaper(root)
   // The handle every sheet wears means what it says.
   bindSheetDrag(root, () => {
     if (dismissSheets()) {

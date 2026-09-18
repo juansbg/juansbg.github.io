@@ -403,6 +403,17 @@ export interface Strings {
     }
     paper: {
       title: string
+      /**
+       * The paper's own name, on the nameplate of every edition and the
+       * shared PNG. It was `appName`, so a paper called The Family reported
+       * on the Family every morning; a real front page has its own name
+       * and this is where it lives — NOT `APP_NAME`, which stays the one
+       * place the app's name is written. One name for both tables where
+       * one will do, a matched pair where it will not. The paper's banks
+       * test holds it clear of every trade and every role, like any other
+       * line the town reads.
+       */
+      masthead: string
       /** The dateline under the masthead: how many nights, how many at the table. */
       edition: (nights: number, players: number) => string
       /** The same line with the player count dropped, for a narrow phone. */

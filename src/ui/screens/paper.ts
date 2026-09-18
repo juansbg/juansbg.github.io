@@ -310,7 +310,7 @@ export const editionOf = (src: EditionSource, locale: Locale): Edition => {
         }),
       )
     : null
-  return { masthead: t.appName, dateline: p.daily(src.day), day: src.day, lead, rest, roll }
+  return { masthead: t.ui.paper.masthead, dateline: p.daily(src.day), day: src.day, lead, rest, roll }
 }
 
 /** The edition of a day, from the narrator's own state. */
@@ -498,7 +498,7 @@ const cutMarkup = (a: Article): string => {
  * the rank here is the page order the edition was built in, which is the
  * order the town cares about.
  */
-const articleMarkup = (a: Article, i: number, tier = 3): string => `
+const articleMarkup = (a: Article, i: number, tier = 3, said = false): string => `
   <article class="paper__article" data-kind="${a.kind}" data-tier="${tier}"${a.accent ? ` data-accent="${a.accent}"` : ''} style="--i: ${i}; --chars: ${Math.max(
     1,
     a.headline.length,
@@ -506,7 +506,7 @@ const articleMarkup = (a: Article, i: number, tier = 3): string => `
     <header class="paper__head">
       ${a.mark ? `<span class="mark paper__mark" aria-hidden="true">${a.mark}</span>` : ''}
       <div class="paper__title">
-        ${a.eyebrow ? `<p class="paper__eyebrow">${esc(a.eyebrow)}</p>` : ''}
+        ${a.eyebrow ? `<p class="paper__eyebrow"${said ? ' data-said' : ''}>${esc(a.eyebrow)}</p>` : ''}
         <h3 class="paper__headline">${headlineMarkup(a)}</h3>
       </div>
     </header>
@@ -606,12 +606,33 @@ export interface Plan {
  */
 const air = (rest: number): number => (rest <= 1 ? 1.25 : rest <= 2 ? 1.16 : rest <= 4 ? 1.08 : 1)
 
-export const planFor = (rest: number): Plan => {
+export const planFor = (rest: number, tracks = 5): Plan => {
   if (rest === 0) return { cols: 1, lead: 1 }
   if (rest <= 2) return { cols: 3, lead: 2 }
-  if (rest <= 4) return { cols: 4, lead: 2 }
-  return { cols: 5, lead: 2 }
+  if (rest <= 4) return { cols: Math.min(4, tracks), lead: 2 }
+  return { cols: Math.min(5, tracks), lead: 2 }
 }
+
+/**
+ * How many columns a sheet this wide can honestly be ruled into.
+ *
+ * Five columns need sixteen hundred pixels. The plan used to come from the
+ * story count alone, so a busy morning on a 1024px frame was ruled into
+ * five columns of 176px beside the register — twenty-two characters of
+ * dek, where a newspaper column is thirty-five to forty-five — and the
+ * lead, two of those columns wide with a plate in it, broke its own
+ * headline mid-word: THE / FAMILY' / S / REGARD / S. A 720p television
+ * got the same page. A sheet under sixteen hundred is ruled into four at
+ * most, which at 1280 is a 234px column, and under twelve hundred the
+ * stylesheet sets it as a tabloid and does not read the count at all.
+ *
+ * Mirrored in `styles.css` ("The paper on a tablet") the way `fitTables`
+ * mirrors the seat algebra: the frame decides, and the page is re-set when
+ * the frame crosses the line.
+ */
+export const tracksFor = (width: number): number => (width >= 1600 ? 5 : 4)
+
+const sheetTracks = (): number => (typeof window === 'undefined' ? 5 : tracksFor(window.innerWidth))
 
 /**
  * The follow-ups dealt into `k` columns, in reading order: down the first,
@@ -680,8 +701,11 @@ const pageMarkup = (
   // which is a template repeating itself rather than an edited page. The
   // label says what KIND of thing follows, so it only has to say it when
   // the kind changes — counted down the whole page, not down each column,
-  // because a phone sets the same articles in one flow and two columns
-  // side by side on a wall read as next to each other anyway.
+  // because a phone sets the same articles in one flow. A repeat is still
+  // in the markup, marked `data-said`: the phone hides it, and a sheet
+  // shows it again at the top of a column, because a column whose first
+  // story has no kicker starts its headline a line above its neighbours'
+  // and the whole deck reads as mis-set.
   let said: string | null = null
   return `
     <div class="paper__page"${stack ? ' data-stack' : ''}${foot ? ' data-foot' : ''}${roll ? ' data-roll' : ''} style="--cols: ${plan.cols}; --lead: ${plan.lead}; --foot-from: ${plan.lead + 1}; --air: ${air(rest.length)}">
@@ -696,7 +720,7 @@ const pageMarkup = (
                       n++
                       const same = said !== null && said === a.eyebrow
                       said = a.eyebrow
-                      return articleMarkup(same ? { ...a, eyebrow: null } : a, n, n === 1 ? 2 : 3)
+                      return articleMarkup(a, n, n === 1 ? 2 : 3, same)
                     })
                     .join('')}</div>`,
               )
@@ -706,11 +730,7 @@ const pageMarkup = (
       ${
         foot === undefined
           ? ''
-          : `<div class="paper__foot">${articleMarkup(
-              said !== null && said === foot.eyebrow ? { ...foot, eyebrow: null } : foot,
-              n + 1,
-              3,
-            )}</div>`
+          : `<div class="paper__foot">${articleMarkup(foot, n + 1, 3, said !== null && said === foot.eyebrow)}</div>`
       }
       ${roll ?? ''}
     </div>`
@@ -782,7 +802,7 @@ export const editionMarkup = (e: Edition, locale: Locale, clock: TimerView | nul
   return `
     <article class="paper paper--daily" data-paper data-edition="${e.day}" aria-label="${esc(t.ui.paper.title)}">
       ${mastheadMarkup(e.masthead, e.dateline, null, { left: t.ui.paper.price, right: t.ui.paper.number(e.day) }, false, ear)}
-      ${pageMarkup(e.lead, e.rest, undefined, e.roll === null ? undefined : rollMarkup(e.roll, locale))}
+      ${pageMarkup(e.lead, e.rest, planFor(e.rest.length, sheetTracks()), e.roll === null ? undefined : rollMarkup(e.roll, locale))}
     </article>
   `
 }
@@ -790,7 +810,9 @@ export const editionMarkup = (e: Edition, locale: Locale, clock: TimerView | nul
 /**
  * Make the page fit the frame it is on, and say so when it cannot.
  *
- * A television has no scrollbar and nobody within reach of it, so a page
+ * On every sheet, not only the television's: the narrator's own copy is one
+ * from a tablet's width up (`styles.css`, "The paper on a sheet"), and it
+ * is what a table with no television looks at. A television has no scrollbar and nobody within reach of it, so a page
  * that runs past the bottom edge has not been pushed down, it has been
  * thrown away. The final edition was doing exactly that — a whole story
  * and its dek entirely below the frame — and `scrollHeight === clientHeight`
@@ -832,11 +854,34 @@ let fitFill: string | null = null
 let fitThin: number[] = []
 let fitBeaten = false
 let fitWarned = ''
+let fitName = 0
+let fitEars = false
+
+/** The nameplate's ladder: the name steps down until it clears its ears. */
+const NAME_STEPS = [1, 0.9, 0.8, 0.72, 0.64] as const
 
 export const fitPaper = (root: ParentNode): void => {
-  const paper = root.querySelector<HTMLElement>('.stage--tv .paper')
-  if (!paper) {
+  // A sheet is a paper that fills its frame and does not scroll, and the
+  // stylesheet decides which papers are: the television's, always, and the
+  // morning edition on any frame from a tablet up. It is read off the box
+  // rather than off a class or a media query mirrored here, so this and
+  // the stylesheet cannot disagree about which page is being measured. A
+  // page that scrolls is the phone's and has a hand on it; measuring it
+  // would find real type below the fold and shrink the page to fit a
+  // frame it was never asked to fit.
+  const paper = root.querySelector<HTMLElement>('.paper')
+  const plate = paper?.querySelector<HTMLElement>('.paper__nameplate') ?? null
+  if (!paper || getComputedStyle(paper).overflowY !== 'hidden') {
     fitKey = ''
+    // A frame that has just stopped being a sheet keeps nothing the last
+    // measurement left on it.
+    if (paper) {
+      paper.style.removeProperty('--paper-fit')
+      paper.style.removeProperty('--name-fit')
+      paper.removeAttribute('data-fit-over')
+      plate?.removeAttribute('data-no-ears')
+      for (const block of paper.querySelectorAll('.paper__scribbles')) block.removeAttribute('data-thin')
+    }
     return
   }
 
@@ -863,6 +908,9 @@ export const fitPaper = (root: ParentNode): void => {
   if (key === fitKey) {
     // Same page, same answers. Nothing here reads a layout.
     paper.style.setProperty('--paper-fit', String(FIT_STEPS[fitStep]))
+    paper.style.setProperty('--name-fit', String(NAME_STEPS[fitName]))
+    if (fitEars) plate?.setAttribute('data-no-ears', '')
+    else plate?.removeAttribute('data-no-ears')
     if (head !== null) {
       if (fitFill === null) head.style.removeProperty('--fill')
       else head.style.setProperty('--fill', fitFill)
@@ -963,13 +1011,105 @@ export const fitPaper = (root: ParentNode): void => {
     )
   }
 
-  const over = (): boolean => [...paper.querySelectorAll<HTMLElement>(INK)].some(cut)
+  /**
+   * Whether the lead's dek has been broken across its two columns.
+   *
+   * The dek is the lead's first paragraph and it flows into column one,
+   * with `break-inside: avoid` — which a browser honours only when the
+   * paragraph is shorter than the column. On a tablet a fifteen-seat
+   * Spanish dek was taller than the lead's body, so it broke anyway:
+   * "...Para el" in column one and "pueblo, el estanquero." at the top of
+   * column two, with nothing cut and nothing for the check above to find.
+   * A dek whose lines do not share a left edge has been split, and a split
+   * dek is a page that does not fit.
+   */
+  const split = (): boolean => {
+    const dek = paper.querySelector<HTMLElement>('.paper__lead .paper__dek')
+    if (dek === null) return false
+    const range = document.createRange()
+    range.selectNodeContents(dek)
+    let least = Infinity
+    let most = -Infinity
+    for (const rect of range.getClientRects()) {
+      if (rect.width === 0 || rect.height === 0) continue
+      least = Math.min(least, rect.left)
+      most = Math.max(most, rect.left)
+    }
+    if (most - least > 8) return true
+    // And the label under it belongs to it. With the dek filling column
+    // one exactly, its side swatch went over the break to the top of
+    // column two, where it sat over a block of greek and read as that
+    // column's kicker — the town's mark on a block of nothing.
+    const note = paper.querySelector<HTMLElement>('.paper__lead .paper__note')
+    if (note === null) return false
+    const box = note.getBoundingClientRect()
+    return box.width > 0 && Math.abs(box.left - least) > 8
+  }
+
+  const over = (): boolean => split() || [...paper.querySelectorAll<HTMLElement>(INK)].some(cut)
 
   fitKey = key
   paper.setAttribute('data-measuring', '')
   paper.style.setProperty('--paper-fit', '1')
   head?.style.removeProperty('--fill')
   for (const block of blocks()) block.removeAttribute('data-thin')
+
+  /**
+   * The nameplate and its ears.
+   *
+   * The name sits in an `auto` track between two `1fr` sides, so the
+   * hairlines take the slack and the name never moves off the sheet's axis
+   * — and so, when the name is wider than the sheet can spare, the sides
+   * go to zero and the ears overflow them into the name. That is not a cut
+   * the pass above can see: nothing clips a side, so a flank drawn under
+   * THE FAMILY is entirely visible and entirely unreadable. Every frame
+   * from 768 to 1280px on the narrator's own copy shipped like that,
+   * PRICE 5¢ half under the name and NO. 1 clipped to NO. at the edge.
+   *
+   * So the name is asked directly whether it clears both ears, and stepped
+   * down until it does. It is measured rather than computed from a
+   * character count, because the ears are set in a different face and
+   * another language is seventy pixels wider. If it will not clear them at
+   * the last step, the ears go, the way a phone's do — a nameplate with
+   * no price on it is a nameplate; one with the price under the name is a
+   * misprint.
+   */
+  fitName = 0
+  fitEars = false
+  paper.style.setProperty('--name-fit', '1')
+  plate?.removeAttribute('data-no-ears')
+  const name = plate?.querySelector<HTMLElement>('.paper__name') ?? null
+  if (plate !== null && name !== null) {
+    const flanks = [...plate.querySelectorAll<HTMLElement>('.paper__flank')]
+    const clash = (): boolean => {
+      const n = name.getBoundingClientRect()
+      if (n.width === 0) return false
+      return flanks.some((flank) => {
+        const box = flank.getBoundingClientRect()
+        if (box.width === 0) return false
+        const holder = flank.parentElement
+        const side = holder?.getBoundingClientRect()
+        // Into the name, or out of its own side — either way it is
+        // somewhere the plate did not set it. The side's own overflow
+        // counts too: its hairline has a minimum length, so a side that
+        // cannot hold the ear AND a rule is a side the name is crowding.
+        return (
+          (box.right > n.left + 1 && box.left < n.right - 1) ||
+          (side !== undefined && (box.left < side.left - 1 || box.right > side.right + 1)) ||
+          (holder !== null && holder.scrollWidth > holder.clientWidth + 1)
+        )
+      })
+    }
+    for (let i = 0; i < NAME_STEPS.length; i++) {
+      fitName = i
+      paper.style.setProperty('--name-fit', String(NAME_STEPS[i]))
+      if (!clash()) break
+    }
+    if (clash()) {
+      fitEars = true
+      plate.setAttribute('data-no-ears', '')
+    }
+  }
 
   /**
    * The lead's headline, sized off its own character count, corrected by
@@ -1038,15 +1178,8 @@ export const fitPaper = (root: ParentNode): void => {
     fitFill = null
   }
 
-  fitStep = 0
-  for (let i = 0; i < FIT_STEPS.length; i++) {
-    fitStep = i
-    paper.style.setProperty('--paper-fit', String(FIT_STEPS[i]))
-    if (!over()) break
-  }
-
   /**
-   * And then the type blocks that got too little to be blocks.
+   * The type blocks that got too little to be blocks.
    *
    * A column shares its slack between the stories in it, so a column with
    * four short stories gives each of them one line of greek — and one line
@@ -1067,20 +1200,44 @@ export const fitPaper = (root: ParentNode): void => {
    */
   const MIN_LINES = 3
   const all = blocks()
-  for (let pass = 0; pass < 2; pass++) {
-    let changed = false
-    for (const block of all) {
-      if (block.hasAttribute('data-thin')) continue
-      const line = block.querySelector<HTMLElement>('.paper__line')
-      if (!line) continue
-      const leading = line.offsetHeight + parseFloat(getComputedStyle(line).marginBottom)
-      if (!(leading > 0)) continue
-      if (block.clientHeight < leading * MIN_LINES) {
-        block.setAttribute('data-thin', '')
-        changed = true
+  const thin = (): void => {
+    for (const block of all) block.removeAttribute('data-thin')
+    for (let pass = 0; pass < 2; pass++) {
+      let changed = false
+      for (const block of all) {
+        if (block.hasAttribute('data-thin')) continue
+        const line = block.querySelector<HTMLElement>('.paper__line')
+        if (!line) continue
+        const leading = line.offsetHeight + parseFloat(getComputedStyle(line).marginBottom)
+        if (!(leading > 0)) continue
+        if (block.clientHeight < leading * MIN_LINES) {
+          block.setAttribute('data-thin', '')
+          changed = true
+        }
       }
+      if (!changed) break
     }
-    if (!changed) break
+  }
+
+  /**
+   * The ladder, with the thin pass inside each step rather than after the
+   * last one. Taking a type block off moves every story in its column —
+   * the articles share the column by flex and may shrink below their own
+   * content — so the page the room gets is not the page the step measured.
+   * On a 1024x768 Spanish morning the ladder stopped at 0.85 with nothing
+   * cut, the thin pass then hid two blocks, and a dek was clipped by its
+   * column on a page that had just been passed. The answer a step gives is
+   * only an answer for the page that step leaves behind, so it is asked
+   * again after the blocks have been taken off.
+   */
+  fitStep = 0
+  for (let i = 0; i < FIT_STEPS.length; i++) {
+    fitStep = i
+    paper.style.setProperty('--paper-fit', String(FIT_STEPS[i]))
+    for (const block of all) block.removeAttribute('data-thin')
+    if (over()) continue
+    thin()
+    if (!over()) break
   }
   fitThin = all.flatMap((block, at) => (block.hasAttribute('data-thin') ? [at] : []))
 
@@ -1215,7 +1372,7 @@ export const paperFrom = (state: PaperSource, locale: Locale): Paper => {
   }))
 
   return {
-    masthead: t.appName,
+    masthead: t.ui.paper.masthead,
     night: state.night,
     edition: t.ui.paper.edition(state.night, state.players.length),
     editionShort: t.ui.paper.editionShort(state.night),
