@@ -247,6 +247,83 @@ how many asked, what `--paper-fit` settled at and whether it was beaten.
 ladder bottoms out, the page marks itself, the console says so once, and
 the frame coming back restores it.
 
+## 5c. The page on a tablet, and on the narrator's own device (2026-09-18)
+
+Section 5b designed the wall's page and keyed every rule of it on
+`.stage--tv`. The narrator's own copy — `dailyMarkup` on the phone route —
+got none of it at any width: an iPad in either orientation, a laptop and a
+phone on its side all drew the phone's one column, capped at the phone's
+34rem, in the middle of a screen twice as wide, with the wall's ears bolted
+onto a nameplate that had never been told about them. PRICE 5¢ sat under THE
+FAMILY by 52 to 61px on every frame from 768 to 1280, which is what the user
+saw, and the user reasonably said the redesign "doesn't look that much more
+impressive": the surface a table without a television looks at was the
+unimproved one. The rules a change has to keep now:
+
+- **A sheet is decided by the frame, not the surface.** A sheet is a page
+  that fills its frame and does not scroll: the morning edition on any frame
+  from 48rem wide and 28rem tall up, and everything the television shows.
+  `:is(.paper--daily, .stage--tv .paper)` is that, and it is the prefix on
+  every rule in the sheet section of `styles.css`. Height is in the gate
+  because a phone on its side is 844 by 390 and no sheet fits in 390px.
+  `fitPaper` reads which papers are sheets off the box (`overflow-y:
+  hidden`), never off a class or a mirrored media query, so it and the
+  stylesheet cannot disagree; a page that scrolls has a hand on it and is
+  left alone.
+- **Three rulings, one paper.** Under 75rem the sheet is a tabloid. Upright:
+  the lead across the top, the follow-ups in two columns under it — three
+  once there are two boxes and a foot — and the register a strip along the
+  foot. On its side: the lead down the left the full depth, the stories in
+  two columns beside it, and with a foot, three columns beside a lead that
+  gives up its plate for the width (the mark comes back beside the words).
+  From 75rem the broadsheet, with the register as a column. The column
+  boxes `columnsOf` dealt for a wall are kept as they are — read across a
+  row and then down they are still in order — and each still clips its own
+  type block at the foot of its cell.
+- **Five columns need sixteen hundred pixels.** `planFor` used to rule from
+  the story count alone, so a busy morning on a 1024px frame was five
+  columns of 176px with the lead breaking its own headline mid-word.
+  `tracksFor(width)` caps the plan at four under 1600, and both surfaces
+  re-set the page when the frame crosses that line rather than fitting it
+  harder (`refit` in `app.ts`, the resize handler in `tv.ts`).
+- **The nameplate is measured, not computed.** The name sits in an `auto`
+  track between two `1fr` sides so it never leaves the axis — which is also
+  why, when it is too wide, the sides go to zero and the ears overflow into
+  it, and nothing clips them, so the cut check cannot see it. `fitPaper`
+  asks the name directly whether it clears both ears and steps `--name-fit`
+  down until it does; a side that cannot hold its ear and a rule of minimum
+  length counts as crowded, because an eight-pixel hairline reads as a
+  hyphen. If the last step still collides the ears go (`data-no-ears`), the
+  way a phone's do: a nameplate without a price is a nameplate, one with the
+  price under the name is a misprint. This runs before the ladder, because
+  it changes the masthead's height.
+- **A split dek is a page that does not fit.** `break-inside: avoid` is
+  honoured only while the paragraph is shorter than the column; a
+  fifteen-seat Spanish dek broke across the lead's two columns with nothing
+  cut and nothing for the cut check to find. A dek whose lines do not share
+  a left edge is now `over()`.
+- **The answer a ladder step gives is only an answer for the page that step
+  leaves behind.** Taking a thin type block off moves every story in its
+  column, so the thin pass runs inside each step and the step is measured
+  again after it. Before that the ladder passed a page at 0.85 whose dek was
+  then clipped by the layout the thin pass produced.
+- **The plate weighs nothing in its row.** Its sigil is a share of the
+  plate's height, and when nothing beside the plate is taller than its floor
+  that height was the sigil's own — a percentage of an indefinite height is
+  `auto`, the sigil took 82% of the plate's width, and a two-line headline
+  got a hand's width of bare newsprint under it. `contain: size` on the plate.
+
+The evidence is `scratchpad/paper/sheet.mjs`: it opens a real table, stops
+on the narrator's own copy of each morning, walks a phone, a phone on its
+side, two iPads in portrait, an iPad in landscape, the user's 1132×871
+window, and three laptop widths, then the wall at four sizes, and reports
+for each the masthead's same-line collisions, whether any ear is outside the
+sheet, how many runs of real type are cut by an instrument that is not the
+page's own, whether the page scrolls, what the fit pass settled at, where
+every box landed, and the shot. Three mornings at fifteen seats in Spanish
+and two at eight and five in English pass on every frame; `beaten.mjs` still
+bottoms out and recovers.
+
 ## 6. Engine, projection, UI — what changes where
 
 - **Engine** (`src/engine/`): `Player.trade`, `GameState.seed`, trades in

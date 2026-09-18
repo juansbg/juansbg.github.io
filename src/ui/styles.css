@@ -2592,6 +2592,12 @@ html[data-dawn] body {
 
 .paper__side .paper__rule {
   flex: 1 1 auto;
+  /* A rule has to be a rule. Stepped down only until the name CLEARED its
+     ears, the nameplate at 768px set PRICE 5¢ against an eight-pixel
+     stub of hairline that read as a hyphen; the guard asks that nothing
+     in a side overflows it, so the name steps down until the ear and
+     this much rule both fit. */
+  min-width: var(--space-5);
 }
 
 .paper__name {
@@ -2616,9 +2622,23 @@ html[data-dawn] body {
   letter-spacing: var(--track-label);
   text-transform: uppercase;
   white-space: nowrap;
+  /* The two ears take the same width — the wider of the pair, PRECIO 5
+     CTS. — so the hairline from each to the name is the same length. The
+     name is centred on the sheet either way, but with a 60px rule on one
+     side and a 260px rule on the other it did not look it, and a nameplate
+     that looks off its axis is off its axis. */
+  min-width: 8.5em;
 }
 
-@media (max-width: 47.99rem) {
+.paper__flank--left {
+  text-align: start;
+}
+
+.paper__flank--right {
+  text-align: end;
+}
+
+@media (max-width: 47.99rem), (max-height: 27.99rem) {
   .paper__nameplate {
     display: block;
   }
@@ -2626,6 +2646,17 @@ html[data-dawn] body {
   .paper__nameplate .paper__side {
     display: none;
   }
+}
+
+/* The backstop under the nameplate guard in `fitPaper`: a name that will
+   not clear its ears at the smallest step the guard allows loses the ears,
+   the way a phone's does, rather than sitting on them. */
+.paper__nameplate[data-no-ears] {
+  display: block;
+}
+
+.paper__nameplate[data-no-ears] .paper__side {
+  display: none;
 }
 
 .paper__edition,
@@ -2887,6 +2918,13 @@ html[data-dawn] body {
   margin-bottom: var(--space-1);
 }
 
+/* A kicker the page has just said is not said again in one flow; at the
+   top of a column on a sheet it is, so every column's first headline hangs
+   from the same line (below, in the sheet section). */
+.paper__eyebrow[data-said] {
+  display: none;
+}
+
 .paper__note {
   margin-top: var(--space-1);
   letter-spacing: 0;
@@ -3000,7 +3038,10 @@ html[data-dawn] body {
   height: var(--greek-ink);
   margin-right: 2.2%;
   vertical-align: top;
-  background: color-mix(in oklab, var(--on-newsprint) 42%, transparent);
+  /* Texture behind the copy, not copy. At 42% two columns of greek were
+     the largest mass of ink on a 1280 page, darker than the headlines, and
+     the eye landed on the fake copy first. */
+  background: color-mix(in oklab, var(--on-newsprint) 33%, transparent);
 }
 
 .paper__section {
@@ -3120,7 +3161,7 @@ html[data-dawn] body {
   gap: var(--space-3);
 }
 
-/* ---------- The paper on a wall ---------- */
+/* ---------- The paper on a sheet ---------- */
 
 /* A television is the one place this page is READ rather than glanced at,
    by a room on a sofa, for the length of an argument — and the one place
@@ -3134,13 +3175,28 @@ html[data-dawn] body {
    three scribbles under each headline, which pass for body copy in the
    hand, read as loading bars at three metres.
 
-   So the page is ruled like a broadsheet instead. Everything below is
-   gated on width as well as on `.stage--tv`, because `/tv.html` opened on
-   a phone is still the screen's page and a phone cannot carry five
-   columns. */
-.stage--tv .screen--paper {
-  max-width: 100%;
-  gap: var(--space-2);
+   So the page is ruled like a broadsheet instead — and not only on a
+   television. Everything here was keyed on `.stage--tv`, which meant the
+   narrator's own copy of the page got none of it at any width: an iPad, a
+   laptop and a phone on its side all drew the phone's one column, capped
+   at the phone's 34rem, in the middle of a screen twice as wide, with the
+   wall's ears bolted onto a nameplate that had never been told about them.
+   That is the surface a table without a television actually looks at, and
+   it is where the user saw PRICE 5¢ half under THE FAMILY.
+
+   A SHEET is a page that fills the frame it is on and does not scroll:
+   the morning edition on any frame from a tablet up, and everything the
+   television shows. `:is(.paper--daily, .stage--tv .paper)` is that, and
+   it is the prefix on every rule in this section. Gated on width because
+   `/tv.html` opened on a phone is still the screen's page and a phone can
+   carry neither five columns nor the ears — and on height, because a phone
+   turned on its side is 844 by 390 and no sheet fits in 390px; there the
+   page is the phone's and scrolls. */
+@media (min-width: 48rem) and (min-height: 28rem) {
+  .screen--paper {
+    max-width: 100%;
+    gap: var(--space-2);
+  }
 }
 
 /* Held off while the page is measured: the entrance is a transform, and a
@@ -3163,158 +3219,178 @@ html[data-dawn] body {
   overflow: hidden;
 }
 
-/* The nameplate is the largest thing on a front page and the thing that
-   tells your eye how wide the sheet is. At 7vmin with the price and the
-   number marooned at the far edges it was a small centred logo on a header
-   bar, taking 18% of the measure. */
-.stage--tv .paper__name {
-  font-size: clamp(3rem, 12vmin, 10rem);
-  letter-spacing: 0.16em;
-  /* No indent to correct the tracking's trailing space. It was 0.16em on
-     the theory that a tracked line sits half a space left of centre, and
-     the theory was wrong here: measured, 0.16em put the ink 10px RIGHT of
-     the sheet's axis and 0.08em put it 5px right, which is a straight
-     line through zero. Chrome is already trimming it. */
-}
-
-.stage--tv .paper__flank {
-  font-size: clamp(0.9rem, 1.7vmin, 1.4rem);
-}
-
-/* The one live thing on the sheet, and it has to look right holding 3:00
-   un-started as well as mid-count: the narrator cannot start the clock
-   until they have left the page, so the first frame the room sees is
-   always idle. Its word is the day screen's word, so the two never
-   disagree about whether the town is paused or out of time. */
-.stage--tv .paper__clock {
-  align-items: baseline;
-  gap: var(--space-3);
-}
-
-/* Dimmed to the price's ink. At full Midnight a figure that changes every
-   second was the second-strongest thing in the masthead after the
-   nameplate, pulling the eye once a second for the length of an argument;
-   an ear is quieter than both. It reads at three metres because the price
-   does, at the same weight. */
-/* And it does not ride the fit ladder down. The ladder exists so the news
-   fits, and shrinking the greek to pay for that is free because nobody
-   reads it — that is what it is for. The clock is the only thing on the
-   sheet that changes, it is glanced at from a sofa rather than read, and
-   it was coming out at 16px on a 720p television and 12px in a small
-   window, which is not a clock. It scales with the screen, not with how
-   crowded the page is. */
-.stage--tv .paper__clock-said {
-  font-size: clamp(0.95rem, 1.6vmin, 1.4rem);
-}
-
-.stage--tv .paper__clock-digits {
-  font-size: clamp(1.15rem, 2.4vmin, 2rem);
-  color: var(--on-newsprint-muted);
-}
-
-/* Out of time is a rule, not red type: on newsprint Vendetta rules and
-   strikes and never sets a word, which a clock at 0:00 would have been. */
-.stage--tv .paper__clock[data-phase='done'] {
-  padding-bottom: 2px;
-  border-bottom: 3px solid var(--lethal);
-}
-
-/* The paper's reading copy was the smallest thing in the room: a 24px dek
-   under a 60px headline. Everything scales with the frame, and with
-   `--paper-fit`, which is 1 until the page does not fit. */
-.stage--tv .paper__edition,
-.stage--tv .paper__note,
-.stage--tv .paper__eyebrow,
-.stage--tv .paper__caption {
-  font-size: calc(clamp(0.95rem, 1.6vmin, 1.5rem) * var(--paper-fit, 1));
-}
-
-.stage--tv .paper__headline {
-  font-size: calc(clamp(1.5rem, 3vmin, 2.8rem) * var(--paper-fit, 1) * var(--air, 1));
-}
-
-/* Three sizes of type, and they mean something: the lead, the story at the
-   top of the first column, and the rest. A front page ranks its news by
-   how loudly it is set, and the rank here is the order the edition was
-   built in — deaths, then the verdict, then what happened, then what the
-   police found, then the colour. */
-.stage--tv .paper__article[data-tier='2'] .paper__headline {
-  font-size: calc(clamp(1.8rem, 3.9vmin, 3.6rem) * var(--paper-fit, 1) * var(--air, 1));
-}
-
-/* The lead's headline is set to its own word count.
-   One fixed size for every headline guarantees a hole every time the
-   engine writes something short, and the engine writes short often:
-   "EVERYBODY WOKE UP" filled 51% of its measure and left 555x100 of bare
-   Ash beside it, while a long Spanish head on the same design filled its
-   box exactly and had no hole at all. A sub writes to a count and the
-   display size is chosen so the head fills its box; this is the same
-   arithmetic without the sub — a pivot of thirty-four characters, with a
-   floor so a long head still sets, and a ceiling so a two-word morning
-   does not shout off the sheet. */
-.stage--tv .paper__lead .paper__headline {
-  /* `--fill` is `fitPaper`'s, not the stylesheet's. It was a `clamp()`
-     here and the guard read it back with `getComputedStyle`, which for an
-     unregistered custom property hands back the token stream and not a
-     number — so `parseFloat` gave NaN, the guard stepped from 1 instead of
-     from 1.48, and a head that should have grown shrank to the floor
-     instead. Third time that trap has fired in this file today. One place
-     decides the size now. */
-  /* Balanced wrapping splits a head into equal lines, which is right for a
-     card and wrong for a lead: it left both lines short and a third of the
-     measure bare. A lead fills its line and turns. */
-  text-wrap: pretty;
-  font-size: calc(clamp(2.5rem, 7vmin, 6.5rem) * var(--paper-fit, 1) * var(--air, 1) * var(--fill));
-}
-
-.stage--tv .paper__dek {
-  font-size: calc(clamp(1.05rem, 2.05vmin, 1.85rem) * var(--paper-fit, 1) * var(--air, 1));
-  line-height: 1.32;
-}
-
-.stage--tv .paper__article[data-tier='2'] .paper__dek {
-  font-size: calc(clamp(1.15rem, 2.25vmin, 2.05rem) * var(--paper-fit, 1) * var(--air, 1));
-}
-
-.stage--tv .paper__lead .paper__dek {
-  font-size: calc(clamp(1.4rem, 3.15vmin, 2.9rem) * var(--paper-fit, 1) * var(--air, 1));
-  line-height: 1.28;
-}
-
-/* Greek at reading weight: at a phone's 2px and 0.62rem it disappears on a
-   wall. These are the numbers that make a column read as a block of type
-   from the far side of a room. */
-.stage--tv .paper__scribbles {
-  --greek-ink: 4px;
-  --greek-leading: calc(0.86rem * var(--paper-fit, 1));
-}
-
-/* The leading is whole pixels where the browser can do the arithmetic. A
-   fractional one put the columns on four different depths inside one line
-   of leading and made them wander a few pixels against each other down
-   the page — which the eye reads across a gutter even when it cannot read
-   the words, and which shimmers when it is nearly but not quite right.
-
-   Behind `@supports` and not behind a second declaration: written as two
-   declarations in one rule the minifier dropped the first as a duplicate,
-   and a custom property holding a function the browser cannot parse is
-   substituted in literally — so `calc(var(--greek-leading) - var(--greek-ink))`
-   fails at computed-value time, the margin falls to zero, and every line
-   of the page's body copy stacks into one solid bar. On the one device
-   this page is for, which is also the device most likely to be running a
-   Chromium from four years ago. */
-@supports (height: round(1px, 1px)) {
-  .stage--tv .paper__scribbles {
-    --greek-leading: round(calc(0.86rem * var(--paper-fit, 1)), 1px);
+/* And the morning edition on the narrator's own device, once the frame is a
+   tablet's or wider: the same box, filled and not scrolled. `fitPaper`
+   reads this — a paper whose overflow is hidden is a sheet and gets the
+   pass; one that scrolls is the phone's page and is left alone. */
+@media (min-width: 48rem) and (min-height: 28rem) {
+  .paper--daily {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
   }
 }
 
-@media (min-width: 60rem) {
+@media (min-width: 48rem) and (min-height: 28rem) {
+  /* The nameplate is the largest thing on a front page and the thing that
+     tells your eye how wide the sheet is. At 7vmin with the price and the
+     number marooned at the far edges it was a small centred logo on a header
+     bar, taking 18% of the measure. */
+  :is(.paper--daily, .stage--tv .paper) .paper__name {
+    /* `--name-fit` is `fitPaper`'s nameplate guard: the name steps down
+       until it clears its ears, measured, because no arithmetic on a
+       character count knows what PRECIO 5 CTS. is wide in this face at
+       this size on this frame. */
+    font-size: calc(clamp(3rem, 12vmin, 10rem) * var(--name-fit, 1));
+    letter-spacing: 0.16em;
+    /* No indent to correct the tracking's trailing space. It was 0.16em on
+       the theory that a tracked line sits half a space left of centre, and
+       the theory was wrong here: measured, 0.16em put the ink 10px RIGHT of
+       the sheet's axis and 0.08em put it 5px right, which is a straight
+       line through zero. Chrome is already trimming it. */
+  }
+
+  :is(.paper--daily, .stage--tv .paper) .paper__flank {
+    font-size: clamp(0.9rem, 1.7vmin, 1.4rem);
+  }
+
+  /* The one live thing on the sheet, and it has to look right holding 3:00
+     un-started as well as mid-count: the narrator cannot start the clock
+     until they have left the page, so the first frame the room sees is
+     always idle. Its word is the day screen's word, so the two never
+     disagree about whether the town is paused or out of time. */
+  :is(.paper--daily, .stage--tv .paper) .paper__clock {
+    align-items: baseline;
+    gap: var(--space-3);
+  }
+
+  /* Dimmed to the price's ink. At full Midnight a figure that changes every
+     second was the second-strongest thing in the masthead after the
+     nameplate, pulling the eye once a second for the length of an argument;
+     an ear is quieter than both. It reads at three metres because the price
+     does, at the same weight. */
+  /* And it does not ride the fit ladder down. The ladder exists so the news
+     fits, and shrinking the greek to pay for that is free because nobody
+     reads it — that is what it is for. The clock is the only thing on the
+     sheet that changes, it is glanced at from a sofa rather than read, and
+     it was coming out at 16px on a 720p television and 12px in a small
+     window, which is not a clock. It scales with the screen, not with how
+     crowded the page is. */
+  :is(.paper--daily, .stage--tv .paper) .paper__clock-said {
+    font-size: clamp(0.95rem, 1.6vmin, 1.4rem);
+  }
+
+  :is(.paper--daily, .stage--tv .paper) .paper__clock-digits {
+    font-size: clamp(1.15rem, 2.4vmin, 2rem);
+    color: var(--on-newsprint-muted);
+  }
+
+  /* Out of time is a rule, not red type: on newsprint Vendetta rules and
+     strikes and never sets a word, which a clock at 0:00 would have been. */
+  :is(.paper--daily, .stage--tv .paper) .paper__clock[data-phase='done'] {
+    padding-bottom: 2px;
+    border-bottom: 3px solid var(--lethal);
+  }
+
+  /* The paper's reading copy was the smallest thing in the room: a 24px dek
+     under a 60px headline. Everything scales with the frame, and with
+     `--paper-fit`, which is 1 until the page does not fit. */
+  :is(.paper--daily, .stage--tv .paper) .paper__edition,
+  :is(.paper--daily, .stage--tv .paper) .paper__note,
+  :is(.paper--daily, .stage--tv .paper) .paper__eyebrow,
+  :is(.paper--daily, .stage--tv .paper) .paper__caption {
+    font-size: calc(clamp(0.95rem, 1.6vmin, 1.5rem) * var(--paper-fit, 1));
+  }
+
+  :is(.paper--daily, .stage--tv .paper) .paper__headline {
+    font-size: calc(clamp(1.5rem, 3vmin, 2.8rem) * var(--paper-fit, 1) * var(--air, 1));
+  }
+
+  /* Three sizes of type, and they mean something: the lead, the story at the
+     top of the first column, and the rest. A front page ranks its news by
+     how loudly it is set, and the rank here is the order the edition was
+     built in — deaths, then the verdict, then what happened, then what the
+     police found, then the colour. */
+  :is(.paper--daily, .stage--tv .paper) .paper__article[data-tier='2'] .paper__headline {
+    font-size: calc(clamp(1.8rem, 3.9vmin, 3.6rem) * var(--paper-fit, 1) * var(--air, 1));
+  }
+
+  /* The lead's headline is set to its own word count.
+     One fixed size for every headline guarantees a hole every time the
+     engine writes something short, and the engine writes short often:
+     "EVERYBODY WOKE UP" filled 51% of its measure and left 555x100 of bare
+     Ash beside it, while a long Spanish head on the same design filled its
+     box exactly and had no hole at all. A sub writes to a count and the
+     display size is chosen so the head fills its box; this is the same
+     arithmetic without the sub — a pivot of thirty-four characters, with a
+     floor so a long head still sets, and a ceiling so a two-word morning
+     does not shout off the sheet. */
+  :is(.paper--daily, .stage--tv .paper) .paper__lead .paper__headline {
+    /* `--fill` is `fitPaper`'s, not the stylesheet's. It was a `clamp()`
+       here and the guard read it back with `getComputedStyle`, which for an
+       unregistered custom property hands back the token stream and not a
+       number — so `parseFloat` gave NaN, the guard stepped from 1 instead of
+       from 1.48, and a head that should have grown shrank to the floor
+       instead. Third time that trap has fired in this file today. One place
+       decides the size now. */
+    /* Balanced wrapping splits a head into equal lines, which is right for a
+       card and wrong for a lead: it left both lines short and a third of the
+       measure bare. A lead fills its line and turns. */
+    text-wrap: pretty;
+    font-size: calc(clamp(2.5rem, 7vmin, 6.5rem) * var(--paper-fit, 1) * var(--air, 1) * var(--fill));
+  }
+
+  :is(.paper--daily, .stage--tv .paper) .paper__dek {
+    font-size: calc(clamp(1.05rem, 2.05vmin, 1.85rem) * var(--paper-fit, 1) * var(--air, 1));
+    line-height: 1.32;
+  }
+
+  :is(.paper--daily, .stage--tv .paper) .paper__article[data-tier='2'] .paper__dek {
+    font-size: calc(clamp(1.15rem, 2.25vmin, 2.05rem) * var(--paper-fit, 1) * var(--air, 1));
+  }
+
+  :is(.paper--daily, .stage--tv .paper) .paper__lead .paper__dek {
+    font-size: calc(clamp(1.4rem, 3.15vmin, 2.9rem) * var(--paper-fit, 1) * var(--air, 1));
+    line-height: 1.28;
+  }
+
+  /* Greek at reading weight: at a phone's 2px and 0.62rem it disappears on a
+     wall. These are the numbers that make a column read as a block of type
+     from the far side of a room. */
+  :is(.paper--daily, .stage--tv .paper) .paper__scribbles {
+    --greek-ink: 4px;
+    --greek-leading: calc(0.86rem * var(--paper-fit, 1));
+  }
+
+  /* The leading is whole pixels where the browser can do the arithmetic. A
+     fractional one put the columns on four different depths inside one line
+     of leading and made them wander a few pixels against each other down
+     the page — which the eye reads across a gutter even when it cannot read
+     the words, and which shimmers when it is nearly but not quite right.
+
+     Behind `@supports` and not behind a second declaration: written as two
+     declarations in one rule the minifier dropped the first as a duplicate,
+     and a custom property holding a function the browser cannot parse is
+     substituted in literally — so `calc(var(--greek-leading) - var(--greek-ink))`
+     fails at computed-value time, the margin falls to zero, and every line
+     of the page's body copy stacks into one solid bar. On the one device
+     this page is for, which is also the device most likely to be running a
+     Chromium from four years ago. */
+  @supports (height: round(1px, 1px)) {
+    :is(.paper--daily, .stage--tv .paper) .paper__scribbles {
+      --greek-leading: round(calc(0.86rem * var(--paper-fit, 1)), 1px);
+    }
+  }
+}
+
+@media (min-width: 48rem) and (min-height: 28rem) {
   /* The foot is the deepest margin on a printed sheet. It was eight
      pixels, and the type block ran off the bottom of the frame into the
      Midnight ground — which on a screen that cannot scroll has no
      explanation at all. */
-  .stage--tv .paper {
+  :is(.paper--daily, .stage--tv .paper) {
     padding: var(--space-4) var(--space-5) var(--space-7);
   }
 
@@ -3328,7 +3404,7 @@ html[data-dawn] body {
      a plain block — the lead ran to 1807px inside a 1004px frame and
      thirty-one runs of real type went off the bottom edge. That is the
      original fault, worse. */
-  .stage--tv .paper__page {
+  :is(.paper--daily, .stage--tv .paper) .paper__page {
     flex: 1 1 auto;
     display: grid;
     grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr));
@@ -3343,19 +3419,19 @@ html[data-dawn] body {
      across the bottom of them — so something on the page finally crosses
      a gutter, which is the difference between an edited page and a grid
      the room sees five mornings running. */
-  .stage--tv .paper__page[data-foot] {
+  :is(.paper--daily, .stage--tv .paper) .paper__page[data-foot] {
     grid-template-rows: minmax(0, 1fr) minmax(0, 0.44fr);
   }
 
-  .stage--tv .paper__page[data-foot] > .paper__lead {
+  :is(.paper--daily, .stage--tv .paper) .paper__page[data-foot] > .paper__lead {
     grid-row: 1 / -1;
   }
 
-  .stage--tv .paper__page[data-foot] > .paper__columns > .paper__col {
+  :is(.paper--daily, .stage--tv .paper) .paper__page[data-foot] > .paper__columns > .paper__col {
     grid-row: 1;
   }
 
-  .stage--tv .paper__foot {
+  :is(.paper--daily, .stage--tv .paper) .paper__foot {
     grid-column: var(--foot-from, 3) / -1;
     grid-row: 2;
     display: flex;
@@ -3366,7 +3442,7 @@ html[data-dawn] body {
     overflow: hidden;
   }
 
-  .stage--tv .paper__foot > .paper__article {
+  :is(.paper--daily, .stage--tv .paper) .paper__foot > .paper__article {
     display: flex;
     flex: 1 1 auto;
     flex-direction: column;
@@ -3380,7 +3456,7 @@ html[data-dawn] body {
      half of the page it sits in was announcing itself as the smallest —
      set at exactly the size of the single-column story directly above it.
      It has twice the measure to fill, so it gets the second tier. */
-  .stage--tv .paper__foot .paper__headline {
+  :is(.paper--daily, .stage--tv .paper) .paper__foot .paper__headline {
     font-size: calc(clamp(1.8rem, 3.9vmin, 3.6rem) * var(--paper-fit, 1) * var(--air, 1));
   }
 
@@ -3395,15 +3471,15 @@ html[data-dawn] body {
      rather be a list than a story. */
 
 
-  .stage--tv .paper__page[data-roll] {
+  :is(.paper--daily, .stage--tv .paper) .paper__page[data-roll] {
     grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr)) clamp(9rem, 13vw, 15rem);
   }
 
-  .stage--tv .paper__page[data-roll] > .paper__foot {
+  :is(.paper--daily, .stage--tv .paper) .paper__page[data-roll] > .paper__foot {
     grid-column: var(--foot-from, 3) / -2;
   }
 
-  .stage--tv .paper__roll {
+  :is(.paper--daily, .stage--tv .paper) .paper__roll {
     display: flex;
     grid-column: -2 / -1;
     grid-row: 1 / -1;
@@ -3423,7 +3499,7 @@ html[data-dawn] body {
      The cap is per seat, so a full table still fits: at fifteen the list
      is taller than the column and the spread closes up to suit, and at
      five it is a short standing box, which is what it is. */
-  .stage--tv .paper__standing {
+  :is(.paper--daily, .stage--tv .paper) .paper__standing {
     --roll-pitch: clamp(2.2rem, 4.8vmin, 3.4rem);
     display: flex;
     flex: 0 1 auto;
@@ -3436,7 +3512,7 @@ html[data-dawn] body {
     list-style: none;
   }
 
-  .stage--tv .paper__seat {
+  :is(.paper--daily, .stage--tv .paper) .paper__seat {
     display: flex;
     align-items: baseline;
     gap: var(--space-2);
@@ -3444,11 +3520,11 @@ html[data-dawn] body {
     border-bottom: 1px solid var(--newsprint-rule);
   }
 
-  .stage--tv .paper__seat:last-child {
+  :is(.paper--daily, .stage--tv .paper) .paper__seat:last-child {
     border-bottom-color: var(--on-newsprint);
   }
 
-  .stage--tv .paper__seat-name {
+  :is(.paper--daily, .stage--tv .paper) .paper__seat-name {
     font-family: var(--font-display);
     font-size: calc(clamp(1.1rem, 2.3vmin, 2rem) * var(--paper-fit, 1));
     letter-spacing: var(--track-display);
@@ -3457,11 +3533,11 @@ html[data-dawn] body {
 
   /* A seat the town has already buried is still on the roll, struck — the
      register is the evening's record as much as it is today's list. */
-  .stage--tv .paper__seat[data-dead] {
+  :is(.paper--daily, .stage--tv .paper) .paper__seat[data-dead] {
     color: var(--on-newsprint-muted);
   }
 
-  .stage--tv .paper__asking {
+  :is(.paper--daily, .stage--tv .paper) .paper__asking {
     margin-left: auto;
     color: var(--on-newsprint-muted);
     font-family: var(--font-mono);
@@ -3470,7 +3546,7 @@ html[data-dawn] body {
 
   /* A story two or three columns wide sets its copy in as many, so the
      measure stays a measure. */
-  .stage--tv .paper__foot .paper__body {
+  :is(.paper--daily, .stage--tv .paper) .paper__foot .paper__body {
     flex: 1 1 auto;
     min-height: 0;
     columns: 2;
@@ -3480,17 +3556,17 @@ html[data-dawn] body {
     overflow: hidden;
   }
 
-  .stage--tv .paper__foot .paper__scribbles {
+  :is(.paper--daily, .stage--tv .paper) .paper__foot .paper__scribbles {
     max-height: none;
     overflow: visible;
   }
 
-  .stage--tv .paper__foot .paper__dek,
-  .stage--tv .paper__foot .paper__note {
+  :is(.paper--daily, .stage--tv .paper) .paper__foot .paper__dek,
+  :is(.paper--daily, .stage--tv .paper) .paper__foot .paper__note {
     break-inside: avoid;
   }
 
-  .stage--tv .paper__page > .paper__lead {
+  :is(.paper--daily, .stage--tv .paper) .paper__page > .paper__lead {
     grid-column: span var(--lead, 2);
     display: flex;
     flex-direction: column;
@@ -3519,7 +3595,7 @@ html[data-dawn] body {
      thirty pixels and drove the fit pass to the bottom of its ladder —
      15px deks on a wall, which is the unreadable failure wearing the
      other hat. A long evening gives its lead less. */
-  .stage--tv .paper__page[data-stack] {
+  :is(.paper--daily, .stage--tv .paper) .paper__page[data-stack] {
     grid-template-rows: auto minmax(0, 1fr);
     grid-auto-rows: minmax(0, 1fr);
   }
@@ -3535,7 +3611,7 @@ html[data-dawn] body {
      a 93px box that could not hold it, and the fit pass drove the whole
      page to the bottom of its ladder — 15px deks on a wall — to pay for a
      block of fake text. */
-  .stage--tv .paper__page[data-stack] > .paper__lead .paper__body {
+  :is(.paper--daily, .stage--tv .paper) .paper__page[data-stack] > .paper__lead .paper__body {
     /* Column one only. The plate stands in column two for both rows here,
        and a body spanning the pair ran the dek underneath it: "El pa" and
        then a picture, with the rest of the sentence on the next line. */
@@ -3547,19 +3623,19 @@ html[data-dawn] body {
     overflow: visible;
   }
 
-  .stage--tv .paper__page[data-stack] > .paper__lead .paper__scribbles {
+  :is(.paper--daily, .stage--tv .paper) .paper__page[data-stack] > .paper__lead .paper__scribbles {
     display: none;
   }
 
-  .stage--tv .paper__page[data-stack] > .paper__lead .paper__article {
+  :is(.paper--daily, .stage--tv .paper) .paper__page[data-stack] > .paper__lead .paper__article {
     grid-template-rows: auto auto;
   }
 
-  .stage--tv .paper__page[data-stack] > .paper__lead .paper__cut {
+  :is(.paper--daily, .stage--tv .paper) .paper__page[data-stack] > .paper__lead .paper__cut {
     grid-row: 1 / -1;
   }
 
-  .stage--tv .paper__page[data-stack] > .paper__lead {
+  :is(.paper--daily, .stage--tv .paper) .paper__page[data-stack] > .paper__lead {
     padding: 0 0 var(--space-3);
     border-bottom: 1px solid var(--on-newsprint);
   }
@@ -3568,11 +3644,11 @@ html[data-dawn] body {
      stories can be dealt down them in reading order (`columnsOf`), not
      across them, which is how a page is read and how this game's record
      runs — night 2 above night 3, never beside it. */
-  .stage--tv .paper__page > .paper__columns {
+  :is(.paper--daily, .stage--tv .paper) .paper__page > .paper__columns {
     display: contents;
   }
 
-  .stage--tv .paper__col {
+  :is(.paper--daily, .stage--tv .paper) .paper__col {
     display: flex;
     flex-direction: column;
     min-height: 0;
@@ -3584,7 +3660,7 @@ html[data-dawn] body {
     overflow: hidden;
   }
 
-  .stage--tv .paper__page[data-stack] > .paper__columns > .paper__col:first-child {
+  :is(.paper--daily, .stage--tv .paper) .paper__page[data-stack] > .paper__columns > .paper__col:first-child {
     padding-left: 0;
     border-left: 0;
   }
@@ -3593,7 +3669,7 @@ html[data-dawn] body {
      each one takes its share of the slack, so a column is full whether it
      holds one story or four. Without the grow, every article sat at its
      own content height and three quarters of the sheet was bare. */
-  .stage--tv .paper__col > .paper__article {
+  :is(.paper--daily, .stage--tv .paper) .paper__col > .paper__article {
     display: flex;
     flex: 1 1 auto;
     flex-direction: column;
@@ -3601,11 +3677,11 @@ html[data-dawn] body {
     padding-top: var(--space-3);
   }
 
-  .stage--tv .paper__col > .paper__article:first-child {
+  :is(.paper--daily, .stage--tv .paper) .paper__col > .paper__article:first-child {
     padding-top: 0;
   }
 
-  .stage--tv .paper__col > .paper__article:last-child {
+  :is(.paper--daily, .stage--tv .paper) .paper__col > .paper__article:last-child {
     border-bottom: 0;
   }
 
@@ -3620,14 +3696,14 @@ html[data-dawn] body {
      all forty-four of its lines, which is how the columns came to
      overflow by four hundred pixels the moment the dek moved into the
      stream. */
-  .stage--tv .paper__col .paper__body {
+  :is(.paper--daily, .stage--tv .paper) .paper__col .paper__body {
     display: flex;
     flex: 1 1 auto;
     flex-direction: column;
     min-height: 0;
   }
 
-  .stage--tv .paper__col .paper__scribbles {
+  :is(.paper--daily, .stage--tv .paper) .paper__col .paper__scribbles {
     flex: 1 1 0;
     min-height: 0;
     max-height: none;
@@ -3638,7 +3714,7 @@ html[data-dawn] body {
      floating in an 810px frame reads as a box somebody forgot to fill; a
      portrait plate beside the text is what a front page actually does with
      one picture. */
-  .stage--tv .paper__lead .paper__article {
+  :is(.paper--daily, .stage--tv .paper) .paper__lead .paper__article {
     display: grid;
     flex: 1 1 auto;
     grid-template-columns: minmax(0, 1fr) clamp(9rem, 23vmin, 20rem);
@@ -3651,7 +3727,7 @@ html[data-dawn] body {
      last line with the foot of it, so the two close the same block. Left
      to their natural heights the headline ran out two hundred pixels
      above the picture beside it and the lead had a hole in the middle. */
-  .stage--tv .paper__lead .paper__head {
+  :is(.paper--daily, .stage--tv .paper) .paper__lead .paper__head {
     grid-column: 1;
     grid-row: 1;
     min-width: 0;
@@ -3661,7 +3737,7 @@ html[data-dawn] body {
      same block. Fixed square, it overshot a two-line headline by two
      hundred pixels and the lead had a hole in it; pushing the headline
      down to meet it only moved the hole above the headline. */
-  .stage--tv .paper__lead .paper__cut {
+  :is(.paper--daily, .stage--tv .paper) .paper__lead .paper__cut {
     grid-column: 2;
     grid-row: 1;
     align-self: stretch;
@@ -3672,13 +3748,13 @@ html[data-dawn] body {
     min-height: clamp(6rem, 12vmin, 11rem);
   }
 
-  .stage--tv .paper__page[data-stack] > .paper__lead .paper__article {
+  :is(.paper--daily, .stage--tv .paper) .paper__page[data-stack] > .paper__lead .paper__article {
     grid-template-columns: minmax(0, 1fr) clamp(8rem, 15vmin, 13rem);
   }
 
   /* No plate: the words take the whole measure rather than leaving a
      column of newsprint where one would have been. */
-  .stage--tv .paper__lead .paper__article:not(:has(.paper__cut)) {
+  :is(.paper--daily, .stage--tv .paper) .paper__lead .paper__article:not(:has(.paper__cut)) {
     grid-template-columns: minmax(0, 1fr);
   }
 
@@ -3688,7 +3764,7 @@ html[data-dawn] body {
      measure, then a wall of grey underneath in two columns — which reads as
      a card with a headline on it and not as a lead, because in a newspaper
      the dek IS the first paragraph and it starts inside column one. */
-  .stage--tv .paper__lead .paper__body {
+  :is(.paper--daily, .stage--tv .paper) .paper__lead .paper__body {
     grid-column: 1 / -1;
     grid-row: 2;
     min-height: 0;
@@ -3704,7 +3780,7 @@ html[data-dawn] body {
     overflow: hidden;
   }
 
-  .stage--tv .paper__lead .paper__scribbles {
+  :is(.paper--daily, .stage--tv .paper) .paper__lead .paper__scribbles {
     max-height: none;
     overflow: visible;
   }
@@ -3712,8 +3788,8 @@ html[data-dawn] body {
   /* The dek is one sentence and it stays one sentence. In a tall lead it
      sits in column one by itself; in a short one the flow was happy to
      put half of it either side of the column rule. */
-  .stage--tv .paper__lead .paper__dek,
-  .stage--tv .paper__lead .paper__note {
+  :is(.paper--daily, .stage--tv .paper) .paper__lead .paper__dek,
+  :is(.paper--daily, .stage--tv .paper) .paper__lead .paper__note {
     break-inside: avoid;
   }
 
@@ -3721,7 +3797,7 @@ html[data-dawn] body {
      as it does on the phone. It closes the whole top block — the words and
      the plate together — so it lands level with the foot of the picture
      rather than hanging half way up the page under the dek. */
-  .stage--tv .paper--daily .paper__lead:has(> [data-kind='death'], > [data-kind='verdict']) .paper__body {
+  .paper--daily .paper__lead:has(> [data-kind='death'], > [data-kind='verdict']) .paper__body {
     border-top-width: 4px;
     border-top-color: var(--lethal);
   }
@@ -3729,7 +3805,7 @@ html[data-dawn] body {
   /* The plate IS the mark, at twenty times the size and with the name under
      it. Printing the small one as well beside the headline says the same
      thing twice and costs the lead the first inch of its own measure. */
-  .stage--tv .paper__lead .paper__article:has(.paper__cut) .paper__mark {
+  :is(.paper--daily, .stage--tv .paper) .paper__lead .paper__article:has(.paper__cut) .paper__mark {
     display: none;
   }
 
@@ -3747,19 +3823,29 @@ html[data-dawn] body {
      sofa: 60% of the box was nothing. The ink reverses out in newsprint,
      the way the town's mark already does everywhere else on this page,
      so it costs no colour the paper did not have. */
-  .stage--tv .paper__lead .paper__cut {
+  :is(.paper--daily, .stage--tv .paper) .paper__lead .paper__cut {
     display: grid;
     margin: 0;
     padding: var(--space-4) var(--space-3) 0;
     background: var(--on-newsprint);
+    /* The plate is as tall as the words beside it and never taller. Its
+       sigil is sized as a share of the plate's height, and when nothing
+       beside the plate is taller than its floor that height is the
+       sigil's own: a percentage of an indefinite height is `auto`, the
+       sigil then takes 82% of the plate's WIDTH, and on a portrait tablet
+       a 177px plate grew to 215px against a two-line headline, leaving a
+       hand's width of bare newsprint under the words. Size containment
+       makes the plate's content weigh nothing in the row, so the row is
+       the headline's and the sigil fits whatever that leaves. */
+    contain: size;
   }
 
   /* A killing is ruled in red, as it is everywhere else on newsprint. */
-  .stage--tv .paper--daily .paper__lead:has(> [data-kind='death'], > [data-kind='verdict']) .paper__cut {
+  .paper--daily .paper__lead:has(> [data-kind='death'], > [data-kind='verdict']) .paper__cut {
     border-top: 5px solid var(--lethal);
   }
 
-  .stage--tv .paper__engraving {
+  :is(.paper--daily, .stage--tv .paper) .paper__engraving {
     display: grid;
     place-items: center;
     width: 100%;
@@ -3772,18 +3858,18 @@ html[data-dawn] body {
     line-height: 1;
   }
 
-  .stage--tv .paper__engraving .sigil {
+  :is(.paper--daily, .stage--tv .paper) .paper__engraving .sigil {
     width: auto;
     height: 86%;
     max-width: 82%;
     aspect-ratio: 1;
   }
 
-  .stage--tv .paper__engraving .sigil {
+  :is(.paper--daily, .stage--tv .paper) .paper__engraving .sigil {
     stroke-width: 1.1;
   }
 
-  .stage--tv .paper__caption {
+  :is(.paper--daily, .stage--tv .paper) .paper__caption {
     width: 100%;
     margin-top: var(--space-3);
     padding: var(--space-2) 0;
@@ -3795,6 +3881,426 @@ html[data-dawn] body {
     text-transform: uppercase;
   }
 }
+/* ---------- The paper on a tablet ---------- */
+
+/* Between a phone and a wall there was nothing. From 768px up the page drew
+   the wall's ears on the phone's nameplate and set the phone's one column,
+   capped at the phone's 34rem, in the middle of a screen twice as wide —
+   which is what an iPad in either orientation, a laptop and a phone on its
+   side all got, and it is the surface a table without a television looks
+   at. PRICE 5¢ sat under THE FAMILY by 52 to 61px on every one of them and
+   none of the redesign reached any of them.
+
+   A tablet is ruled as a tabloid, not a broadsheet, and so is anything up
+   to twelve hundred pixels: a busy morning on a 1024px frame was five
+   columns of 176px, twenty-two characters of dek beside the register, and
+   the lead broke its own headline mid-word in the two of them it had. The
+   lead across the top, the follow-ups in two columns under it, the last
+   across the foot once there are enough, and the town's register as a
+   line along the bottom rather than a column down the side. From twelve
+   hundred the broadsheet takes over, with four columns at most until
+   sixteen hundred (`tracksFor` in `paper.ts`). Same type, same plate, same
+   fit pass; only the ruling changes. The column boxes `columnsOf` dealt
+   for a wall are kept as they are: read across a row and then down they
+   are still in order, and each box still clips its own type block at the
+   foot of its cell. Everything here overrides a placement the broadsheet
+   block above has already set, so each rule is written with the same
+   selector it is overriding. */
+@media (min-width: 48rem) and (max-width: 74.99rem) and (min-height: 28rem) {
+  :is(.paper--daily, .stage--tv .paper) {
+    padding: var(--space-4) var(--space-4) var(--space-5);
+  }
+
+  /* Type weight for a page in the hand, not on a wall: at the wall's 4px
+     the lower two thirds of a tablet page read as bars, not as copy. */
+  :is(.paper--daily, .stage--tv .paper) .paper__scribbles {
+    --greek-ink: 3px;
+  }
+
+  /* Two columns and as many rows as the boxes need: one row for up to two
+     of them, two once there are three, or two and a foot. The lead's row
+     is a share of the frame, as it is on the wall, and never its own
+     height — a lead with a type block under it is as tall as it likes. */
+  :is(.paper--daily, .stage--tv .paper) .paper__page,
+  :is(.paper--daily, .stage--tv .paper) .paper__page[data-foot],
+  :is(.paper--daily, .stage--tv .paper) .paper__page[data-roll] {
+    --rows: 1;
+    --lead-share: 0.8fr;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    grid-template-rows: minmax(0, var(--lead-share)) repeat(var(--rows), minmax(0, 1fr)) auto;
+    column-gap: var(--space-4);
+  }
+
+  :is(.paper--daily, .stage--tv .paper) .paper__page:has(.paper__col:nth-child(3)) {
+    --rows: 2;
+    --lead-share: 0.85fr;
+  }
+
+  :is(.paper--daily, .stage--tv .paper) .paper__page > .paper__lead,
+  :is(.paper--daily, .stage--tv .paper) .paper__page[data-foot] > .paper__lead {
+    grid-column: 1 / -1;
+    grid-row: 1;
+    padding: 0 0 var(--space-3);
+    border-bottom: 1px solid var(--on-newsprint);
+  }
+
+  :is(.paper--daily, .stage--tv .paper) .paper__page[data-foot] > .paper__columns > .paper__col {
+    grid-row: auto;
+  }
+
+  /* The boxes are read across a row and then down, so the rule is between
+     the two on a row and over the second row, never down the left edge. */
+  :is(.paper--daily, .stage--tv .paper) .paper__col {
+    padding-left: var(--space-4);
+  }
+
+  :is(.paper--daily, .stage--tv .paper) .paper__col:nth-child(odd) {
+    padding-left: 0;
+    border-left: 0;
+  }
+
+  :is(.paper--daily, .stage--tv .paper) .paper__col:nth-child(3) {
+    padding-top: var(--space-3);
+    border-top: 1px solid var(--on-newsprint);
+  }
+
+  :is(.paper--daily, .stage--tv .paper) .paper__foot,
+  :is(.paper--daily, .stage--tv .paper) .paper__page[data-roll] > .paper__foot {
+    grid-column: auto;
+    grid-row: auto;
+    padding-left: var(--space-4);
+  }
+
+  /* Two boxes and a foot, upright: three columns under the lead, the foot
+     the third of them. Stacked as two rows and a foot across the bottom,
+     the busiest page a table can print — fifteen seats, two deaths, a
+     verdict and two investigations, in Spanish — gave the lead a quarter
+     of the sheet and each box three stories in 264px, and the ladder
+     bottomed out with the lead's dek cut. Three columns of 230px hold two
+     or three stories each at reading size, which is what a tabloid does
+     with a heavy morning. */
+  :is(.paper--daily, .stage--tv .paper) .paper__page[data-foot]:not(:has(.paper__col:nth-child(3))) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  :is(.paper--daily, .stage--tv .paper) .paper__page[data-foot]:not(:has(.paper__col:nth-child(3))) > .paper__foot {
+    grid-column: auto;
+    padding-left: var(--space-4);
+    border-left: 1px solid var(--newsprint-rule);
+  }
+
+  /* As a column it is a column: no rule over it, its copy in one stream,
+     and its head at the columns' size rather than the foot's. */
+  :is(.paper--daily, .stage--tv .paper) .paper__page[data-foot]:not(:has(.paper__col:nth-child(3))) > .paper__foot > .paper__article {
+    padding-top: 0;
+    border-top: 0;
+  }
+
+  :is(.paper--daily, .stage--tv .paper) .paper__page[data-foot]:not(:has(.paper__col:nth-child(3))) > .paper__foot .paper__body {
+    columns: 1;
+    column-rule: none;
+  }
+
+  :is(.paper--daily, .stage--tv .paper) .paper__page[data-foot]:not(:has(.paper__col:nth-child(3))) > .paper__foot .paper__headline {
+    font-size: calc(clamp(1.5rem, 3vmin, 2.8rem) * var(--paper-fit, 1) * var(--air, 1));
+  }
+
+  /* One box — a quiet morning, which is most mornings. Its stories sit
+     side by side across the sheet, and a single story sets its copy in
+     two columns, so a 700px measure is never one line of type. */
+  :is(.paper--daily, .stage--tv .paper) .paper__page:not([data-foot]) > .paper__columns > .paper__col:only-child {
+    grid-column: 1 / -1;
+    flex-direction: row;
+    gap: var(--space-4);
+  }
+
+  :is(.paper--daily, .stage--tv .paper) .paper__col:only-child > .paper__article {
+    flex: 1 1 0;
+    padding-top: 0;
+    border-bottom: 0;
+  }
+
+  :is(.paper--daily, .stage--tv .paper) .paper__col:only-child > .paper__article + .paper__article {
+    padding-left: var(--space-4);
+    border-left: 1px solid var(--newsprint-rule);
+  }
+
+  :is(.paper--daily, .stage--tv .paper) .paper__col:only-child > .paper__article:only-child .paper__body {
+    display: block;
+    columns: 2;
+    column-gap: var(--space-4);
+    column-rule: 1px solid var(--newsprint-rule);
+    column-fill: auto;
+    overflow: hidden;
+  }
+
+  :is(.paper--daily, .stage--tv .paper) .paper__col:only-child > .paper__article:only-child .paper__scribbles {
+    max-height: none;
+    overflow: visible;
+  }
+
+  :is(.paper--daily, .stage--tv .paper) .paper__col:only-child > .paper__article:only-child .paper__dek,
+  :is(.paper--daily, .stage--tv .paper) .paper__col:only-child > .paper__article:only-child .paper__note {
+    break-inside: avoid;
+  }
+
+  /* The register is a line along the foot, not a column down the side: at
+     this width a side column would cost the news a fifth of the sheet, and
+     a row of names under a rule is how a small paper prints a list. */
+  :is(.paper--daily, .stage--tv .paper) .paper__roll {
+    grid-column: 1 / -1;
+    grid-row: -2 / -1;
+    flex-direction: row;
+    align-items: baseline;
+    gap: var(--space-4);
+    margin-top: var(--space-3);
+    padding: var(--space-2) 0 0;
+    border-left: 0;
+    border-top: 1px solid var(--on-newsprint);
+    overflow: visible;
+  }
+
+  :is(.paper--daily, .stage--tv .paper) .paper__roll .paper__label {
+    flex: none;
+    margin: 0;
+    padding: 0;
+    border-bottom: 0;
+  }
+
+  :is(.paper--daily, .stage--tv .paper) .paper__standing {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+    gap: 0 var(--space-4);
+    max-height: none;
+    padding: 0;
+  }
+
+  :is(.paper--daily, .stage--tv .paper) .paper__seat,
+  :is(.paper--daily, .stage--tv .paper) .paper__seat:last-child {
+    padding-bottom: 0;
+    border-bottom: 0;
+  }
+
+  :is(.paper--daily, .stage--tv .paper) .paper__asking {
+    margin-left: 0;
+  }
+
+  /* A landscape sheet — an iPad on its side, a laptop — is short, and the
+     lead across the top of a short sheet got a 208px row: a kicker, a
+     two-line headline and a plate, and nowhere at all for the dek, which
+     the ladder then cut at its last step. Turned the other way, the lead
+     runs down the left the full depth of the page with the stories in two
+     columns beside it, which is the broadsheet's shape at a tabloid's
+     width — and the register stays a strip along the foot. The lead's
+     copy is one column here, since two of them would be nineteen
+     characters wide, and the plate is smaller for the same reason. */
+  @media (min-aspect-ratio: 1/1) {
+    :is(.paper--daily, .stage--tv .paper) .paper__page,
+    :is(.paper--daily, .stage--tv .paper) .paper__page[data-foot],
+    :is(.paper--daily, .stage--tv .paper) .paper__page[data-roll],
+    :is(.paper--daily, .stage--tv .paper) .paper__page[data-foot]:not(:has(.paper__col:nth-child(3))) {
+      grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1fr);
+      grid-template-rows: repeat(var(--rows), minmax(0, 1fr)) auto;
+    }
+
+    /* Beside the lead, two boxes and a foot are three columns in one row,
+       and the lead gives up its plate for the width. Stacked as two boxes
+       over a foot across both, the busiest page bottomed out the ladder at
+       1024x768 with a dek cut: two stories in a 230px-tall box is a head
+       and nothing else. Three columns of the sheet's remaining two thirds
+       are 220px wide and the full depth, which holds two stories each at
+       reading size — and a lead a third of the sheet wide cannot carry a
+       plate and a headline, so the mark comes back beside the words. */
+    :is(.paper--daily, .stage--tv .paper) .paper__page[data-foot]:not(:has(.paper__col:nth-child(3))) {
+      --rows: 1;
+      grid-template-columns: minmax(0, 1.4fr) repeat(3, minmax(0, 1fr));
+    }
+
+
+    :is(.paper--daily, .stage--tv .paper) .paper__page > .paper__lead,
+    :is(.paper--daily, .stage--tv .paper) .paper__page[data-foot] > .paper__lead {
+      grid-column: 1;
+      grid-row: 1 / -2;
+      padding: 0 var(--space-4) 0 0;
+      border-bottom: 0;
+    }
+
+    :is(.paper--daily, .stage--tv .paper) .paper__col,
+    :is(.paper--daily, .stage--tv .paper) .paper__col:nth-child(odd) {
+      padding-left: var(--space-4);
+      border-left: 1px solid var(--newsprint-rule);
+    }
+
+
+    :is(.paper--daily, .stage--tv .paper) .paper__page:not([data-foot]) > .paper__columns > .paper__col:only-child {
+      grid-column: 2 / -1;
+    }
+
+    /* The plate between the headline and the story, across the lead's
+       column, capped. Beside the headline in a column a third of the
+       sheet wide it was a 123px slab the full depth of the page; at the
+       foot of the column it was a 350px slab with a sigil adrift in it
+       and no copy above it, so the lead read as the emptiest story on the
+       page. A picture under the headline is where a picture goes: three
+       by two at most, never more than a third of the column, with the
+       story and its type block running under it to the foot. The
+       headline takes the whole measure. */
+    :is(.paper--daily, .stage--tv .paper) .paper__lead .paper__article,
+    :is(.paper--daily, .stage--tv .paper) .paper__lead .paper__article:not(:has(.paper__cut)) {
+      grid-template-columns: minmax(0, 1fr);
+      grid-template-rows: auto auto minmax(0, 1fr);
+    }
+
+    :is(.paper--daily, .stage--tv .paper) .paper__lead .paper__head {
+      grid-row: 1;
+    }
+
+    :is(.paper--daily, .stage--tv .paper) .paper__lead .paper__cut {
+      grid-column: 1;
+      grid-row: 2;
+      align-self: start;
+      width: 100%;
+      aspect-ratio: 3 / 2;
+      /* A length, not a share. `max-height: 34%` was circular: the row is
+         sized from the plate's aspect ratio, and the percentage then
+         resolved against that row — a 100px plate in a 293px row, with
+         the story pushed to the foot of the column under 190px of
+         nothing. A sixth of the frame's short side is a quarter of the
+         column at 1024x768 and never more than a third of it. */
+      max-height: clamp(6rem, 16vmin, 11rem);
+      min-height: 0;
+      margin-top: var(--space-3);
+    }
+
+    :is(.paper--daily, .stage--tv .paper) .paper__lead .paper__body {
+      grid-column: 1;
+      grid-row: 3;
+      columns: 1;
+      column-rule: none;
+      overflow: hidden;
+    }
+  }
+}
+
+/* The label over the register and the marks beside the headlines are the
+   sheet's, on any frame that is one. */
+@media (min-width: 48rem) and (min-height: 28rem) {
+  :is(.paper--daily, .stage--tv .paper) .paper__label {
+    font-size: calc(clamp(0.9rem, 1.8vmin, 1.5rem) * var(--paper-fit, 1));
+  }
+
+  :is(.paper--daily, .stage--tv .paper) .paper__mark {
+    width: calc(2.25rem * var(--paper-fit, 1));
+    height: calc(2.25rem * var(--paper-fit, 1));
+  }
+
+  :is(.paper--daily, .stage--tv .paper) .paper__lead .paper__mark {
+    width: calc(3.25rem * var(--paper-fit, 1));
+    height: calc(3.25rem * var(--paper-fit, 1));
+  }
+
+  :is(.paper--daily, .stage--tv .paper) .paper__mark .sigil {
+    width: 1.4rem;
+    height: 1.4rem;
+  }
+
+  :is(.paper--daily, .stage--tv .paper) .paper__lead .paper__mark .sigil {
+    width: 2rem;
+    height: 2rem;
+  }
+
+  /* The side under an investigation is the one hard fact on the page and
+     the thing the room argues about; in the muted ink it was the quietest
+     line on the sheet, level with the greek beside it. */
+  :is(.paper--daily, .stage--tv .paper) .paper__note--side {
+    color: var(--on-newsprint);
+  }
+
+  /* A story whose type block was taken off does not grow: sharing the
+     column's slack by flex, it took its share and left it as bare
+     newsprint under its own last line — 75px of nothing under EL PUEBLO
+     with a full block of greek in the story above. The slack goes to the
+     stories that can set it. */
+  :is(.paper--daily, .stage--tv .paper) .paper__col > .paper__article:has(.paper__scribbles[data-thin]) {
+    flex-grow: 0;
+  }
+
+  /* A repeated kicker comes back at the top of a column — and on every
+     story of a one-box morning, where the stories sit side by side and
+     each is a column of its own. The mark on the kicker's line goes and
+     comes back with it: a filled square alone on a line above a headline
+     read as a failed picture, and it is the one thing on the page with
+     no word beside it. */
+  :is(.paper--daily, .stage--tv .paper) .paper__head:has(.paper__eyebrow[data-said]) .paper__mark {
+    display: none;
+  }
+
+  :is(.paper--daily, .stage--tv .paper) .paper__col > .paper__article:first-child .paper__eyebrow[data-said],
+  :is(.paper--daily, .stage--tv .paper) .paper__col:only-child > .paper__article .paper__eyebrow[data-said],
+  :is(.paper--daily, .stage--tv .paper) .paper__foot .paper__eyebrow[data-said] {
+    display: block;
+  }
+
+  :is(.paper--daily, .stage--tv .paper) .paper__col > .paper__article:first-child .paper__head:has(.paper__eyebrow[data-said]) .paper__mark,
+  :is(.paper--daily, .stage--tv .paper) .paper__col:only-child > .paper__article .paper__head:has(.paper__eyebrow[data-said]) .paper__mark,
+  :is(.paper--daily, .stage--tv .paper) .paper__foot .paper__head:has(.paper__eyebrow[data-said]) .paper__mark {
+    display: grid;
+  }
+
+  /* The lead's dek is set balanced. `pretty` keeps a one-word last line
+     off the paragraph by pulling words down from the line above, which on
+     the largest reading type on the page left a hole the width of "under
+     a" in the middle of the one paragraph the town reads; balanced, the
+     lines are even and there is neither a hole nor a widow. */
+  :is(.paper--daily, .stage--tv .paper) .paper__lead .paper__dek {
+    text-wrap: balance;
+  }
+
+  /* The mark sits on the kicker's line, not beside the headline. Beside
+     it, the headline stepped in by the chip's width and the dek under it
+     stepped back out to the margin — the largest type in a column hanging
+     off a different edge from its own first paragraph, which reads as a
+     paste-up error. On the kicker's line it is the same figure the side
+     label already uses: a small square, then the words. */
+  :is(.paper--daily, .stage--tv .paper) .paper__head {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    column-gap: var(--space-2);
+  }
+
+  :is(.paper--daily, .stage--tv .paper) .paper__head .paper__title {
+    display: contents;
+  }
+
+  :is(.paper--daily, .stage--tv .paper) .paper__head .paper__mark {
+    grid-column: 1;
+    grid-row: 1;
+    width: 1.5em;
+    height: 1.5em;
+    margin: 0;
+    font-size: calc(clamp(0.95rem, 1.6vmin, 1.5rem) * var(--paper-fit, 1));
+  }
+
+  :is(.paper--daily, .stage--tv .paper) .paper__head .paper__mark .sigil {
+    width: 1em;
+    height: 1em;
+  }
+
+  :is(.paper--daily, .stage--tv .paper) .paper__head .paper__eyebrow {
+    grid-column: 2;
+    grid-row: 1;
+    margin-bottom: 0;
+  }
+
+  :is(.paper--daily, .stage--tv .paper) .paper__head .paper__headline {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    margin-top: var(--space-1);
+  }
+}
+
 
 /* "Who was who" is the moment the evening exists for, and on a 1080p screen
    it was the smallest thing on it: the names at `--text-display-min` and the
@@ -3823,10 +4329,6 @@ html[data-dawn] body {
   font-size: calc(clamp(2.25rem, 7.4vmin, 6.5rem) * var(--paper-fit, 1));
 }
 
-.stage--tv .paper__label {
-  font-size: calc(clamp(0.9rem, 1.8vmin, 1.5rem) * var(--paper-fit, 1));
-}
-
 .stage--tv .paper__casting {
   min-height: 0;
 }
@@ -3835,26 +4337,6 @@ html[data-dawn] body {
 .stage--tv .paper__casting:not([data-crew])::before {
   width: clamp(0.6rem, 1.4vmin, 1.2rem);
   height: clamp(0.6rem, 1.4vmin, 1.2rem);
-}
-
-.stage--tv .paper__mark {
-  width: calc(2.25rem * var(--paper-fit, 1));
-  height: calc(2.25rem * var(--paper-fit, 1));
-}
-
-.stage--tv .paper__lead .paper__mark {
-  width: calc(3.25rem * var(--paper-fit, 1));
-  height: calc(3.25rem * var(--paper-fit, 1));
-}
-
-.stage--tv .paper__mark .sigil {
-  width: 1.4rem;
-  height: 1.4rem;
-}
-
-.stage--tv .paper__lead .paper__mark .sigil {
-  width: 2rem;
-  height: 2rem;
 }
 
 /* The drawn page, shown for a long press where there is no share sheet. */

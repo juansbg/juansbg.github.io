@@ -26,7 +26,7 @@ import {
   type OpenRoom,
 } from './room/client'
 import type { TvProjection } from './room/projections'
-import { fitPaper } from './ui/screens/paper'
+import { fitPaper, tracksFor } from './ui/screens/paper'
 import { lobbyMarkup, tableMarkup } from './ui/screens/table'
 import { esc } from './ui/dom'
 
@@ -546,7 +546,18 @@ render()
 // A television does not resize; a browser window pointed at this page does,
 // and so does a projector changing mode. The page is ruled for the frame it
 // is on, so it is re-ruled when the frame changes.
-window.addEventListener('resize', () => fitPaper(root))
+let ruled = tracksFor(window.innerWidth)
+window.addEventListener('resize', () => {
+  // Across the line where the sheet can take another column, the page is
+  // ruled again (`tracksFor`); short of it, it is fitted where it is.
+  const tracks = tracksFor(window.innerWidth)
+  if (tracks !== ruled) {
+    ruled = tracks
+    render()
+    return
+  }
+  fitPaper(root)
+})
 // And once the page's own faces have arrived: the first paint of a cold
 // television measures Bebas in Impact's metrics, which is a different page.
 if (typeof document.fonts !== 'undefined') void document.fonts.ready.then(() => fitPaper(root))

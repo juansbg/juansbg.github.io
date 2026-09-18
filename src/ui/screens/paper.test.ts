@@ -1,8 +1,9 @@
 import { describe, expect, it } from 'vitest'
-import { columnsOf, paperMarkup, paperOf, planFor } from './paper'
+import { columnsOf, paperMarkup, paperOf, planFor, tracksFor } from './paper'
 import { quietGame } from '../../engine/testing'
 import { endNight, lynch, recordAction, startNight, type PlayerSetup } from '../../engine/state'
 import { LOCALES, strings } from '../../i18n'
+import { APP_NAME } from '../../i18n/strings'
 import type { GameState, NightAction } from '../../engine/types'
 import type { RoleId } from '../../engine/roles'
 
@@ -353,6 +354,19 @@ describe('how the sheet is ruled', () => {
       expect(plan.cols - plan.lead, `${rest}`).toBeGreaterThanOrEqual(1)
     }
   })
+
+  it('rules a narrower sheet into fewer columns, never more than it can carry', () => {
+    // Five columns need sixteen hundred pixels; a 1280 laptop or a 720p
+    // television gets four at most, however loud the morning.
+    expect(tracksFor(1024)).toBe(4)
+    expect(tracksFor(1599)).toBe(4)
+    expect(tracksFor(1600)).toBe(5)
+    expect(planFor(9, 4).cols).toBe(4)
+    expect(planFor(4, 4).cols).toBe(4)
+    expect(planFor(1, 4).cols).toBe(3)
+    expect(planFor(0, 4)).toEqual({ cols: 1, lead: 1 })
+    for (let rest = 1; rest <= 12; rest++) expect(planFor(rest, 4).cols - 2).toBeGreaterThanOrEqual(1)
+  })
 })
 
 describe('the paper’s banks', () => {
@@ -369,6 +383,8 @@ describe('the paper’s banks', () => {
     for (const id of ROLE_IDS) p.investigation[id].forEach((h, i) => out.push({ where: `investigation.${id}[${i}]`, text: h('Zed') }))
     p.colour.forEach((c, i) => out.push({ where: `colour[${i}]`, text: `${c.headline} ${c.dek}` }))
     out.push({ where: 'cardOn', text: p.cardOn('Zed', 'Card') })
+    // The nameplate is read more often than any line on the page.
+    out.push({ where: 'masthead', text: p.masthead })
     return out
   }
 
@@ -387,7 +403,14 @@ describe('the paper’s banks', () => {
   it.each(LOCALES)('keep every role out of the clue headlines and the colour (%s)', (locale) => {
     const t = strings(locale)
     const roles = ROLE_IDS.map((id) => prefix(bare(t.roles[id].name)))
-    const nameless = everyLine(locale).filter(({ where }) => where.startsWith('event.clue') || where.startsWith('colour'))
+    // The nameplate too, once the paper has a name of its own. It is the
+    // app's name until the user picks one, and the app's name is the
+    // Family's — a paper called The Family reporting on the Family every
+    // morning, which is the reason it is being renamed. The placeholder is
+    // let through by name so this flips the day the name changes.
+    const nameless = everyLine(locale).filter(
+      ({ where, text }) => where.startsWith('event.clue') || where.startsWith('colour') || (where === 'masthead' && text !== APP_NAME),
+    )
     for (const { where, text } of nameless) {
       for (const word of roles) expect(text.toLowerCase(), `${locale} ${where}: ${text}`).not.toMatch(word)
     }
