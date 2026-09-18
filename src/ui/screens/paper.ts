@@ -383,6 +383,23 @@ const WORDS: readonly number[] = [
 const SPACE = 0.022
 
 /**
+ * How long a paragraph runs.
+ *
+ * Every paragraph in the page used to be exactly five lines, because the
+ * rule was `i % 5`. At a glance that is invisible; held on a wall for the
+ * length of an argument it is the last artefact left in the greek — the
+ * eye finds periodic structure before it finds anything else, and the
+ * beat ran in parallel down every column at once: indent, four lines,
+ * short line, six times over. Real paragraphs run two to nine lines with
+ * no period at all.
+ *
+ * A fixed table walked by a step coprime with it, the same way the word
+ * widths are: no randomness, the same page every paint, and no beat.
+ */
+const PARAGRAPHS: readonly number[] = [3, 6, 4, 8, 5, 3, 7, 4, 6, 2, 5, 9]
+const PARAGRAPH_STEP = 5
+
+/**
  * How many lines every block carries. A television gives the lead half a
  * metre of column and a busy day's fourth story two centimetres, and the
  * block is clipped to whatever its column can hold — so this is the tallest
@@ -390,11 +407,8 @@ const SPACE = 0.022
  */
 const GREEK_LINES = 44
 
-const lineMarkup = (seed: number, i: number): string => {
+const lineMarkup = (seed: number, i: number, ends: boolean, opens: boolean): string => {
   const width = GREEK[(i + seed * 7) % GREEK.length] ?? 1
-  // Every fifth line ends a paragraph, so the one after it is indented.
-  const ends = i % 5 === 4
-  const opens = i % 5 === 0 && i > 0
   const measure = ends ? Math.min(width, 0.66) : width
   const indent = opens ? 0.06 : 0
 
@@ -418,8 +432,20 @@ const lineMarkup = (seed: number, i: number): string => {
 }
 
 const greekMarkup = (seed: number, lines = GREEK_LINES): string => {
+  // Where the paragraphs fall in this block, before any line is set.
+  const ends = new Set<number>()
+  const opens = new Set<number>()
+  let at = 0
+  let p = seed * PARAGRAPH_STEP
+  while (at < lines) {
+    const run = PARAGRAPHS[p % PARAGRAPHS.length] ?? 4
+    at += run
+    if (at - 1 < lines) ends.add(at - 1)
+    if (at < lines) opens.add(at)
+    p += PARAGRAPH_STEP
+  }
   const out: string[] = []
-  for (let i = 0; i < lines; i++) out.push(lineMarkup(seed, i))
+  for (let i = 0; i < lines; i++) out.push(lineMarkup(seed, i, ends.has(i), opens.has(i)))
   return `<span class="paper__scribbles" aria-hidden="true">${out.join('')}</span>`
 }
 
@@ -515,8 +541,10 @@ const mastheadMarkup = (
   dateline: string,
   short: string | null = null,
   flanks: Flanks | null = null,
-  /** The right flank is already markup (the clock), not a string to escape. */
+  /** The right flank is already markup, not a string to escape. */
   rightIsMarkup = false,
+  /** The one live thing on the sheet, hung off the end of the dateline. */
+  ear = '',
 ): string => `
   <header class="paper__masthead">
     <p class="paper__nameplate">
@@ -526,11 +554,14 @@ const mastheadMarkup = (
       <span class="paper__rule"></span>
       <span class="paper__flank paper__flank--right">${flanks ? (rightIsMarkup ? flanks.right : esc(flanks.right)) : ''}</span>
     </p>
-    <p class="paper__edition">${
-      short === null
-        ? esc(dateline)
-        : `<span><span class="paper__edition-long">${esc(dateline)}</span><span class="paper__edition-short">${esc(short)}</span></span>`
-    }</p>
+    <p class="paper__edition">
+      <span class="paper__dateline">${
+        short === null
+          ? esc(dateline)
+          : `<span class="paper__edition-long">${esc(dateline)}</span><span class="paper__edition-short">${esc(short)}</span>`
+      }</span>
+      ${ear}
+    </p>
   </header>`
 
 /**
@@ -694,7 +725,7 @@ const rollMarkup = (roll: readonly Standing[], locale: Locale): string => {
   return `
     <aside class="paper__roll">
       <h3 class="paper__label">${esc(t.ui.paper.roll)}</h3>
-      <ol class="paper__standing">
+      <ol class="paper__standing" style="--seats: ${roll.length}">
         ${roll
           .map(
             (seat) => `
@@ -733,13 +764,19 @@ export const editionMarkup = (e: Edition, locale: Locale, clock: TimerView | nul
         : clock.phase === 'paused'
           ? ct.paused
           : ct.label
-  const right =
+  // Hung off the end of the dateline's rule, not off the nameplate's.
+  // In the nameplate's ear it evicted the edition number — so the twelve
+  // pages a room stares at lost the one piece of furniture that says this
+  // is a numbered edition, while the ending, which nobody argues over,
+  // kept it. The dateline is the line that already describes this edition
+  // at this moment, which is exactly what a clock is.
+  const ear =
     clock === null || said === null
-      ? esc(t.ui.paper.number(e.day))
+      ? ''
       : `<span class="paper__clock" data-phase="${clock.phase}"><span class="paper__clock-said">${esc(said)}</span><span class="paper__clock-digits" data-timer-digits>${esc(formatClock(clock.seconds))}</span></span>`
   return `
     <article class="paper paper--daily" data-paper data-edition="${e.day}" aria-label="${esc(t.ui.paper.title)}">
-      ${mastheadMarkup(e.masthead, e.dateline, null, { left: t.ui.paper.price, right }, clock !== null)}
+      ${mastheadMarkup(e.masthead, e.dateline, null, { left: t.ui.paper.price, right: t.ui.paper.number(e.day) }, false, ear)}
       ${pageMarkup(e.lead, e.rest, undefined, e.roll === null ? undefined : rollMarkup(e.roll, locale))}
     </article>
   `
@@ -867,9 +904,19 @@ export const fitPaper = (root: ParentNode): void => {
    * entirely inside every box that clips it, and inside the frame. The
    * greek is not asked, because the greek is supposed to be cut.
    */
+  /**
+   * Every run of real type on the page, and the list has to be complete
+   * or the pass is blind to whatever is missing from it. The roll was:
+   * measured on an 1100x620 window, `--paper-fit` sat at 1 and reported
+   * the page fitting while Lucía and Max were cut off the foot of the
+   * register — which is the one thing on the sheet that is worse missing
+   * than absent, because a roll that omits two players is a roll the room
+   * will believe.
+   */
   const INK =
     '.paper__headline, .paper__dek, .paper__note, .paper__eyebrow, .paper__caption,' +
-    '.paper__who, .paper__role, .paper__banner, .paper__label, .paper__entry, .paper__name'
+    '.paper__who, .paper__role, .paper__banner, .paper__label, .paper__entry, .paper__name,' +
+    '.paper__seat-name, .paper__asking'
 
   const cut = (el: HTMLElement): boolean => {
     const box = el.getBoundingClientRect()
@@ -891,8 +938,20 @@ export const fitPaper = (root: ParentNode): void => {
     bottom = Math.min(bottom, window.innerHeight)
     left = Math.max(left, 0)
     right = Math.min(right, window.innerWidth)
-    const seen = Math.max(0, bottom - top) * Math.max(0, right - left)
-    return seen < box.width * box.height - 2
+    // Edges, with a pixel of slack on each, rather than a share of the
+    // area. Area against a two-square-pixel tolerance is no tolerance at
+    // all for a run of type two hundred pixels wide: a column track that
+    // lands on 226.391px clips a dek by a twentieth of a pixel and loses
+    // ten square pixels, which read as "cut" and would have had the page
+    // shrink itself over nothing. A run is cut when an edge of it is
+    // somewhere nobody can see, which is what the question was.
+    const SLACK = 1
+    return (
+      box.top < top - SLACK ||
+      box.bottom > bottom + SLACK ||
+      box.left < left - SLACK ||
+      box.right > right + SLACK
+    )
   }
 
   const over = (): boolean => [...paper.querySelectorAll<HTMLElement>(INK)].some(cut)

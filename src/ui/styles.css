@@ -2625,6 +2625,7 @@ html[data-dawn] body {
   grid-template-columns: 1fr auto 1fr;
   align-items: center;
   gap: var(--space-3);
+  grid-auto-flow: column;
   margin: var(--space-2) 0 0;
   color: var(--on-newsprint-muted);
   font-size: var(--text-xs);
@@ -2640,8 +2641,33 @@ html[data-dawn] body {
 .paper__edition::before,
 .paper__edition::after {
   content: '';
+  grid-row: 1;
   height: 1px;
   background: var(--newsprint-rule);
+}
+
+.paper__edition::before {
+  grid-column: 1;
+}
+
+.paper__dateline {
+  grid-column: 2;
+  grid-row: 1;
+}
+
+.paper__edition::after {
+  grid-column: 3;
+}
+
+/* The clock takes a fourth track on the end of the line, and only when
+   there is one: an empty track still costs the row a gap. */
+.paper__edition:has(.paper__clock) {
+  grid-template-columns: 1fr auto 1fr auto;
+}
+
+.paper__edition .paper__clock {
+  grid-column: 4;
+  grid-row: 1;
 }
 
 /* On a phone the dateline has no room beside its hairlines: the rules go
@@ -2660,6 +2686,10 @@ html[data-dawn] body {
   .paper__edition::before,
   .paper__edition::after {
     display: none;
+  }
+
+  .paper__edition:has(.paper__clock) {
+    grid-template-columns: none;
   }
 }
 
@@ -3159,9 +3189,14 @@ html[data-dawn] body {
   gap: var(--space-3);
 }
 
+/* Dimmed to the price's ink. At full Midnight a figure that changes every
+   second was the second-strongest thing in the masthead after the
+   nameplate, pulling the eye once a second for the length of an argument;
+   an ear is quieter than both. It reads at three metres because the price
+   does, at the same weight. */
 .stage--tv .paper__clock-digits {
   font-size: calc(clamp(1.1rem, 2.4vmin, 2rem) * var(--paper-fit, 1));
-  color: var(--on-newsprint);
+  color: var(--on-newsprint-muted);
 }
 
 /* Out of time is a rule, not red type: on newsprint Vendetta rules and
@@ -3345,6 +3380,8 @@ html[data-dawn] body {
      down rather than across. It carries nothing the ring did not carry a
      minute earlier, and it is the only thing on the sheet that would
      rather be a list than a story. */
+
+
   .stage--tv .paper__page[data-roll] {
     grid-template-columns: repeat(var(--cols, 3), minmax(0, 1fr)) clamp(9rem, 13vw, 15rem);
   }
@@ -3364,12 +3401,23 @@ html[data-dawn] body {
     overflow: hidden;
   }
 
+  /* The roll sets at a pitch and stops. Stretched to the full depth, five
+     seats came out 165px apart with a hairline under each — five words on
+     five ruled blanks, the most regular structure on the sheet, in a
+     column a room looks at for two minutes. The eye finds periodic
+     structure before it finds anything else. Air under a finished list is
+     ordinary; a form is not.
+     The cap is per seat, so a full table still fits: at fifteen the list
+     is taller than the column and the spread closes up to suit, and at
+     five it is a short standing box, which is what it is. */
   .stage--tv .paper__standing {
+    --roll-pitch: clamp(2.2rem, 4.8vmin, 3.4rem);
     display: flex;
-    flex: 1 1 auto;
+    flex: 0 1 auto;
     flex-direction: column;
     justify-content: space-between;
     min-height: 0;
+    max-height: calc(var(--seats, 8) * var(--roll-pitch));
     margin: 0;
     padding: var(--space-2) 0 0;
     list-style: none;
@@ -3384,7 +3432,7 @@ html[data-dawn] body {
   }
 
   .stage--tv .paper__seat:last-child {
-    border-bottom: 0;
+    border-bottom-color: var(--on-newsprint);
   }
 
   .stage--tv .paper__seat-name {
