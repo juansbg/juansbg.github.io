@@ -301,7 +301,10 @@ unimproved one. The rules a change has to keep now:
   honoured only while the paragraph is shorter than the column; a
   fifteen-seat Spanish dek broke across the lead's two columns with nothing
   cut and nothing for the cut check to find. A dek whose lines do not share
-  a left edge is now `over()`.
+  a left edge is now `over()`, and so is a dek whose side label sits in
+  another column: with the dek filling column one exactly, the town's
+  swatch went over the break to the top of column two and read as a kicker
+  on a block of greek.
 - **The answer a ladder step gives is only an answer for the page that step
   leaves behind.** Taking a thin type block off moves every story in its
   column, so the thin pass runs inside each step and the step is measured
