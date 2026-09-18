@@ -548,19 +548,24 @@ const mastheadMarkup = (
 ): string => `
   <header class="paper__masthead">
     <p class="paper__nameplate">
-      <span class="paper__flank paper__flank--left">${flanks ? esc(flanks.left) : ''}</span>
-      <span class="paper__rule"></span>
+      <span class="paper__side paper__side--left">
+        <span class="paper__flank paper__flank--left">${flanks ? esc(flanks.left) : ''}</span>
+        <span class="paper__rule"></span>
+      </span>
       <span class="paper__name">${esc(name)}</span>
-      <span class="paper__rule"></span>
-      <span class="paper__flank paper__flank--right">${flanks ? (rightIsMarkup ? flanks.right : esc(flanks.right)) : ''}</span>
+      <span class="paper__side paper__side--right">
+        <span class="paper__rule"></span>
+        <span class="paper__flank paper__flank--right">${flanks ? (rightIsMarkup ? flanks.right : esc(flanks.right)) : ''}</span>
+      </span>
     </p>
     <p class="paper__edition">
+      <span class="paper__side paper__side--left"><span class="paper__rule"></span></span>
       <span class="paper__dateline">${
         short === null
           ? esc(dateline)
           : `<span class="paper__edition-long">${esc(dateline)}</span><span class="paper__edition-short">${esc(short)}</span>`
       }</span>
-      ${ear}
+      <span class="paper__side paper__side--right"><span class="paper__rule"></span>${ear}</span>
     </p>
   </header>`
 
@@ -916,7 +921,11 @@ export const fitPaper = (root: ParentNode): void => {
   const INK =
     '.paper__headline, .paper__dek, .paper__note, .paper__eyebrow, .paper__caption,' +
     '.paper__who, .paper__role, .paper__banner, .paper__label, .paper__entry, .paper__name,' +
-    '.paper__seat-name, .paper__asking'
+    '.paper__seat-name, .paper__asking,' +
+    // The masthead, for the same reason the register is here: a list that
+    // leaves something out is blind to exactly that thing, and the page
+    // has no other way to notice.
+    '.paper__flank, .paper__dateline, .paper__clock-said, .paper__clock-digits'
 
   const cut = (el: HTMLElement): boolean => {
     const box = el.getBoundingClientRect()

@@ -2562,12 +2562,36 @@ html[data-dawn] body {
    floated in the middle of a bare band; the price and the number back at
    the margins with a hairline running from each of them to the name close
    it, and the dateline rule below is left to carry the edition line. */
+/* Three tracks, not five, and the two outer ones are equal: the name sits
+   on the sheet's own axis and the hairlines absorb whatever difference
+   there is between the ears. Set as five tracks with the rules sharing
+   the slack, the nameplate paid for its ears out of its own position —
+   `PRECIO 5 CTS.` is seventy pixels wider than `PRICE 5¢`, so THE FAMILY
+   sat 23px right of centre in English and 56px right in Spanish. The
+   masthead is the page's axis and every other asymmetry is read against
+   it; one that moves when the table changes language is the last thing
+   here a printer would not have shipped. Unequal rules are invisible at
+   three metres. */
 .paper__nameplate {
   display: grid;
-  grid-template-columns: auto 1fr auto 1fr auto;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
   gap: var(--space-3);
   margin: 0;
+}
+
+/* An ear and its hairline. The hairline takes the slack, so whatever the
+   ear is wide the middle does not move — which is also what makes the
+   clock free to be any width in any language. */
+.paper__side {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-width: 0;
+}
+
+.paper__side .paper__rule {
+  flex: 1 1 auto;
 }
 
 .paper__name {
@@ -2599,8 +2623,7 @@ html[data-dawn] body {
     display: block;
   }
 
-  .paper__flank,
-  .paper__nameplate .paper__rule {
+  .paper__nameplate .paper__side {
     display: none;
   }
 }
@@ -2620,12 +2643,17 @@ html[data-dawn] body {
    empty newsprint with a small centred wordmark between them, which is a
    website header and not a nameplate. This is where a real paper puts
    them. */
+/* Same three tracks as the nameplate, and for the same reason: the
+   dateline was being centred in whatever the clock left rather than on
+   the page, so hanging the clock here pushed the edition line 125 to
+   142px left of the axis. The final edition, which has no clock, sat dead
+   centre — which is the proof it was the clock's width and not the
+   line's. */
 .paper__edition {
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
   gap: var(--space-3);
-  grid-auto-flow: column;
   margin: var(--space-2) 0 0;
   color: var(--on-newsprint-muted);
   font-size: var(--text-xs);
@@ -2636,38 +2664,6 @@ html[data-dawn] body {
 .paper__rule {
   height: 1px;
   background: var(--newsprint-rule);
-}
-
-.paper__edition::before,
-.paper__edition::after {
-  content: '';
-  grid-row: 1;
-  height: 1px;
-  background: var(--newsprint-rule);
-}
-
-.paper__edition::before {
-  grid-column: 1;
-}
-
-.paper__dateline {
-  grid-column: 2;
-  grid-row: 1;
-}
-
-.paper__edition::after {
-  grid-column: 3;
-}
-
-/* The clock takes a fourth track on the end of the line, and only when
-   there is one: an empty track still costs the row a gap. */
-.paper__edition:has(.paper__clock) {
-  grid-template-columns: 1fr auto 1fr auto;
-}
-
-.paper__edition .paper__clock {
-  grid-column: 4;
-  grid-row: 1;
 }
 
 /* On a phone the dateline has no room beside its hairlines: the rules go
@@ -2682,14 +2678,18 @@ html[data-dawn] body {
     text-align: center;
   }
 
-  .paper__rule,
-  .paper__edition::before,
-  .paper__edition::after {
+  .paper__rule {
     display: none;
   }
 
-  .paper__edition:has(.paper__clock) {
-    grid-template-columns: none;
+  .paper__edition {
+    display: flex;
+    justify-content: center;
+    gap: var(--space-3);
+  }
+
+  .paper__edition .paper__side {
+    flex: none;
   }
 }
 
@@ -3170,9 +3170,11 @@ html[data-dawn] body {
 .stage--tv .paper__name {
   font-size: clamp(3rem, 12vmin, 10rem);
   letter-spacing: 0.16em;
-  /* Bebas is tracked from the left, so a centred line sits half a space
-     off centre without this. */
-  text-indent: 0.16em;
+  /* No indent to correct the tracking's trailing space. It was 0.16em on
+     the theory that a tracked line sits half a space left of centre, and
+     the theory was wrong here: measured, 0.16em put the ink 10px RIGHT of
+     the sheet's axis and 0.08em put it 5px right, which is a straight
+     line through zero. Chrome is already trimming it. */
 }
 
 .stage--tv .paper__flank {
@@ -3194,8 +3196,19 @@ html[data-dawn] body {
    nameplate, pulling the eye once a second for the length of an argument;
    an ear is quieter than both. It reads at three metres because the price
    does, at the same weight. */
+/* And it does not ride the fit ladder down. The ladder exists so the news
+   fits, and shrinking the greek to pay for that is free because nobody
+   reads it — that is what it is for. The clock is the only thing on the
+   sheet that changes, it is glanced at from a sofa rather than read, and
+   it was coming out at 16px on a 720p television and 12px in a small
+   window, which is not a clock. It scales with the screen, not with how
+   crowded the page is. */
+.stage--tv .paper__clock-said {
+  font-size: clamp(0.95rem, 1.6vmin, 1.4rem);
+}
+
 .stage--tv .paper__clock-digits {
-  font-size: calc(clamp(1.1rem, 2.4vmin, 2rem) * var(--paper-fit, 1));
+  font-size: clamp(1.15rem, 2.4vmin, 2rem);
   color: var(--on-newsprint-muted);
 }
 
