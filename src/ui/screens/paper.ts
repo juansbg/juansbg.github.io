@@ -438,7 +438,10 @@ const cutMarkup = (a: Article): string => {
  * order the town cares about.
  */
 const articleMarkup = (a: Article, i: number, tier = 3): string => `
-  <article class="paper__article" data-kind="${a.kind}" data-tier="${tier}"${a.accent ? ` data-accent="${a.accent}"` : ''} style="--i: ${i}">
+  <article class="paper__article" data-kind="${a.kind}" data-tier="${tier}"${a.accent ? ` data-accent="${a.accent}"` : ''} style="--i: ${i}; --chars: ${Math.max(
+    1,
+    a.headline.length,
+  )}">
     <header class="paper__head">
       ${a.mark ? `<span class="mark paper__mark" aria-hidden="true">${a.mark}</span>` : ''}
       <div class="paper__title">

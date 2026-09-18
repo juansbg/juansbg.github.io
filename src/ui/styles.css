@@ -2501,7 +2501,10 @@ html[data-dawn] body {
    at a glance. It scrolls inside its own box; the masthead is the app's
    name set as a newspaper's. */
 .paper {
-  flex: 1 1 0;
+  /* Content-sized, then scrolling: a short morning used to leave a hundred
+     and seventy pixels of bare newsprint under the last hairline, with no
+     fade, which reads as a page that ran out rather than one that ended. */
+  flex: 0 1 auto;
   min-height: 0;
   overflow-y: auto;
   padding: var(--space-5) var(--space-4) var(--space-6);
@@ -2760,15 +2763,25 @@ html[data-dawn] body {
 }
 
 /* The dead are struck from the page the way they are struck from the
-   report: a Vendetta rule through the name, never red type. */
-.paper__struck {
-  text-decoration: line-through;
+   report: a Vendetta rule through the name, never red type.
+
+   Drawn as an underline lifted into the letterform, not as `line-through`.
+   Where a UA puts a line-through is not something CSS can say, and in
+   Bebas it lands on the A/E/H crossbar: at three metres BETO read as
+   RFTO, and these are the ten words the room is reading the page for.
+   `text-underline-offset` is the position control `line-through` does not
+   have — em-relative, so it scales with the type and owes nothing to the
+   line-height, and still a text decoration, so it wraps with the words
+   instead of breaking like a background would. Bebas's bar sits near 0.48
+   of cap height; -0.45em puts the rule near 0.62, clear of it. */
+.paper__struck,
+.paper__casting[data-dead] .paper__who {
+  text-decoration-line: underline;
   text-decoration-color: var(--lethal);
-  /* Scaled, not fixed. Three pixels is right on a phone's 24px headline
-     and disappears into the crossbar of an 80px Bebas E on a wall, where
-     the strike and the letter merge into mush — on the one word the room
-     is reading the page for. */
+  /* Scaled, not fixed. Two pixels is right on a phone's 24px headline and
+     disappears under an 80px Bebas cap on a wall. */
   text-decoration-thickness: max(2px, 0.055em);
+  text-underline-offset: -0.45em;
 }
 
 .paper__lead .paper__article {
@@ -2985,11 +2998,7 @@ html[data-dawn] body {
   text-transform: uppercase;
 }
 
-.paper__casting[data-dead] .paper__who {
-  text-decoration: line-through;
-  text-decoration-color: var(--lethal);
-  text-decoration-thickness: 2px;
-}
+
 
 .paper__role {
   color: var(--on-newsprint-muted);
@@ -3075,6 +3084,7 @@ html[data-dawn] body {
 
 .stage--tv .paper {
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
   min-height: 0;
   /* The frame is the page. A television has no scrollbar and no hand near
@@ -3125,8 +3135,23 @@ html[data-dawn] body {
   font-size: calc(clamp(1.8rem, 3.9vmin, 3.6rem) * var(--paper-fit, 1) * var(--air, 1));
 }
 
+/* The lead's headline is set to its own word count.
+   One fixed size for every headline guarantees a hole every time the
+   engine writes something short, and the engine writes short often:
+   "EVERYBODY WOKE UP" filled 51% of its measure and left 555x100 of bare
+   Ash beside it, while a long Spanish head on the same design filled its
+   box exactly and had no hole at all. A sub writes to a count and the
+   display size is chosen so the head fills its box; this is the same
+   arithmetic without the sub — a pivot of thirty-four characters, with a
+   floor so a long head still sets, and a ceiling so a two-word morning
+   does not shout off the sheet. */
 .stage--tv .paper__lead .paper__headline {
-  font-size: calc(clamp(2.5rem, 7vmin, 6.5rem) * var(--paper-fit, 1) * var(--air, 1));
+  --fill: clamp(0.85, calc(34 / var(--chars, 34)), 1.55);
+  /* Balanced wrapping splits a head into equal lines, which is right for a
+     card and wrong for a lead: it left both lines short and a third of the
+     measure bare. A lead fills its line and turns. */
+  text-wrap: pretty;
+  font-size: calc(clamp(2.5rem, 7vmin, 6.5rem) * var(--paper-fit, 1) * var(--air, 1) * var(--fill));
 }
 
 .stage--tv .paper__dek {
@@ -3146,16 +3171,29 @@ html[data-dawn] body {
 /* Greek at reading weight: at a phone's 2px and 0.62rem it disappears on a
    wall. These are the numbers that make a column read as a block of type
    from the far side of a room. */
-/* The leading is whole pixels. A fractional one put the columns on four
-   different depths inside one line of it and made them wander by a few
-   pixels against each other down the page — which the eye reads across a
-   gutter even when it cannot read the words, and which shimmers when it is
-   nearly but not quite right. The plain calc stays under it for a browser
-   without `round()`. */
 .stage--tv .paper__scribbles {
   --greek-ink: 4px;
   --greek-leading: calc(0.86rem * var(--paper-fit, 1));
-  --greek-leading: round(calc(0.86rem * var(--paper-fit, 1)), 1px);
+}
+
+/* The leading is whole pixels where the browser can do the arithmetic. A
+   fractional one put the columns on four different depths inside one line
+   of leading and made them wander a few pixels against each other down
+   the page — which the eye reads across a gutter even when it cannot read
+   the words, and which shimmers when it is nearly but not quite right.
+
+   Behind `@supports` and not behind a second declaration: written as two
+   declarations in one rule the minifier dropped the first as a duplicate,
+   and a custom property holding a function the browser cannot parse is
+   substituted in literally — so `calc(var(--greek-leading) - var(--greek-ink))`
+   fails at computed-value time, the margin falls to zero, and every line
+   of the page's body copy stacks into one solid bar. On the one device
+   this page is for, which is also the device most likely to be running a
+   Chromium from four years ago. */
+@supports (height: round(1px, 1px)) {
+  .stage--tv .paper__scribbles {
+    --greek-leading: round(calc(0.86rem * var(--paper-fit, 1)), 1px);
+  }
 }
 
 @media (min-width: 60rem) {
@@ -5088,19 +5126,36 @@ html[data-dawn] body {
 .stage--tv .paper:has(.paper__section) .paper__casting {
   display: grid;
   grid-template-columns: auto auto minmax(var(--space-4), 1fr) auto;
-  align-items: center;
+  /* On the baseline, and on the NAME's. Centred, the dots landed twenty
+     pixels low — in the white between one row and the next, which at three
+     metres is a dotted divider between rows: the interior rule the list
+     had just lost, redrawn. */
+  align-items: baseline;
   gap: 0 var(--space-3);
+}
+
+.stage--tv .paper:has(.paper__section) .paper__casting::before {
+  align-self: center;
 }
 
 .stage--tv .paper:has(.paper__section) .paper__casting::after {
   content: '';
   grid-column: 3;
+  align-self: baseline;
+  margin-bottom: 0.14em;
   height: 1px;
   background: repeating-linear-gradient(
     to right,
     var(--newsprint-rule) 0 2px,
     transparent 2px 7px
   );
+}
+
+/* And it spans a hand, not a metre: nine hundred pixels of dots between
+   two words is a menu, not a cast list. The list keeps its own measure and
+   the rest of the column is margin. */
+.stage--tv .paper:has(.paper__section) .paper__cast {
+  max-width: 34rem;
 }
 
 .stage--tv .paper:has(.paper__section) .paper__role {
