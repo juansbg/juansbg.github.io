@@ -7,6 +7,7 @@
 // second screen does. Same fonts, tokens and table markup as the phone's
 // table view, so the two never drift. No handlers, no game.
 import '@fontsource/bebas-neue/latin-400.css'
+import '@fontsource/abril-fatface/latin-400.css'
 import '@fontsource/ibm-plex-sans/latin-400.css'
 import '@fontsource/ibm-plex-sans/latin-500.css'
 import '@fontsource/ibm-plex-sans/latin-600.css'

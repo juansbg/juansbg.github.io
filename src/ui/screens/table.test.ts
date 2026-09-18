@@ -295,6 +295,8 @@ describe('the final edition on the big screen', () => {
       expect(up).toContain(t.ui.paper.whoWasWho)
       // The banner is the result the room has just been read.
       expect(up).toContain(t.appName)
+      // And the nameplate is the paper's own name, not the app's.
+      expect(up).toContain(t.ui.paper.masthead)
       // It is the room's copy: nothing to tap.
       expect(up).not.toContain('data-paper-close')
       expect(up).not.toContain('data-restart')

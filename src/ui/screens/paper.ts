@@ -1503,6 +1503,7 @@ const resolveInks = (ctx: CanvasRenderingContext2D): void => {
 }
 
 const BEBAS = '"Bebas Neue", Impact, "Arial Narrow", sans-serif'
+const ABRIL = '"Abril Fatface", Georgia, "Times New Roman", serif'
 const PLEX = '"IBM Plex Sans", system-ui, sans-serif'
 const MONO = '"IBM Plex Mono", ui-monospace, monospace'
 
@@ -1567,7 +1568,12 @@ const paint = (ctx: CanvasRenderingContext2D, paper: Paper, t: ReturnType<typeof
 
   // Masthead.
   y += 110
-  text(paper.masthead.toUpperCase(), BEBAS, 132, MIDNIGHT, { align: 'center', x: WIDTH / 2, tracking: 6 })
+  // The nameplate in its own face, title case, at the largest size that
+  // sits between the margins: a Didone is nearly twice as wide as Bebas
+  // per letter, and the name is set by the string tables, not by hand.
+  ctx.font = `132px ${ABRIL}`
+  const nameSize = Math.min(132, Math.floor((132 * (WIDTH - MARGIN * 2)) / Math.max(1, ctx.measureText(paper.masthead).width)))
+  text(paper.masthead, ABRIL, nameSize, MIDNIGHT, { align: 'center', x: WIDTH / 2, tracking: 0 })
   y += 28
   rule(3, MIDNIGHT)
   y += 10
@@ -1657,7 +1663,7 @@ export const paperImage = async (state: GameState, locale: Locale): Promise<Blob
   const paper = paperOf(state, locale)
   try {
     await Promise.all(
-      [`132px ${BEBAS}`, `28px ${PLEX}`, `22px ${MONO}`].map((f) => document.fonts.load(f)),
+      [`132px ${BEBAS}`, `132px ${ABRIL}`, `28px ${PLEX}`, `22px ${MONO}`].map((f) => document.fonts.load(f)),
     )
   } catch {
     // Fallback faces are declared on every font stack.
