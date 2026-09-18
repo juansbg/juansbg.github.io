@@ -677,8 +677,21 @@ export const editionMarkup = (e: Edition, locale: Locale): string => {
  */
 const FIT_STEPS = [1, 0.92, 0.85, 0.78, 0.7] as const
 
+/**
+ * What the last measurement decided, and for which page.
+ *
+ * A television repaints whenever the narrator's phone does — which,
+ * once the room can keep the edition on the wall while the day is run
+ * underneath it, is for the length of an argument. Every reading below
+ * forces a layout, so they are taken once per page and replayed on every
+ * paint after it: the key carries everything that decides the answer, so
+ * the same key is the same page and the same answer.
+ */
 let fitKey = ''
 let fitStep = 0
+let fitFill: string | null = null
+let fitThin: number[] = []
+let fitBeaten = false
 let fitWarned = ''
 
 export const fitPaper = (root: ParentNode): void => {
@@ -687,6 +700,44 @@ export const fitPaper = (root: ParentNode): void => {
     fitKey = ''
     return
   }
+
+  const blocks = (): HTMLElement[] => [...paper.querySelectorAll<HTMLElement>('.paper__scribbles')]
+  const head = paper.querySelector<HTMLElement>('.paper__lead .paper__headline')
+
+  const key = [
+    window.innerWidth,
+    window.innerHeight,
+    paper.dataset['edition'] ?? 'final',
+    paper.querySelectorAll('.paper__article').length,
+    (paper.textContent ?? '').length,
+    document.documentElement.lang,
+    // A page measured before its own faces have arrived is measured in the
+    // fallback's metrics, which are wider and taller — and the answer would
+    // then be cached against a key that never changes again, so the room
+    // would read an evening at the smallest step for no reason. This is the
+    // trap the stylesheet's own note calls "a region measured mid-paint
+    // keeps a lie all morning", and the fonts are the version of it that
+    // fires on the very first page.
+    typeof document.fonts === 'undefined' ? 'nofonts' : document.fonts.status,
+  ].join('/')
+
+  if (key === fitKey) {
+    // Same page, same answers. Nothing here reads a layout.
+    paper.style.setProperty('--paper-fit', String(FIT_STEPS[fitStep]))
+    if (head !== null) {
+      if (fitFill === null) head.style.removeProperty('--fill')
+      else head.style.setProperty('--fill', fitFill)
+    }
+    const all = blocks()
+    for (const [at, block] of all.entries()) {
+      if (fitThin.includes(at)) block.setAttribute('data-thin', '')
+      else block.removeAttribute('data-thin')
+    }
+    if (fitBeaten) paper.setAttribute('data-fit-over', '')
+    else paper.removeAttribute('data-fit-over')
+    return
+  }
+
   /**
    * Whether any real type on the page is cut off.
    *
@@ -749,95 +800,44 @@ export const fitPaper = (root: ParentNode): void => {
 
   const over = (): boolean => [...paper.querySelectorAll<HTMLElement>(INK)].some(cut)
 
-  const key = [
-    window.innerWidth,
-    window.innerHeight,
-    paper.dataset['edition'] ?? 'final',
-    paper.querySelectorAll('.paper__article').length,
-    (paper.textContent ?? '').length,
-    document.documentElement.lang,
-    // A page measured before its own faces have arrived is measured in the
-    // fallback's metrics, which are wider and taller — and the answer would
-    // then be cached against a key that never changes again, so the room
-    // would read an evening at the smallest step for no reason. This is the
-    // trap the stylesheet's own note calls "a region measured mid-paint
-    // keeps a lie all morning", and the fonts are the version of it that
-    // fires on the very first page.
-    typeof document.fonts === 'undefined' ? 'nofonts' : document.fonts.status,
-  ].join('/')
-
-  if (key !== fitKey) {
-    fitKey = key
-    fitStep = 0
-    paper.setAttribute('data-measuring', '')
-    for (let i = 0; i < FIT_STEPS.length; i++) {
-      fitStep = i
-      paper.style.setProperty('--paper-fit', String(FIT_STEPS[i]))
-      if (!over()) break
-    }
-    paper.removeAttribute('data-measuring')
-  } else {
-    paper.style.setProperty('--paper-fit', String(FIT_STEPS[fitStep]))
-  }
+  fitKey = key
+  paper.setAttribute('data-measuring', '')
+  paper.style.setProperty('--paper-fit', '1')
+  head?.style.removeProperty('--fill')
+  for (const block of blocks()) block.removeAttribute('data-thin')
 
   /**
-   * And then the type blocks that got too little to be blocks.
+   * The lead's headline, sized off its own character count, corrected by
+   * looking at what the count could not know.
    *
-   * A column shares its slack between the stories in it, so a column with
-   * four short stories gives each of them one line of greek — and one line
-   * is not a block of type, it is a rule stuck under the dek. Taking it
-   * off gives its space back to the blocks that can use it, which is why
-   * this runs twice: the second pass catches a block that only became
-   * thin because the first pass fed it.
+   * A count does not know the measure exists. Too big and the head clears
+   * the line and lands on a rag — "A word from a neighbour" filled 61% and
+   * 43% on two lines, doubling the void it was meant to close. Too small
+   * and it simply sits in the middle of its box: the same head, stepped
+   * down once, set on ONE line at 60% of the measure and stopped there,
+   * because a loop that only steps down cannot see 60% on one line as a
+   * failure. The quietest morning in the paper then had the smallest
+   * display head in it, which tells a room the thinnest day matters least.
+   *
+   * So the guard runs both ways and picks its direction once: down while
+   * the head runs long and ends short, up while it sits on one line and
+   * leaves the measure open. That is what a sub does — the largest size
+   * that still sets in an acceptable number of lines. Bounded at three,
+   * and it stops the moment the two conditions would fight.
    */
-  const MIN_LINES = 3
-  const blocks = [...paper.querySelectorAll<HTMLElement>('.paper__scribbles')]
-  for (const block of blocks) block.removeAttribute('data-thin')
-  // Marked one at a time, never cleared between rounds, because hiding one
-  // feeds the rest: reading a height after setting the attribute forces the
-  // layout, so each answer already knows what the last one gave away. The
-  // first version cleared every mark at the top of each round and simply
-  // re-derived the same answer twice.
-  //
-  // The leading is measured off a line rather than read from the custom
-  // property: `--greek-leading` holds `round(calc(...))`, and an unregistered
-  // custom property comes back from `getComputedStyle` as that token stream,
-  // not as a length — so `parseFloat` returned NaN and the whole rule did
-  // nothing at all, quietly.
-  for (let pass = 0; pass < 2; pass++) {
-    let changed = false
-    for (const block of blocks) {
-      if (block.hasAttribute('data-thin')) continue
-      const line = block.querySelector<HTMLElement>('.paper__line')
-      if (!line) continue
-      const leading = line.offsetHeight + parseFloat(getComputedStyle(line).marginBottom)
-      if (!(leading > 0)) continue
-      if (block.clientHeight < leading * MIN_LINES) {
-        block.setAttribute('data-thin', '')
-        changed = true
-      }
-    }
-    if (!changed) break
-  }
-
-  /**
-   * And the lead's headline, which is sized off its own character count.
-   *
-   * A count cannot know whether the string clears the measure, because it
-   * does not know the measure exists — so the biggest step pushed "A word
-   * from a neighbour" straight past the point where it fits on one line
-   * and landed it on a two-line rag that filled 61% and 43%. Measured, the
-   * void beside the head doubled.
-   *
-   * This is the guard, not a fitting pass: while the head runs to more
-   * than one line and its LAST line is under half the measure, step the
-   * size down a notch and look again. Bounded at three, and a head that
-   * comes back to one line is done whatever it fills.
-   */
-  const head = paper.querySelector<HTMLElement>('.paper__lead .paper__headline')
   if (head !== null) {
-    head.style.removeProperty('--fill')
     const range = document.createRange()
+    // The first guess is the character count: a head of about thirty-four
+    // sets at the base size, a short one is thrown high and a long one is
+    // held back, with a floor so a long head still sets and a ceiling so a
+    // two-word morning does not shout off the sheet. It is set here and
+    // not in the stylesheet because the guard has to be able to read it
+    // back, and a custom property holding a `clamp()` reads back as the
+    // `clamp()`.
+    const chars = Number(head.closest<HTMLElement>('.paper__article')?.style.getPropertyValue('--chars')) || 34
+    let fill = Math.min(1.55, Math.max(0.85, 34 / chars))
+    head.style.setProperty('--fill', String(fill))
+    let going = 0
     for (let step = 0; step < 3; step++) {
       range.selectNodeContents(head)
       // One visual line can be several rects when the head carries a
@@ -853,24 +853,79 @@ export const fitPaper = (root: ParentNode): void => {
           row.right = Math.max(row.right, rect.right)
         }
       }
-      if (rows.size <= 1) break
-      const last = [...rows.entries()].sort((a, b) => a[0] - b[0])[rows.size - 1]
-      if (last === undefined) break
       const measure = head.clientWidth
-      if (measure === 0 || (last[1].right - last[1].left) / measure >= 0.5) break
-      const now = parseFloat(getComputedStyle(head).getPropertyValue('--fill')) || 1
-      head.style.setProperty('--fill', String(Math.max(0.85, now - 0.14)))
+      if (rows.size === 0 || measure === 0) break
+      const inOrder = [...rows.entries()].sort((a, b) => a[0] - b[0])
+      const last = inOrder[inOrder.length - 1]
+      if (last === undefined) break
+      const fills = (last[1].right - last[1].left) / measure
+      const want = rows.size > 1 ? (fills < 0.5 ? -1 : 0) : fills < 0.8 ? 1 : 0
+      // Settled, or caught between two steps it cannot both satisfy.
+      if (want === 0 || (going !== 0 && want !== going)) break
+      going = want
+      const next = Math.min(2.4, Math.max(0.85, fill + want * 0.14))
+      if (next === fill) break
+      fill = next
+      head.style.setProperty('--fill', String(fill))
     }
+    fitFill = String(fill)
+  } else {
+    fitFill = null
   }
 
-  paper.setAttribute('data-measuring', '')
-  const beaten = fitStep === FIT_STEPS.length - 1 && over()
+  fitStep = 0
+  for (let i = 0; i < FIT_STEPS.length; i++) {
+    fitStep = i
+    paper.style.setProperty('--paper-fit', String(FIT_STEPS[i]))
+    if (!over()) break
+  }
+
+  /**
+   * And then the type blocks that got too little to be blocks.
+   *
+   * A column shares its slack between the stories in it, so a column with
+   * four short stories gives each of them one line of greek — and one line
+   * is not a block of type, it is a rule stuck under the dek. Taking it
+   * off gives its space back to the blocks that can use it.
+   *
+   * Marked one at a time and never cleared between rounds, because hiding
+   * one feeds the rest: reading a height after setting the attribute
+   * forces the layout, so each answer already knows what the last one gave
+   * away. The first version cleared every mark at the top of each round
+   * and simply re-derived the same answer twice.
+   *
+   * The leading is measured off a line rather than read from the custom
+   * property: `--greek-leading` holds `round(calc(...))`, and an
+   * unregistered custom property comes back from `getComputedStyle` as that
+   * token stream and not as a length — so `parseFloat` returned NaN and the
+   * whole rule did nothing at all, quietly.
+   */
+  const MIN_LINES = 3
+  const all = blocks()
+  for (let pass = 0; pass < 2; pass++) {
+    let changed = false
+    for (const block of all) {
+      if (block.hasAttribute('data-thin')) continue
+      const line = block.querySelector<HTMLElement>('.paper__line')
+      if (!line) continue
+      const leading = line.offsetHeight + parseFloat(getComputedStyle(line).marginBottom)
+      if (!(leading > 0)) continue
+      if (block.clientHeight < leading * MIN_LINES) {
+        block.setAttribute('data-thin', '')
+        changed = true
+      }
+    }
+    if (!changed) break
+  }
+  fitThin = all.flatMap((block, at) => (block.hasAttribute('data-thin') ? [at] : []))
+
+  fitBeaten = fitStep === FIT_STEPS.length - 1 && over()
   paper.removeAttribute('data-measuring')
-  if (beaten) paper.setAttribute('data-fit-over', '')
+  if (fitBeaten) paper.setAttribute('data-fit-over', '')
   else paper.removeAttribute('data-fit-over')
   // Once per page, not once per paint: the room's screen repaints whenever
   // the narrator's phone does.
-  if (beaten && fitWarned !== key) {
+  if (fitBeaten && fitWarned !== key) {
     fitWarned = key
     console.warn(`[paper] the page still does not fit at ${FIT_STEPS[FIT_STEPS.length - 1]}; a story is being cut`)
   }

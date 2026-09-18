@@ -3151,7 +3151,13 @@ html[data-dawn] body {
    floor so a long head still sets, and a ceiling so a two-word morning
    does not shout off the sheet. */
 .stage--tv .paper__lead .paper__headline {
-  --fill: clamp(0.85, calc(34 / var(--chars, 34)), 1.55);
+  /* `--fill` is `fitPaper`'s, not the stylesheet's. It was a `clamp()`
+     here and the guard read it back with `getComputedStyle`, which for an
+     unregistered custom property hands back the token stream and not a
+     number — so `parseFloat` gave NaN, the guard stepped from 1 instead of
+     from 1.48, and a head that should have grown shrank to the floor
+     instead. Third time that trap has fired in this file today. One place
+     decides the size now. */
   /* Balanced wrapping splits a head into equal lines, which is right for a
      card and wrong for a lead: it left both lines short and a third of the
      measure bare. A lead fills its line and turns. */
