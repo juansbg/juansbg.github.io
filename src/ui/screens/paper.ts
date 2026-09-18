@@ -1035,7 +1035,15 @@ export const fitPaper = (root: ParentNode): void => {
       least = Math.min(least, rect.left)
       most = Math.max(most, rect.left)
     }
-    return most - least > 8
+    if (most - least > 8) return true
+    // And the label under it belongs to it. With the dek filling column
+    // one exactly, its side swatch went over the break to the top of
+    // column two, where it sat over a block of greek and read as that
+    // column's kicker — the town's mark on a block of nothing.
+    const note = paper.querySelector<HTMLElement>('.paper__lead .paper__note')
+    if (note === null) return false
+    const box = note.getBoundingClientRect()
+    return box.width > 0 && Math.abs(box.left - least) > 8
   }
 
   const over = (): boolean => split() || [...paper.querySelectorAll<HTMLElement>(INK)].some(cut)

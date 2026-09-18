@@ -4277,15 +4277,17 @@ html[data-dawn] body {
   :is(.paper--daily, .stage--tv .paper) .paper__head .paper__mark {
     grid-column: 1;
     grid-row: 1;
-    width: 1.5em;
-    height: 1.5em;
+    width: 1.75em;
+    height: 1.75em;
     margin: 0;
     font-size: calc(clamp(0.95rem, 1.6vmin, 1.5rem) * var(--paper-fit, 1));
   }
 
+  /* The glyph at the chip's size and no smaller: Midnight on Vendetta at
+     fourteen pixels was a blob, not a mark. */
   :is(.paper--daily, .stage--tv .paper) .paper__head .paper__mark .sigil {
-    width: 1em;
-    height: 1em;
+    width: 1.2em;
+    height: 1.2em;
   }
 
   :is(.paper--daily, .stage--tv .paper) .paper__head .paper__eyebrow {
