@@ -107,7 +107,7 @@ export const circleMarkup = (
     perspective, votes, leader = null, list = false, cast = [], fresh = null, self: own = [], centre = '',
   } = options
   // The tile has room for one word, not a title: "Bodyguard", not "The
-  // Bodyguard"; "Santera", not "La Santera". The sigil above it already says
+  // Bodyguard"; "Alquimista", not "La Alquimista". The sigil above it already says
   // which role, so the label only has to confirm it.
   const tileRole = (roleId: Player['roleId']): string =>
     t.roles[roleId].name.replace(ARTICLE, '').trim()
