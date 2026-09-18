@@ -45,6 +45,49 @@ describe('string tables', () => {
     }
   })
 
+  it('put a Spanish article in front of every trade without breaking it', () => {
+    // Every entry in `tradesNamed` carries its own article, so a line that
+    // sets `a` or `de` in front of one has to contract — "a el pescadero"
+    // and "de el sastre" were on the front page of the town's paper. The
+    // contraction is only right for the masculine three-quarters of the
+    // bank: "al florista" and "del enfermera" are worse Spanish than the
+    // bug they replace.
+    //
+    // Every clue test in this repo had used a masculine trade, so a helper
+    // that contracted unconditionally would have passed the whole suite and
+    // said "al florista" at a real table. This one asks all of them.
+    const clues = [
+      { kind: 'neighbour' as const, crew: true },
+      { kind: 'neighbour' as const, crew: false },
+      { kind: 'doors' as const, doors: 1 },
+      { kind: 'doors' as const, doors: 3 },
+    ]
+    const players = quietGame(setup(['PLAIN', 'KILLER', 'PLAIN'], ['Ana', 'Beto', 'Caro'])).players
+    for (const locale of LOCALES) {
+      const t = strings(locale)
+      for (let trade = 0; trade < TRADE_COUNT; trade++) {
+        const named = t.tradesNamed[trade] ?? ''
+        for (const clue of clues) {
+          for (let night = 1; night <= 4; night++) {
+            const where = `${locale}/${trade}/${clue.kind}/${night}`
+            const line = renderOutcome({ type: 'clue', night, trade, clue, public: true }, players, locale)
+            expect(line, where).not.toBeNull()
+            expect(line, where).not.toMatch(/\b(a|de) el\b/)
+            // The one that catches "al florista": a feminine entry must
+            // never be contracted, and must keep its own article. Folded
+            // for the comparison, because several lines open on the trade
+            // and a sentence starts with a capital.
+            if (named.startsWith('la ')) {
+              const noun = named.slice(3)
+              expect(line, where).not.toMatch(new RegExp(`\\b(al|del) ${noun}\\b`))
+              expect(line?.toLowerCase(), where).toContain(named)
+            }
+          }
+        }
+      }
+    }
+  })
+
   it('keep every trade out of the death lines, where it would read as a clue', () => {
     for (const locale of LOCALES) {
       const t = strings(locale)
