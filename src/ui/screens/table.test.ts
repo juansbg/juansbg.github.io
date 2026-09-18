@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { lobbyMarkup, tableMarkup } from './table'
 import { dawnSlides, verdictSlides } from './dawn'
 import { tvProjection } from '../../room/projections'
-import { LOCALES, strings } from '../../i18n'
+import { LOCALES, renderWinner, strings } from '../../i18n'
 import {
   castVote,
   createGame,
@@ -290,12 +290,14 @@ describe('the final edition on the big screen', () => {
     const state = finished()
     for (const locale of LOCALES) {
       const t = strings(locale)
-      const up = tableMarkup(tvProjection(state, locale, { over: true, finalPaper: true }), false)
+      const p = tvProjection(state, locale, { over: true, finalPaper: true })
+      const up = tableMarkup(p, false)
       expect(up).toContain('data-paper')
       expect(up).toContain(t.ui.paper.whoWasWho)
-      // The banner is the result the room has just been read.
-      expect(up).toContain(t.appName)
-      // And the nameplate is the paper's own name, not the app's.
+      // The banner is the result the room has just been read. This used to
+      // assert the app's name, which the page carried only as its masthead:
+      // the town wins this game, and the paper has its own name now.
+      expect(up).toContain(renderWinner(p.winner, locale) ?? 'no winner')
       expect(up).toContain(t.ui.paper.masthead)
       // It is the room's copy: nothing to tap.
       expect(up).not.toContain('data-paper-close')
